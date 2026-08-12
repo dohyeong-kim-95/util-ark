@@ -56,6 +56,34 @@ if (!koreanTerms.includes('접속 수와 개인정보 보호')) {
   throw new Error('Korean terms: missing access-count disclosure');
 }
 
+if (!sitemapFiles.includes('ads.txt')) throw new Error('missing ads.txt');
+const adsTxt = await readFile(new URL('ads.txt', dist), 'utf8');
+const adsenseClient = process.env.PUBLIC_ADSENSE_CLIENT?.trim();
+if (adsenseClient && !adsTxt.includes(`google.com, ${adsenseClient.replace(/^ca-/u, '')}, DIRECT,`)) {
+  throw new Error('ads.txt does not authorize the configured AdSense publisher');
+}
+if (!adsenseClient && !adsTxt.startsWith('#')) {
+  throw new Error('ads.txt must stay comment-only until an AdSense publisher is configured');
+}
+
+const advertisingChecks = [
+  ['Google advertising cookie policy link', 'https://policies.google.com/technologies/ads'],
+  ['Google Ads Settings link', 'https://myadcenter.google.com/'],
+  ['AdSense disclosure', 'Google AdSense'],
+];
+for (const page of ['en/privacy/index.html', 'ko/privacy/index.html']) {
+  const html = await readFile(new URL(page, dist), 'utf8');
+  for (const [name, needle] of advertisingChecks) {
+    if (!html.includes(needle)) throw new Error(`${page}: missing ${name}`);
+  }
+}
+if (!(await readFile(new URL('en/privacy/index.html', dist), 'utf8')).includes('consent message')) {
+  throw new Error('en/privacy: missing consent message disclosure');
+}
+if (!(await readFile(new URL('ko/privacy/index.html', dist), 'utf8')).includes('동의 메시지')) {
+  throw new Error('ko/privacy: missing consent message disclosure');
+}
+
 const assetFiles = await readdir(new URL('_astro/', dist));
 const cssFiles = assetFiles.filter((file) => file.endsWith('.css'));
 const css = (

@@ -1,6 +1,7 @@
 import { dashboardPage, loginPage, unavailablePage } from './admin-page.js';
 import { analyticsDay, dailyVisitorKey, likelyBot, trackablePageView } from './analytics.js';
 import { ContactStore } from './contact-store.js';
+import { preferredLocale } from './locale.js';
 import {
   anonymousVisitorKey,
   declaredBodyFits,
@@ -37,6 +38,15 @@ const adminConfigured = (env) => Boolean(env.ADMIN_ID && env.ADMIN_PASSWORD && e
 
 const adminCookie = (token, secure = true) =>
   `${ADMIN_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${secure ? '; Secure' : ''}`;
+
+const localeRedirect = (request, url) => new Response(null, {
+  status: 302,
+  headers: {
+    Location: `/${preferredLocale(request)}/${url.search}`,
+    'Cache-Control': 'no-store',
+    Vary: 'Accept-Language, Cookie',
+  },
+});
 
 const analyticsExclusionCookie = (excluded, secure = true) =>
   `${ANALYTICS_EXCLUSION_COOKIE}=${excluded ? '1' : ''}; Path=/; HttpOnly; Max-Age=${excluded ? 157680000 : 0}; SameSite=Lax; Domain=utilark.app${secure ? '; Secure' : ''}`;
@@ -194,7 +204,10 @@ export default {
     }
 
     let response;
-    if (url.pathname === '/api/contact') response = await handleContact(request, env);
+    if (url.pathname === '/' && ['GET', 'HEAD'].includes(request.method)) {
+      response = localeRedirect(request, url);
+    }
+    else if (url.pathname === '/api/contact') response = await handleContact(request, env);
     else if (url.pathname === '/api/analytics/public' && request.method === 'GET' && env.CONTACTS) {
       response = await contactStub(env).fetch('https://contacts.internal/analytics/public');
     }

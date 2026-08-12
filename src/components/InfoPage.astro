@@ -10,6 +10,11 @@ interface Props {
 
 const { locale, kind } = Astro.props;
 const copy = infoPages[kind][locale];
+const updatedLabel = new Date(`${copy.updated}T00:00:00Z`).toLocaleDateString(locale, {
+  dateStyle: 'long',
+  timeZone: 'UTC',
+});
+const isExternal = (href: string) => href.startsWith('http');
 const issueUrl = 'https://github.com/dohyeong-kim-95/util-ark/issues';
 const sourceUrl = 'https://github.com/dohyeong-kim-95/util-ark';
 const linkify = (text: string) => {
@@ -40,9 +45,28 @@ const linkify = (text: string) => {
               })}
             </ul>
           )}
+          {section.links && (
+            <ul class="policy-links">
+              {section.links.map((link) => (
+                <li>
+                  <a
+                    href={link.href}
+                    rel={isExternal(link.href) ? 'noopener noreferrer' : undefined}
+                    target={isExternal(link.href) ? '_blank' : undefined}
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       ))}
-      <p><small>{ui[locale].common.lastUpdated}</small></p>
+      <p>
+        <small>
+          {ui[locale].common.lastUpdated} <time datetime={copy.updated}>{updatedLabel}</time>
+        </small>
+      </p>
     </article>
   </div>
 </BaseLayout>

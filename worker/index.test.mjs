@@ -171,3 +171,57 @@ test('admin login issues an HttpOnly session and opens the inbox', async () => {
   assert.match(exclusion.headers.get('Set-Cookie'), /Domain=utilark\.app/u);
   assert.match(exclusion.headers.get('Set-Cookie'), /HttpOnly/u);
 });
+
+test('the site root redirects to a localized home without loading the language gate', async () => {
+  let assetRequests = 0;
+  const env = {
+    ADMIN_SESSION_SECRET: 'test-session-secret-value',
+    CONTACTS: namespace(() => Response.json({ ok: true })),
+    ASSETS: {
+      fetch: () => {
+        assetRequests += 1;
+        return new Response('asset', { headers: { 'Content-Type': 'text/html' } });
+      },
+    },
+  };
+
+  const korean = await worker.fetch(new Request('https://utilark.app/', {
+    headers: { 'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8' },
+  }), env);
+  assert.equal(korean.status, 302);
+  assert.equal(korean.headers.get('Location'), '/ko/');
+  assert.equal(assetRequests, 0);
+
+  const english = await worker.fetch(new Request('https://utilark.app/', {
+    headers: { 'Accept-Language': 'fr-FR,fr;q=0.9' },
+  }), env);
+  assert.equal(english.headers.get('Location'), '/en/');
+
+  const remembered = await worker.fetch(new Request('https://utilark.app/?ref=card', {
+    headers: { 'Accept-Language': 'en-US,en;q=0.9', Cookie: 'utilark_lang=ko' },
+  }), env);
+  assert.equal(remembered.headers.get('Location'), '/ko/?ref=card');
+  assert.match(remembered.headers.get('Vary'), /Accept-Language/u);
+});
+
+test('the root redirect is not counted as a page view', async () => {
+  let recorded = 0;
+  const env = {
+    ADMIN_SESSION_SECRET: 'test-session-secret-value',
+    CONTACTS: namespace((request) => {
+      if (new URL(request.url).pathname === '/analytics/record') recorded += 1;
+      return Response.json({ ok: true });
+    }),
+    ASSETS: { fetch: () => new Response('asset', { headers: { 'Content-Type': 'text/html' } }) },
+  };
+
+  await worker.fetch(new Request('https://utilark.app/', {
+    headers: { 'Accept-Language': 'ko', 'CF-Connecting-IP': '203.0.113.9', 'User-Agent': 'Mozilla/5.0' },
+  }), env);
+  assert.equal(recorded, 0);
+
+  await worker.fetch(new Request('https://utilark.app/ko/', {
+    headers: { 'CF-Connecting-IP': '203.0.113.9', 'User-Agent': 'Mozilla/5.0' },
+  }), env);
+  assert.equal(recorded, 1);
+});

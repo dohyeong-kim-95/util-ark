@@ -11,7 +11,7 @@ Private-by-default browser utilities for [utilark.app](https://utilark.app), mai
 - Canonical URLs, `hreflang`, Open Graph metadata, JSON-LD, sitemap, and robots.txt
 - Private bilingual contact form with an independent Utilark admin inbox
 - Privacy-preserving 90-day DAU, page-view, and excluded-bot totals in Utilark Admin
-- Optional AdSense loading through public environment variables after approval and consent review
+- Optional AdSense loading, generated `ads.txt`, and advertising disclosures in both privacy policies
 
 No selected file or text entered into a tool is sent to Utilark. The contact form is the explicit exception: its message and optional reply email are sent to the Utilark Worker and retained for up to 180 days.
 
@@ -41,11 +41,22 @@ PUBLIC_ADSENSE_CLIENT=ca-pub-0000000000000000
 PUBLIC_ADSENSE_SLOT=0000000000
 ```
 
-If either variable is absent, Utilark does not load the AdSense script or render an ad unit. Adding advertising also requires an appropriate consent flow and an updated privacy review for the target regions.
+`PUBLIC_ADSENSE_CLIENT` alone loads the AdSense script, which is what the review needs before an ad unit exists. An ad unit is rendered only when `PUBLIC_ADSENSE_SLOT` is also present, so the two variables can be set in that order.
+
+Both are read at build time, so production values live in **Settings → Secrets and variables → Actions → Variables** as the repository variables `PUBLIC_ADSENSE_CLIENT` and `PUBLIC_ADSENSE_SLOT`. They are publisher identifiers rather than credentials, so they are repository variables, not secrets. A deployment made without them produces a site with no advertising code at all.
+
+`/ads.txt` is generated from `PUBLIC_ADSENSE_CLIENT` during the build. Without the variable it stays a comment-only file that authorizes nobody, and `npm test` enforces both states.
+
+### AdSense review checklist
+
+1. Set the `PUBLIC_ADSENSE_CLIENT` repository variable and deploy, so the review script and `/ads.txt` are live.
+2. Confirm `https://utilark.app/ads.txt` lists the publisher ID and that the site root serves a `302` to a localized home.
+3. In the AdSense console, open **Privacy and messaging** and publish a GDPR message and a US state regulations message. Google's certified consent message is delivered through the same `adsbygoogle.js` tag, so no extra script belongs in this repository — publishing the message in the console is what makes advertising in the EEA, the UK, and Switzerland compliant.
+4. After approval, add `PUBLIC_ADSENSE_SLOT` to render the ad unit on tool pages.
 
 ## Routes
 
-- `/` — language selector; excluded from indexing
+- `/` — `302` to `/en/` or `/ko/`, chosen from the `utilark_lang` cookie and then `Accept-Language`
 - `/en/`, `/ko/` — localized home pages
 - `/en/tools/{tool}/`, `/ko/tools/{tool}/` — localized tool pages
 - Localized about, privacy, terms, and contact pages

@@ -6,6 +6,7 @@ type Section = {
   heading: string;
   paragraphs?: string[];
   items?: string[];
+  links?: Array<{ label: string; href: string }>;
 };
 
 export type InfoCopy = {
@@ -13,6 +14,8 @@ export type InfoCopy = {
   description: string;
   lead: string;
   notice?: string;
+  /** ISO date shown as the page-specific last update. */
+  updated: string;
   sections: Section[];
 };
 
@@ -23,6 +26,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
       description:
         'Learn why Utilark builds small, focused browser tools with clear privacy boundaries and bilingual support.',
       lead: 'Utilark is an independent collection of practical tools for small, everyday tasks.',
+      updated: '2026-08-12',
       sections: [
         {
           heading: 'What we are building',
@@ -43,6 +47,17 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
             'Utilark began by reviewing useful browser-based ideas from Bubblelab, but it is a separate project with its own domain, source repository, deployment, infrastructure, and future administration boundary.',
           ],
         },
+        {
+          heading: 'Who runs Utilark and how it is funded',
+          paragraphs: [
+            'Utilark is built and operated by one independent maintainer, not a company. The source code is public, so anyone can review how a tool handles the files and text you give it.',
+            'Running costs are covered by advertising shown on tool pages. Advertising never changes what a tool does, and no tool result is withheld behind an ad. Reach the maintainer through the contact form.',
+          ],
+          links: [
+            { label: 'Contact form', href: '/en/contact/' },
+            { label: 'Privacy Policy', href: '/en/privacy/' },
+          ],
+        },
       ],
     },
     ko: {
@@ -50,6 +65,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
       description:
         'Utilark가 명확한 개인정보 보호 기준과 한·영 지원을 갖춘 작은 브라우저 도구를 만드는 이유를 소개합니다.',
       lead: 'Utilark는 일상의 작은 작업을 해결하는 실용적인 도구 모음입니다.',
+      updated: '2026-08-12',
       sections: [
         {
           heading: '무엇을 만들고 있나요?',
@@ -70,6 +86,17 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
             'Utilark는 Bubblelab의 브라우저형 도구 아이디어를 검토하며 시작했지만, 별도의 도메인·소스 저장소·배포·인프라·관리 영역을 사용하는 독립 프로젝트입니다.',
           ],
         },
+        {
+          heading: '운영 주체와 운영 비용',
+          paragraphs: [
+            'Utilark는 회사가 아니라 한 명의 독립 개발자가 만들고 운영합니다. 소스 코드를 공개하고 있어 각 도구가 파일과 글을 어떻게 다루는지 누구나 직접 확인할 수 있습니다.',
+            '운영 비용은 도구 페이지에 표시되는 광고로 충당합니다. 광고가 도구의 동작을 바꾸지 않으며, 광고를 보아야만 결과를 받을 수 있게 하지 않습니다. 문의는 문의 폼으로 보내주세요.',
+          ],
+          links: [
+            { label: '문의 폼', href: '/ko/contact/' },
+            { label: '개인정보 처리방침', href: '/ko/privacy/' },
+          ],
+        },
       ],
     },
   },
@@ -79,6 +106,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
       description:
         'How Utilark handles browser-processed files, access logs, advertising, and other data when you use the service.',
       lead: 'The current tools do not upload the files or text you choose to Utilark.',
+      updated: '2026-08-12',
       notice:
         'This policy covers Utilark at utilark.app, including the contact form. Browser extensions, downloaded files, and third-party sites have their own policies.',
       sections: [
@@ -95,6 +123,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
             'The hosting and security providers may process standard request information such as IP address, browser type, requested URL, time, and security signals. This information is used to deliver and protect the website and may be retained according to the provider configuration.',
             'Utilark keeps privacy-preserving daily usage totals for up to 90 days. To remove repeat visits from DAU, the date, connection IP address, and browser user-agent are converted into a keyed one-way daily value. The original values, individual browsing history, and cross-day visitor identifier are not stored in the Utilark analytics database. Known bots are excluded where Cloudflare signals or common automated user-agents identify them, and DNT or Global Privacy Control requests are not counted.',
             'An authenticated administrator can exclude the current browser from future counts. This setting uses the HttpOnly utilark_notrack cookie across utilark.app for up to five years, contains only the value 1, and is removed when the setting is turned off. It is not an advertising or cross-site tracking cookie.',
+            'Choosing a language stores the utilark_lang cookie for up to one year so that utilark.app opens in the language you picked. It holds only the value en or ko and is not used for advertising or cross-site tracking.',
           ],
         },
         {
@@ -108,9 +137,16 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
         {
           heading: 'Advertising and analytics',
           paragraphs: [
-            'The daily usage totals described above are stored in Utilark infrastructure and are visible only to the Utilark administrator. No third-party analytics script is loaded in the initial release.',
-            'Utilark does not load advertising code in the initial release. If advertising is enabled later, this policy and the consent experience will be updated before personalized advertising is used where consent is required.',
-            'Google AdSense or another advertising provider may use cookies or similar technologies and process device and interaction information. You will be able to review the relevant provider policy from the consent notice.',
+            'The daily usage totals described above are stored in Utilark infrastructure and are visible only to the Utilark administrator. No third-party analytics script is loaded.',
+            'Utilark shows advertising supplied by Google AdSense. Google is a third-party vendor and, together with its partners, uses cookies or similar technologies to serve, personalize, and measure advertising based on your visits to Utilark and other websites.',
+            'Where consent is required, including the European Economic Area, the United Kingdom, and Switzerland, a Google-certified consent message is shown before advertising cookies are used for personalization. You can reopen that notice to change or withdraw your choice at any time.',
+            'You can turn off personalized advertising in Google Ads Settings, and you can opt out of third-party vendor cookies through the industry choice pages linked below. Turning personalization off does not remove advertising; it makes the advertising less specific to you.',
+          ],
+          links: [
+            { label: 'How Google uses cookies in advertising', href: 'https://policies.google.com/technologies/ads' },
+            { label: 'Google Ads Settings', href: 'https://myadcenter.google.com/' },
+            { label: 'Digital Advertising Alliance opt-out', href: 'https://optout.aboutads.info/' },
+            { label: 'Your Online Choices (EU)', href: 'https://www.youronlinechoices.eu/' },
           ],
         },
         {
@@ -120,6 +156,17 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
             'Utilark does not currently sell products or collect payment details.',
             'A contact reply email is collected only when you choose to provide it.',
             'Do not enter sensitive information into a tool unless you are comfortable processing it on your own device.',
+          ],
+        },
+        {
+          heading: 'Who is responsible',
+          paragraphs: [
+            'Utilark is an independent project operated by the maintainer of the public utilark.app source repository. There is no parent company, and the service is not operated on behalf of Bubblelab.',
+            'For a privacy question, a correction or deletion request about a contact message, or an advertising question, use the contact form. Replies go to the email address you choose to provide.',
+          ],
+          links: [
+            { label: 'Contact form', href: '/en/contact/' },
+            { label: 'Source repository', href: 'https://github.com/dohyeong-kim-95/util-ark' },
           ],
         },
         {
@@ -135,6 +182,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
       description:
         'Utilark 이용 시 브라우저에서 처리되는 파일, 접속 기록, 광고 및 기타 데이터를 어떻게 다루는지 안내합니다.',
       lead: '현재 제공하는 도구는 사용자가 선택한 파일이나 글을 Utilark로 업로드하지 않습니다.',
+      updated: '2026-08-12',
       notice:
         '이 방침은 문의 폼을 포함한 utilark.app의 Utilark 서비스에 적용됩니다. 브라우저 확장 기능, 내려받은 파일, 외부 사이트에는 각각의 정책이 적용됩니다.',
       sections: [
@@ -151,6 +199,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
             '호스팅 및 보안 제공업체는 사이트 전송과 보호를 위해 IP 주소, 브라우저 종류, 요청 URL, 접속 시각, 보안 신호와 같은 일반적인 요청 정보를 처리할 수 있습니다. 보관 기간은 제공업체 설정에 따라 달라질 수 있습니다.',
             'Utilark는 개인정보 보호형 일별 이용 통계를 최대 90일간 보관합니다. DAU에서 당일 중복 방문을 제외하기 위해 날짜·접속 IP 주소·브라우저 User-Agent를 키가 적용된 일방향 일별 값으로 변환합니다. Utilark 분석 데이터베이스에는 원문 값, 개별 페이지 방문 기록, 날짜를 넘어 사용자를 연결하는 식별자를 저장하지 않습니다. Cloudflare 신호나 일반적인 자동화 User-Agent로 확인되는 봇은 제외하고, DNT 또는 Global Privacy Control 요청은 집계하지 않습니다.',
             '인증된 관리자는 현재 브라우저를 이후 집계에서 제외할 수 있습니다. 이 설정은 utilark.app 전체에서 최대 5년간 유지되는 HttpOnly utilark_notrack 쿠키를 사용하며 값 1만 담습니다. 설정을 끄면 쿠키를 삭제하며, 광고 또는 사이트 간 추적 쿠키로 사용하지 않습니다.',
+            '언어를 선택하면 utilark.app을 다시 열 때 같은 언어로 이동하도록 utilark_lang 쿠키를 최대 1년간 저장합니다. 이 쿠키는 en 또는 ko 값만 담으며 광고나 사이트 간 추적에 사용하지 않습니다.',
           ],
         },
         {
@@ -164,9 +213,16 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
         {
           heading: '광고와 분석',
           paragraphs: [
-            '앞에서 설명한 일별 이용 통계는 Utilark 인프라에 저장되며 Utilark 관리자만 확인할 수 있습니다. 초기 공개판에는 외부 분석 스크립트를 불러오지 않습니다.',
-            '초기 공개판에는 광고 코드를 불러오지 않습니다. 나중에 광고를 활성화하면 동의가 필요한 지역에서 맞춤형 광고를 사용하기 전에 이 방침과 동의 절차를 갱신합니다.',
-            'Google AdSense 또는 다른 광고 제공업체는 쿠키나 유사 기술을 사용하고 기기·이용 정보를 처리할 수 있습니다. 동의 안내에서 해당 제공업체의 정책을 확인할 수 있도록 합니다.',
+            '앞에서 설명한 일별 이용 통계는 Utilark 인프라에 저장되며 Utilark 관리자만 확인할 수 있습니다. 외부 분석 스크립트는 불러오지 않습니다.',
+            'Utilark는 Google AdSense가 제공하는 광고를 게재합니다. Google은 제3자 광고 제공업체로서 파트너와 함께 쿠키 또는 유사 기술을 사용해 Utilark와 다른 웹사이트 방문 기록을 바탕으로 광고를 게재·맞춤 설정하고 성과를 측정합니다.',
+            '유럽경제지역, 영국, 스위스 등 동의가 필요한 지역에서는 맞춤형 광고 쿠키를 사용하기 전에 Google 인증 동의 메시지를 표시합니다. 이 안내는 언제든 다시 열어 선택을 변경하거나 철회할 수 있습니다.',
+            'Google 광고 설정에서 맞춤형 광고를 끌 수 있고, 아래 링크의 업계 공동 페이지에서 제3자 광고 쿠키 수신을 거부할 수 있습니다. 맞춤 설정을 끄더라도 광고가 사라지지는 않으며, 관련성이 낮은 광고가 표시됩니다.',
+          ],
+          links: [
+            { label: 'Google 광고 쿠키 사용 안내', href: 'https://policies.google.com/technologies/ads' },
+            { label: 'Google 광고 설정', href: 'https://myadcenter.google.com/' },
+            { label: 'Digital Advertising Alliance 수신 거부', href: 'https://optout.aboutads.info/' },
+            { label: 'Your Online Choices (EU)', href: 'https://www.youronlinechoices.eu/' },
           ],
         },
         {
@@ -176,6 +232,17 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
             '현재 상품을 판매하거나 결제 정보를 수집하지 않습니다.',
             '문의 답변용 이메일은 사용자가 선택해서 제공한 경우에만 수집합니다.',
             '사용자 기기에서 직접 처리하더라도 민감정보는 필요성을 확인한 뒤 입력하세요.',
+          ],
+        },
+        {
+          heading: '운영 주체와 문의',
+          paragraphs: [
+            'Utilark는 공개된 utilark.app 소스 저장소를 관리하는 개인이 독립적으로 운영하는 프로젝트입니다. 모회사가 없으며 Bubblelab을 대신해 운영하지 않습니다.',
+            '개인정보 관련 문의, 접수된 문의 내용의 정정·삭제 요청, 광고 관련 문의는 문의 폼을 이용해주세요. 답변은 사용자가 선택해 제공한 이메일 주소로 보냅니다.',
+          ],
+          links: [
+            { label: '문의 폼', href: '/ko/contact/' },
+            { label: '소스 저장소', href: 'https://github.com/dohyeong-kim-95/util-ark' },
           ],
         },
         {
@@ -192,6 +259,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
       title: 'Terms of Use',
       description: 'The basic terms, limitations, and user responsibilities for using Utilark tools.',
       lead: 'Use Utilark only for files and content you are authorized to process.',
+      updated: '2026-08-12',
       sections: [
         {
           heading: 'Using the service',
@@ -232,6 +300,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
       title: '이용약관',
       description: 'Utilark 도구 이용에 적용되는 기본 조건, 제한 및 사용자의 책임을 안내합니다.',
       lead: '처리할 권한이 있는 파일과 콘텐츠에만 Utilark를 사용해주세요.',
+      updated: '2026-08-12',
       sections: [
         {
           heading: '서비스 이용',
@@ -274,6 +343,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
       title: 'Contact',
       description: 'Send Utilark a bug report, tool suggestion, or service feedback through the private contact form.',
       lead: 'Report a bug, suggest a tool, or share feedback without posting it publicly.',
+      updated: '2026-08-12',
       sections: [
         {
           heading: 'Bugs and suggestions',
@@ -300,6 +370,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
       title: '문의',
       description: '비공개 문의 폼으로 Utilark 오류를 제보하고 새 도구를 제안하거나 서비스 의견을 전달할 수 있습니다.',
       lead: '공개 게시글을 남기지 않고 오류를 제보하거나 새 도구와 서비스 의견을 보내주세요.',
+      updated: '2026-08-12',
       sections: [
         {
           heading: '오류 제보와 제안',

@@ -42,7 +42,7 @@ export const ui = {
       breadcrumbTools: 'Tools',
       language: '한국어',
       adLabel: 'Advertisement',
-      lastUpdated: 'Last updated: August 12, 2026',
+      lastUpdated: 'Last updated:',
     },
     footer: {
       note: 'Practical browser tools, built with privacy in mind.',
@@ -79,7 +79,7 @@ export const ui = {
       breadcrumbTools: '도구',
       language: 'English',
       adLabel: '광고',
-      lastUpdated: '최종 업데이트: 2026년 8월 12일',
+      lastUpdated: '최종 업데이트:',
     },
     footer: {
       note: '개인정보 보호를 고려해 만든 실용적인 브라우저 도구입니다.',

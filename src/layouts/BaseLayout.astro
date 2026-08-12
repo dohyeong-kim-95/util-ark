@@ -142,7 +142,10 @@ const schemas = [
       document.querySelectorAll<HTMLAnchorElement>('[data-language]').forEach((link) => {
         link.addEventListener('click', () => {
           const language = link.dataset.language;
-          if (language) localStorage.setItem('utilark-language', language);
+          if (!language) return;
+          localStorage.setItem('utilark-language', language);
+          const secure = location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `utilark_lang=${language}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
         });
       });
 

@@ -32,7 +32,10 @@ import '../styles/global.css';
     <script>
       const links = document.querySelectorAll<HTMLAnchorElement>('[data-language]');
       links.forEach((link) => link.addEventListener('click', () => {
-        localStorage.setItem('utilark-language', link.dataset.language ?? 'en');
+        const language = link.dataset.language ?? 'en';
+        localStorage.setItem('utilark-language', language);
+        const secure = location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `utilark_lang=${language}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
       }));
 
       const saved = localStorage.getItem('utilark-language');
