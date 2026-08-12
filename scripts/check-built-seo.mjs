@@ -16,6 +16,8 @@ const requiredPages = [
   'ko/tools/word-counter/index.html',
   'en/tools/merge-pdf/index.html',
   'ko/tools/merge-pdf/index.html',
+  'en/tools/ladder/index.html',
+  'ko/tools/ladder/index.html',
 ];
 
 const checks = [

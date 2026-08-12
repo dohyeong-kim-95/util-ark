@@ -113,7 +113,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
         {
           heading: 'Files and text used in tools',
           paragraphs: [
-            'Image conversion, word counting, and PDF merging run locally in your browser. Utilark does not receive, store, or review the files and text you use in these tools.',
+            'Image conversion, word counting, PDF merging, and the ladder game run locally in your browser. Utilark does not receive, store, or review the files, text, and names you use in these tools.',
             'Closing or refreshing the page clears the tool state unless your browser itself retains form state. Downloaded results are saved wherever your browser is configured to save them.',
           ],
         },
@@ -189,7 +189,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
         {
           heading: '도구에서 사용하는 파일과 글',
           paragraphs: [
-            '이미지 변환, 글자수 계산, PDF 합치기는 사용자의 브라우저에서 실행됩니다. Utilark는 이 도구에 넣은 파일이나 글을 받거나 저장하거나 열람하지 않습니다.',
+            '이미지 변환, 글자수 계산, PDF 합치기, 사다리타기는 사용자의 브라우저에서 실행됩니다. Utilark는 이 도구에 넣은 파일, 글, 이름을 받거나 저장하거나 열람하지 않습니다.',
             '페이지를 닫거나 새로고침하면 브라우저 자체가 입력 상태를 복구하는 경우를 제외하고 도구 상태가 사라집니다. 결과 파일은 사용자의 브라우저에 설정된 위치에 저장됩니다.',
           ],
         },
