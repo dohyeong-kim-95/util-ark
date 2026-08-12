@@ -1,0 +1,136 @@
+---
+import '../styles/global.css';
+import { otherLocale, switchLocalePath, ui, type Locale } from '../i18n/ui';
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  noindex?: boolean;
+  schema?: Record<string, unknown> | Array<Record<string, unknown>>;
+}
+
+const { locale, title, description, noindex = false, schema } = Astro.props;
+const t = ui[locale];
+const site = Astro.site ?? new URL('https://utilark.app');
+const canonicalUrl = new URL(Astro.url.pathname, site);
+const alternateLocale = otherLocale(locale);
+const alternatePath = switchLocalePath(Astro.url.pathname, locale);
+const alternateUrl = new URL(alternatePath, site);
+const englishPath = locale === 'en' ? Astro.url.pathname : alternatePath;
+const xDefaultUrl = new URL(englishPath, site);
+const fullTitle = title === 'Utilark' ? title : `${title} · Utilark`;
+const adsenseClient = import.meta.env.PUBLIC_ADSENSE_CLIENT?.trim();
+
+const schemas = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Utilark',
+    url: new URL(`/${locale}/`, site).href,
+    inLanguage: locale,
+    description: t.brandTagline,
+  },
+  ...(schema ? (Array.isArray(schema) ? schema : [schema]) : []),
+];
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#111319" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <link rel="canonical" href={canonicalUrl.href} />
+    <link rel="alternate" hreflang={locale} href={canonicalUrl.href} />
+    <link rel="alternate" hreflang={alternateLocale} href={alternateUrl.href} />
+    <link rel="alternate" hreflang="x-default" href={xDefaultUrl.href} />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Utilark" />
+    <meta property="og:locale" content={locale === 'ko' ? 'ko_KR' : 'en_US'} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl.href} />
+    <meta name="twitter:card" content="summary" />
+
+    {schemas.map((item) => (
+      <script is:inline type="application/ld+json" set:html={JSON.stringify(item)} />
+    ))}
+
+    {adsenseClient && (
+      <script
+        is:inline
+        async
+        crossorigin="anonymous"
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
+      ></script>
+    )}
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-header">
+      <div class="shell header-inner">
+        <a class="brand" href={`/${locale}/`} aria-label="Utilark home">
+          <span class="brand-mark" aria-hidden="true">U</span>
+          <span>Utilark</span>
+        </a>
+        <nav class="primary-nav" aria-label="Primary navigation">
+          <a href={`/${locale}/#tools`}>{t.nav.tools}</a>
+          <a href={`/${locale}/about/`}>{t.nav.about}</a>
+          <a href={`/${locale}/privacy/`}>{t.nav.privacy}</a>
+          <a
+            class="language-link"
+            href={alternatePath}
+            hreflang={alternateLocale}
+            lang={alternateLocale}
+            data-language={alternateLocale}
+          >
+            {t.common.language}
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-grid">
+        <div>
+          <a class="brand footer-brand" href={`/${locale}/`}>
+            <span class="brand-mark" aria-hidden="true">U</span>
+            <span>Utilark</span>
+          </a>
+          <p>{t.footer.note}</p>
+        </div>
+        <nav aria-label="Footer navigation">
+          <a href={`/${locale}/about/`}>{t.nav.about}</a>
+          <a href={`/${locale}/privacy/`}>{t.nav.privacy}</a>
+          <a href={`/${locale}/terms/`}>{t.footer.terms}</a>
+          <a href={`/${locale}/contact/`}>{t.nav.contact}</a>
+          <a href="https://github.com/dohyeong-kim-95/util-ark" rel="noopener noreferrer">
+            {t.footer.source}
+          </a>
+        </nav>
+      </div>
+      <div class="shell footer-bottom">© {new Date().getFullYear()} Utilark</div>
+    </footer>
+
+    <script>
+      document.querySelectorAll<HTMLAnchorElement>('[data-language]').forEach((link) => {
+        link.addEventListener('click', () => {
+          const language = link.dataset.language;
+          if (language) localStorage.setItem('utilark-language', language);
+        });
+      });
+    </script>
+  </body>
+</html>

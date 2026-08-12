@@ -1,0 +1,28 @@
+---
+import { ui, type Locale } from '../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const client = import.meta.env.PUBLIC_ADSENSE_CLIENT?.trim();
+const slot = import.meta.env.PUBLIC_ADSENSE_SLOT?.trim();
+---
+
+{client && slot && (
+  <aside class="ad-slot" aria-label={ui[locale].common.adLabel}>
+    <span>{ui[locale].common.adLabel}</span>
+    <ins
+      class="adsbygoogle"
+      style="display:block"
+      data-ad-client={client}
+      data-ad-slot={slot}
+      data-ad-format="auto"
+      data-full-width-responsive="true"
+    ></ins>
+    <script is:inline>
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+  </aside>
+)}

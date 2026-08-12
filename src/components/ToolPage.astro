@@ -1,0 +1,73 @@
+---
+import type { ToolDefinition } from '../data/tools';
+import type { Locale } from '../i18n/ui';
+import { ui } from '../i18n/ui';
+import AdSlot from './AdSlot.astro';
+import ImageConverter from './tools/ImageConverter.astro';
+import MergePdf from './tools/MergePdf.astro';
+import WordCounter from './tools/WordCounter.astro';
+
+interface Props {
+  tool: ToolDefinition;
+  locale: Locale;
+}
+
+const { tool, locale } = Astro.props;
+const copy = tool.copy[locale];
+const components = {
+  'image-converter': ImageConverter,
+  'word-counter': WordCounter,
+  'merge-pdf': MergePdf,
+};
+const InteractiveTool = components[tool.slug];
+---
+
+<div class="shell tool-page">
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a href={`/${locale}/`}>{ui[locale].common.breadcrumbHome}</a>
+    <span aria-hidden="true">/</span>
+    <a href={`/${locale}/#tools`}>{ui[locale].common.breadcrumbTools}</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{copy.name}</span>
+  </nav>
+
+  <header class="tool-hero" style={`--tool-accent:${tool.accent}`}>
+    <span class="privacy-pill"><span aria-hidden="true">●</span>{ui[locale].common.localBadge}</span>
+    <h1>{copy.name}</h1>
+    <p>{copy.short}</p>
+  </header>
+
+  <section class="interactive-panel" aria-label={copy.name}>
+    <InteractiveTool locale={locale} />
+  </section>
+
+  <AdSlot locale={locale} />
+
+  <div class="content-grid">
+    <article class="prose">
+      {copy.intro.map((paragraph) => <p>{paragraph}</p>)}
+
+      <h2>{ui[locale].common.howItWorks}</h2>
+      <ol>
+        {copy.steps.map((step) => <li>{step}</li>)}
+      </ol>
+
+      <h2>{ui[locale].common.faq}</h2>
+      <div class="faq-list">
+        {copy.faq.map((item) => (
+          <details>
+            <summary>{item.question}</summary>
+            <p>{item.answer}</p>
+          </details>
+        ))}
+      </div>
+    </article>
+
+    <aside class="trust-card">
+      <span aria-hidden="true">◎</span>
+      <h2>{ui[locale].home.privacyTitle}</h2>
+      <p>{ui[locale].home.privacyBody}</p>
+      <a href={`/${locale}/privacy/`}>{ui[locale].nav.privacy} →</a>
+    </aside>
+  </div>
+</div>

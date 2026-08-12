@@ -1,0 +1,48 @@
+---
+import { infoPages, type InfoPageKind } from '../data/info';
+import { ui, type Locale } from '../i18n/ui';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+interface Props {
+  locale: Locale;
+  kind: InfoPageKind;
+}
+
+const { locale, kind } = Astro.props;
+const copy = infoPages[kind][locale];
+const issueUrl = 'https://github.com/dohyeong-kim-95/util-ark/issues';
+const sourceUrl = 'https://github.com/dohyeong-kim-95/util-ark';
+const linkify = (text: string) => {
+  if (text.includes('/issues')) return { label: text, href: issueUrl };
+  if (text.includes('github.com/')) return { label: text, href: sourceUrl };
+  return undefined;
+};
+---
+
+<BaseLayout locale={locale} title={copy.title} description={copy.description}>
+  <div class="shell info-page">
+    <header class="page-hero">
+      <p class="eyebrow">UTILARK</p>
+      <h1>{copy.title}</h1>
+      <p>{copy.lead}</p>
+    </header>
+    <article class="prose">
+      {copy.notice && <aside class="notice-box">{copy.notice}</aside>}
+      {copy.sections.map((section) => (
+        <section>
+          <h2>{section.heading}</h2>
+          {section.paragraphs?.map((paragraph) => <p>{paragraph}</p>)}
+          {section.items && (
+            <ul>
+              {section.items.map((item) => {
+                const link = linkify(item);
+                return <li>{link ? <a href={link.href} rel="noopener noreferrer">{link.label}</a> : item}</li>;
+              })}
+            </ul>
+          )}
+        </section>
+      ))}
+      <p><small>{ui[locale].common.lastUpdated}</small></p>
+    </article>
+  </div>
+</BaseLayout>

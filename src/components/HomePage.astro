@@ -1,0 +1,77 @@
+---
+import { tools } from '../data/tools';
+import { ui, type Locale } from '../i18n/ui';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ToolCard from './ToolCard.astro';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = ui[locale];
+const description = locale === 'ko'
+  ? '파일을 업로드하지 않는 무료 이미지 변환, 글자수 계산, PDF 합치기 도구를 한국어와 영어로 제공합니다.'
+  : 'Free image conversion, word counting, and PDF merging tools that process your files locally in the browser.';
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: locale === 'ko' ? 'Utilark 무료 온라인 도구' : 'Utilark free online tools',
+  description,
+  inLanguage: locale,
+  mainEntity: {
+    '@type': 'ItemList',
+    itemListElement: tools.map((tool, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: tool.copy[locale].name,
+      url: `https://utilark.app/${locale}/tools/${tool.slug}/`,
+    })),
+  },
+};
+---
+
+<BaseLayout locale={locale} title="Utilark" description={description} schema={schema}>
+  <section class="hero">
+    <div class="shell hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">{t.home.eyebrow}</p>
+        <h1>{t.home.title}</h1>
+        <p>{t.home.description}</p>
+        <div class="hero-actions">
+          <a class="button" href="#tools">{t.home.primary}<span aria-hidden="true">↓</span></a>
+        </div>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="orbit"></div>
+        <div class="visual-card">
+          <div class="visual-dots"><span></span><span></span><span></span></div>
+          <strong>{locale === 'ko' ? '로컬 처리 완료' : 'Processed locally'}</strong>
+          <p>{locale === 'ko' ? '파일은 기기에 그대로 있어요.' : 'Your file stays on your device.'}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="privacy-strip">
+    <div class="shell privacy-grid">
+      <div class="privacy-symbol" aria-hidden="true">◎</div>
+      <div>
+        <h2>{t.home.privacyTitle}</h2>
+        <p>{t.home.privacyBody}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="tools-section" id="tools">
+    <div class="shell">
+      <div class="section-heading">
+        <h2>{t.home.toolsTitle}</h2>
+        <p>{t.home.toolsDescription}</p>
+      </div>
+      <div class="tool-grid">
+        {tools.map((tool) => <ToolCard tool={tool} locale={locale} />)}
+      </div>
+    </div>
+  </section>
+</BaseLayout>

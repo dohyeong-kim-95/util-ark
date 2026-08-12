@@ -1,0 +1,45 @@
+---
+import '../styles/global.css';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, follow" />
+    <meta name="theme-color" content="#111319" />
+    <title>Choose your language · Utilark</title>
+    <meta name="description" content="Choose English or Korean to use Utilark browser tools." />
+    <link rel="canonical" href="https://utilark.app/" />
+    <link rel="alternate" hreflang="en" href="https://utilark.app/en/" />
+    <link rel="alternate" hreflang="ko" href="https://utilark.app/ko/" />
+    <link rel="alternate" hreflang="x-default" href="https://utilark.app/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body class="language-gate">
+    <main class="language-card">
+      <a class="brand" href="/en/">
+        <span class="brand-mark" aria-hidden="true">U</span><span>Utilark</span>
+      </a>
+      <h1>Choose a language</h1>
+      <p>언어를 선택해주세요. Your choice is remembered only in this browser.</p>
+      <div class="language-options">
+        <a href="/en/" lang="en" data-language="en">English</a>
+        <a href="/ko/" lang="ko" data-language="ko">한국어</a>
+      </div>
+    </main>
+    <script>
+      const links = document.querySelectorAll<HTMLAnchorElement>('[data-language]');
+      links.forEach((link) => link.addEventListener('click', () => {
+        localStorage.setItem('utilark-language', link.dataset.language ?? 'en');
+      }));
+
+      const saved = localStorage.getItem('utilark-language');
+      const language = saved === 'en' || saved === 'ko'
+        ? saved
+        : navigator.language.toLowerCase().startsWith('ko') ? 'ko' : 'en';
+      window.location.replace(`/${language}/`);
+    </script>
+  </body>
+</html>

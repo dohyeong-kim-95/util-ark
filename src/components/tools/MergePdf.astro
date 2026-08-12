@@ -1,0 +1,146 @@
+---
+import type { Locale } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const labels = locale === 'ko'
+  ? {
+      pick: 'PDF 파일 선택',
+      hint: '두 개 이상의 PDF를 선택하세요',
+      merge: 'PDF 합치기',
+      empty: 'PDF 파일을 두 개 이상 선택해주세요.',
+      working: 'PDF를 합치는 중…',
+      done: '합친 PDF를 내려받았습니다.',
+      failed: 'PDF를 합치지 못했습니다. 암호화된 파일인지 확인해주세요.',
+      up: '위로',
+      down: '아래로',
+      remove: '삭제',
+    }
+  : {
+      pick: 'Choose PDF files',
+      hint: 'Select two or more PDF documents',
+      merge: 'Merge PDFs',
+      empty: 'Choose at least two PDF files.',
+      working: 'Merging PDFs…',
+      done: 'Your merged PDF has been downloaded.',
+      failed: 'Could not merge the PDFs. Check whether a file is encrypted.',
+      up: 'Move up',
+      down: 'Move down',
+      remove: 'Remove',
+    };
+---
+
+<div
+  class="pdf-tool"
+  data-empty={labels.empty}
+  data-working={labels.working}
+  data-done={labels.done}
+  data-failed={labels.failed}
+  data-up={labels.up}
+  data-down={labels.down}
+  data-remove={labels.remove}
+>
+  <label class="drop-zone">
+    <input type="file" accept="application/pdf,.pdf" multiple />
+    <strong>{labels.pick}</strong>
+    <span>{labels.hint}</span>
+  </label>
+  <div class="file-list" aria-live="polite"></div>
+  <div class="tool-actions">
+    <button type="button" class="primary" data-action="merge">{labels.merge}</button>
+    <span class="action-status" role="status"></span>
+  </div>
+</div>
+
+<script>
+  import { PDFDocument } from 'pdf-lib';
+
+  const root = document.querySelector<HTMLElement>('.pdf-tool');
+  if (root) {
+    const input = root.querySelector<HTMLInputElement>('input[type="file"]');
+    const list = root.querySelector<HTMLElement>('.file-list');
+    const status = root.querySelector<HTMLElement>('.action-status');
+    let files: File[] = [];
+
+    const move = (index: number, direction: number) => {
+      const target = index + direction;
+      if (target < 0 || target >= files.length) return;
+      [files[index], files[target]] = [files[target], files[index]];
+      render();
+    };
+    const render = () => {
+      if (!list) return;
+      list.replaceChildren();
+      files.forEach((file, index) => {
+        const row = document.createElement('div');
+        row.className = 'file-row pdf-row';
+        const number = document.createElement('span');
+        number.className = 'file-number';
+        number.textContent = String(index + 1);
+        const name = document.createElement('strong');
+        name.textContent = file.name;
+        const controls = document.createElement('span');
+        controls.className = 'row-controls';
+        const buttons = [
+          { text: '↑', label: root.dataset.up, action: () => move(index, -1), disabled: index === 0 },
+          { text: '↓', label: root.dataset.down, action: () => move(index, 1), disabled: index === files.length - 1 },
+          { text: '×', label: root.dataset.remove, action: () => { files.splice(index, 1); render(); }, disabled: false },
+        ];
+        buttons.forEach((item) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'icon-button';
+          button.textContent = item.text;
+          button.disabled = item.disabled;
+          button.setAttribute('aria-label', `${item.label}: ${file.name}`);
+          button.addEventListener('click', item.action);
+          controls.append(button);
+        });
+        row.append(number, name, controls);
+        list.append(row);
+      });
+    };
+    input?.addEventListener('change', () => {
+      files = Array.from(input.files ?? []).filter((file) =>
+        file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'),
+      );
+      if (status) status.textContent = '';
+      render();
+    });
+    root.querySelector('[data-action="merge"]')?.addEventListener('click', async () => {
+      if (files.length < 2) {
+        if (status) status.textContent = root.dataset.empty ?? '';
+        return;
+      }
+      const button = root.querySelector<HTMLButtonElement>('[data-action="merge"]');
+      if (button) button.disabled = true;
+      if (status) status.textContent = root.dataset.working ?? '';
+      try {
+        const output = await PDFDocument.create();
+        for (const file of files) {
+          const source = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: false });
+          const pages = await output.copyPages(source, source.getPageIndices());
+          pages.forEach((page) => output.addPage(page));
+        }
+        const bytes = await output.save();
+        const safeBytes = new Uint8Array(bytes.byteLength);
+        safeBytes.set(bytes);
+        const blob = new Blob([safeBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'utilark-merged.pdf';
+        anchor.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        if (status) status.textContent = root.dataset.done ?? '';
+      } catch {
+        if (status) status.textContent = root.dataset.failed ?? '';
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+  }
+</script>

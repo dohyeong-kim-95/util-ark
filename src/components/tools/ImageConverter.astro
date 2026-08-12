@@ -1,0 +1,184 @@
+---
+import type { Locale } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const labels = locale === 'ko'
+  ? {
+      pick: '이미지 선택',
+      hint: 'JPG, PNG, WebP · 여러 장 선택 가능',
+      format: '저장 형식',
+      quality: '화질',
+      convert: '변환하고 내려받기',
+      empty: '먼저 이미지를 선택해주세요.',
+      working: '변환 중…',
+      done: '개 파일을 변환했습니다.',
+      failed: '변환하지 못한 파일이 있습니다.',
+      remove: '삭제',
+    }
+  : {
+      pick: 'Choose images',
+      hint: 'JPG, PNG, WebP · multiple files supported',
+      format: 'Output format',
+      quality: 'Quality',
+      convert: 'Convert & download',
+      empty: 'Choose at least one image first.',
+      working: 'Converting…',
+      done: ' files converted.',
+      failed: 'Some files could not be converted.',
+      remove: 'Remove',
+    };
+---
+
+<div
+  class="converter-tool"
+  data-empty={labels.empty}
+  data-working={labels.working}
+  data-done={labels.done}
+  data-failed={labels.failed}
+  data-remove={labels.remove}
+>
+  <label class="drop-zone">
+    <input type="file" accept="image/jpeg,image/png,image/webp" multiple />
+    <strong>{labels.pick}</strong>
+    <span>{labels.hint}</span>
+  </label>
+
+  <div class="file-list" aria-live="polite"></div>
+
+  <div class="option-grid">
+    <label>
+      <span>{labels.format}</span>
+      <select data-option="format">
+        <option value="image/webp">WebP</option>
+        <option value="image/jpeg">JPG</option>
+        <option value="image/png">PNG</option>
+      </select>
+    </label>
+    <label>
+      <span>{labels.quality}: <output>85%</output></span>
+      <input data-option="quality" type="range" min="40" max="100" value="85" step="1" />
+    </label>
+  </div>
+
+  <div class="tool-actions">
+    <button type="button" class="primary" data-action="convert">{labels.convert}</button>
+    <span class="action-status" role="status"></span>
+  </div>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>('.converter-tool');
+  if (root) {
+    const input = root.querySelector<HTMLInputElement>('input[type="file"]');
+    const list = root.querySelector<HTMLElement>('.file-list');
+    const quality = root.querySelector<HTMLInputElement>('[data-option="quality"]');
+    const qualityOutput = root.querySelector<HTMLOutputElement>('output');
+    const format = root.querySelector<HTMLSelectElement>('[data-option="format"]');
+    const status = root.querySelector<HTMLElement>('.action-status');
+    let files: File[] = [];
+
+    const formatBytes = (bytes: number) => {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+    };
+    const render = () => {
+      if (!list) return;
+      list.replaceChildren();
+      files.forEach((file, index) => {
+        const row = document.createElement('div');
+        row.className = 'file-row';
+        const info = document.createElement('span');
+        const name = document.createElement('strong');
+        name.textContent = file.name;
+        const size = document.createElement('small');
+        size.textContent = formatBytes(file.size);
+        info.append(name, size);
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'icon-button';
+        remove.textContent = '×';
+        remove.setAttribute('aria-label', `${root.dataset.remove}: ${file.name}`);
+        remove.addEventListener('click', () => {
+          files.splice(index, 1);
+          render();
+        });
+        row.append(info, remove);
+        list.append(row);
+      });
+    };
+    input?.addEventListener('change', () => {
+      files = Array.from(input.files ?? []);
+      if (status) status.textContent = '';
+      render();
+    });
+    quality?.addEventListener('input', () => {
+      if (qualityOutput) qualityOutput.value = `${quality.value}%`;
+    });
+
+    const decode = async (file: File) => {
+      if ('createImageBitmap' in window) return createImageBitmap(file);
+      return new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        const url = URL.createObjectURL(file);
+        image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
+        image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
+        image.src = url;
+      });
+    };
+    const convertFile = async (file: File, mime: string, outputQuality: number) => {
+      const image = await decode(file);
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('canvas');
+      if (mime === 'image/jpeg') {
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      context.drawImage(image, 0, 0);
+      if ('close' in image && typeof image.close === 'function') image.close();
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mime, outputQuality));
+      if (!blob) throw new Error('encode');
+      return blob;
+    };
+    const download = (blob: Blob, filename: string) => {
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+    root.querySelector('[data-action="convert"]')?.addEventListener('click', async () => {
+      if (!files.length) {
+        if (status) status.textContent = root.dataset.empty ?? '';
+        return;
+      }
+      const button = root.querySelector<HTMLButtonElement>('[data-action="convert"]');
+      if (button) button.disabled = true;
+      if (status) status.textContent = root.dataset.working ?? '';
+      const mime = format?.value ?? 'image/webp';
+      const extension = mime === 'image/jpeg' ? 'jpg' : mime.split('/')[1];
+      let converted = 0;
+      try {
+        for (const file of files) {
+          const blob = await convertFile(file, mime, Number(quality?.value ?? 85) / 100);
+          const base = file.name.replace(/\.[^.]+$/u, '') || 'image';
+          download(blob, `${base}.${extension}`);
+          converted += 1;
+        }
+        if (status) status.textContent = `${converted}${root.dataset.done ?? ''}`;
+      } catch {
+        if (status) status.textContent = root.dataset.failed ?? '';
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+  }
+</script>

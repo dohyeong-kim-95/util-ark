@@ -1,0 +1,23 @@
+---
+import type { ToolDefinition } from '../data/tools';
+import { ui, type Locale } from '../i18n/ui';
+
+interface Props {
+  tool: ToolDefinition;
+  locale: Locale;
+}
+
+const { tool, locale } = Astro.props;
+const copy = tool.copy[locale];
+---
+
+<article class="tool-card" style={`--tool-accent:${tool.accent}`}>
+  <div class="tool-icon" aria-hidden="true">{tool.icon}</div>
+  <div>
+    <h3><a href={`/${locale}/tools/${tool.slug}/`}>{copy.name}</a></h3>
+    <p>{copy.short}</p>
+  </div>
+  <a class="card-action" href={`/${locale}/tools/${tool.slug}/`}>
+    {ui[locale].common.openTool}<span aria-hidden="true">↗</span>
+  </a>
+</article>

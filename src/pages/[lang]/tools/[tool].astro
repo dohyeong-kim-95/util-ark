@@ -1,0 +1,50 @@
+---
+import ToolPage from '../../../components/ToolPage.astro';
+import { tools, type ToolDefinition } from '../../../data/tools';
+import { locales, type Locale } from '../../../i18n/ui';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+export function getStaticPaths() {
+  return locales.flatMap((lang) => tools.map((tool) => ({
+    params: { lang, tool: tool.slug },
+    props: { locale: lang, tool },
+  })));
+}
+
+interface Props {
+  locale: Locale;
+  tool: ToolDefinition;
+}
+
+const { locale, tool } = Astro.props;
+const copy = tool.copy[locale];
+const url = `https://utilark.app/${locale}/tools/${tool.slug}/`;
+const schema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: copy.name,
+    description: copy.description,
+    url,
+    applicationCategory: 'UtilitiesApplication',
+    operatingSystem: 'Any',
+    browserRequirements: 'Requires JavaScript and a modern web browser',
+    inLanguage: locale,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    featureList: copy.steps,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: copy.faq.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: { '@type': 'Answer', text: item.answer },
+    })),
+  },
+];
+---
+
+<BaseLayout locale={locale} title={copy.name} description={copy.description} schema={schema}>
+  <ToolPage tool={tool} locale={locale} />
+</BaseLayout>

@@ -1,0 +1,98 @@
+---
+import type { Locale } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const labels = locale === 'ko'
+  ? {
+      placeholder: '여기에 글을 입력하거나 붙여 넣으세요.',
+      words: '단어',
+      characters: '글자(공백 포함)',
+      noSpaces: '글자(공백 제외)',
+      lines: '줄',
+      bytes: 'UTF-8 바이트',
+      copy: '전체 복사',
+      clear: '지우기',
+      copied: '복사했습니다',
+    }
+  : {
+      placeholder: 'Type or paste your text here.',
+      words: 'Words',
+      characters: 'Characters',
+      noSpaces: 'Without spaces',
+      lines: 'Lines',
+      bytes: 'UTF-8 bytes',
+      copy: 'Copy all',
+      clear: 'Clear',
+      copied: 'Copied',
+    };
+---
+
+<div class="counter-tool" data-locale={locale} data-copied={labels.copied}>
+  <textarea aria-label={labels.placeholder} placeholder={labels.placeholder} spellcheck="true"></textarea>
+  <div class="counter-stats" aria-live="polite">
+    <div><strong data-stat="words">0</strong><span>{labels.words}</span></div>
+    <div><strong data-stat="characters">0</strong><span>{labels.characters}</span></div>
+    <div><strong data-stat="no-spaces">0</strong><span>{labels.noSpaces}</span></div>
+    <div><strong data-stat="lines">0</strong><span>{labels.lines}</span></div>
+    <div><strong data-stat="bytes">0</strong><span>{labels.bytes}</span></div>
+  </div>
+  <div class="tool-actions">
+    <button type="button" class="secondary" data-action="copy">{labels.copy}</button>
+    <button type="button" class="ghost" data-action="clear">{labels.clear}</button>
+    <span class="action-status" role="status"></span>
+  </div>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>('.counter-tool');
+  if (root) {
+    const input = root.querySelector<HTMLTextAreaElement>('textarea');
+    const locale = root.dataset.locale || 'en';
+    const values = Object.fromEntries(
+      Array.from(root.querySelectorAll<HTMLElement>('[data-stat]')).map((node) => [node.dataset.stat, node]),
+    );
+    const countWords = (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return 0;
+      if ('Segmenter' in Intl) {
+        const segmenter = new Intl.Segmenter(locale, { granularity: 'word' });
+        return Array.from(segmenter.segment(trimmed)).filter((segment) => segment.isWordLike).length;
+      }
+      return trimmed.split(/\s+/u).length;
+    };
+    const update = () => {
+      const text = input?.value ?? '';
+      const stats: Record<string, number> = {
+        words: countWords(text),
+        characters: Array.from(text).length,
+        'no-spaces': Array.from(text.replace(/\s/gu, '')).length,
+        lines: text ? text.split(/\r\n|\r|\n/u).length : 0,
+        bytes: new TextEncoder().encode(text).length,
+      };
+      Object.entries(stats).forEach(([key, value]) => {
+        if (values[key]) values[key].textContent = value.toLocaleString(locale);
+      });
+    };
+    input?.addEventListener('input', update);
+    root.querySelector('[data-action="clear"]')?.addEventListener('click', () => {
+      if (!input) return;
+      input.value = '';
+      input.focus();
+      update();
+    });
+    root.querySelector('[data-action="copy"]')?.addEventListener('click', async () => {
+      if (!input?.value) return;
+      await navigator.clipboard.writeText(input.value);
+      const status = root.querySelector<HTMLElement>('.action-status');
+      if (status) {
+        status.textContent = root.dataset.copied ?? '';
+        window.setTimeout(() => { status.textContent = ''; }, 1800);
+      }
+    });
+    update();
+  }
+</script>
