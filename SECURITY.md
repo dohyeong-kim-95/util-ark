@@ -8,4 +8,4 @@ https://github.com/dohyeong-kim-95/util-ark/security/advisories/new
 
 Include the affected route, browser, impact, and minimal reproduction steps. Do not include personal data or private documents.
 
-General bugs and non-sensitive suggestions can be reported through GitHub Issues.
+General bugs and non-sensitive suggestions can be sent through the private contact form at https://utilark.app/en/contact/ or https://utilark.app/ko/contact/. Do not send secrets, private documents, or sensitive personal information.

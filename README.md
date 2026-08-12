@@ -9,9 +9,10 @@ Private-by-default browser utilities for [utilark.app](https://utilark.app), mai
 - PDF merger: reorder and combine PDF files with `pdf-lib` in the browser
 - Localized `/en/` and `/ko/` routes with matching policy and help pages
 - Canonical URLs, `hreflang`, Open Graph metadata, JSON-LD, sitemap, and robots.txt
+- Private bilingual contact form with an independent Utilark admin inbox
 - Optional AdSense loading through public environment variables after approval and consent review
 
-No selected file or entered text is sent to Utilark by these tools. There is no API, database, account system, or admin application in this repository.
+No selected file or text entered into a tool is sent to Utilark. The contact form is the explicit exception: its message and optional reply email are sent to the Utilark Worker and retained for up to 180 days.
 
 ## Local development
 
@@ -48,7 +49,7 @@ If either variable is absent, Utilark does not load the AdSense script or render
 - `/en/tools/{tool}/`, `/ko/tools/{tool}/` — localized tool pages
 - Localized about, privacy, terms, and contact pages
 
-The build is static and host-neutral. Deployment configuration belongs in the infrastructure project or hosting dashboard, not in shared Bubblelab infrastructure.
+The Astro site is served by the Utilark Worker together with the contact API and a separate admin hostname. It does not use shared Bubblelab infrastructure.
 
 ## Cloudflare deployment
 
@@ -59,7 +60,21 @@ Add these repository secrets under **Settings → Secrets and variables → Acti
 - `CLOUDFLARE_ACCOUNT_ID`
 - `CLOUDFLARE_API_TOKEN` — use a Utilark-specific token with Workers Scripts edit access
 
-The workflow creates or updates the Worker through Wrangler. After the first successful deployment, attach `utilark.app` under the Worker's **Settings → Domains & Routes → Add → Custom Domain** menu.
+The workflow creates or updates the Worker through Wrangler. The declared custom domains are attached as part of deployment; if the token cannot edit domain routes, attach them under the Worker's **Settings → Domains & Routes → Add → Custom Domain** menu.
+
+The Wrangler configuration declares both production custom domains:
+
+- `utilark.app` — public site and `POST /api/contact`
+- `admin.utilark.app` — noindex administrator login and contact inbox
+
+Contact records use a Utilark-only SQLite-backed Durable Object. Tool files and tool text never enter this storage. Records expire after 180 days, and public submissions are rate-limited using an HMAC value instead of storing the source IP address.
+
+Before the admin and contact form can open, add these encrypted Worker secrets under **Workers & Pages → utilark → Settings → Variables and Secrets**:
+
+- `ADMIN_PASSWORD` — a unique administrator password
+- `ADMIN_SESSION_SECRET` — a long random value used to sign sessions and anonymize rate-limit keys
+
+`ADMIN_ID` is the non-secret value `admin` in `wrangler.jsonc`. Missing secrets fail closed: the admin returns 503 and contact submissions are not stored.
 
 ## Bubblelab migration boundary
 

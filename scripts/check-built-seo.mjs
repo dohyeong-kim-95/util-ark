@@ -8,6 +8,8 @@ const requiredPages = [
   'ko/about/index.html',
   'en/privacy/index.html',
   'ko/privacy/index.html',
+  'en/contact/index.html',
+  'ko/contact/index.html',
   'en/tools/image-converter/index.html',
   'ko/tools/image-converter/index.html',
   'en/tools/word-counter/index.html',

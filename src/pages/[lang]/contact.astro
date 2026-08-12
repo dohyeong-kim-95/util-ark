@@ -1,5 +1,5 @@
 ---
-import InfoPage from '../../components/InfoPage.astro';
+import ContactPage from '../../components/ContactPage.astro';
 import { locales, type Locale } from '../../i18n/ui';
 
 export function getStaticPaths() {
@@ -9,4 +9,4 @@ export function getStaticPaths() {
 const locale = Astro.params.lang as Locale;
 ---
 
-<InfoPage locale={locale} kind="contact" />
+<ContactPage locale={locale} />

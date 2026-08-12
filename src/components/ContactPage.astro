@@ -1,0 +1,178 @@
+---
+import { infoPages } from '../data/info';
+import { type Locale } from '../i18n/ui';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const copy = infoPages.contact[locale];
+const form = locale === 'ko'
+  ? {
+      heading: '문의 보내기',
+      category: '문의 종류',
+      categories: [
+        ['bug', '오류 제보'],
+        ['tool', '새 도구 제안'],
+        ['feedback', '서비스 의견'],
+        ['other', '기타 문의'],
+      ],
+      email: '답변받을 이메일 (선택)',
+      emailHelp: '답변이 필요할 때만 입력하세요.',
+      message: '문의 내용',
+      placeholder: '어떤 점이 불편했는지, 어떤 도구가 필요한지 자세히 적어주세요.',
+      count: '최대 4,000자',
+      consent: '문의 처리를 위해 입력한 내용과 선택적으로 제공한 이메일을 최대 180일간 저장하는 데 동의합니다.',
+      privacy: '개인정보 처리방침 보기',
+      caution: '비밀번호, 결제정보, 주민등록번호, 비공개 문서 등 민감정보는 보내지 마세요.',
+      submit: '문의 보내기',
+      sending: '보내는 중…',
+      success: '문의가 접수되었습니다. 감사합니다.',
+      invalid: '입력 내용을 확인해주세요. 문의 내용은 10자 이상이어야 합니다.',
+      rate: '문의가 너무 빠르게 반복되었습니다. 잠시 후 다시 시도해주세요.',
+      failure: '지금은 문의를 보낼 수 없습니다. 잠시 후 다시 시도해주세요.',
+      security: '보안 취약점은 공개 문의에 적지 말고 GitHub 비공개 보안 제보를 이용해주세요.',
+      securityLink: '비공개 보안 제보 열기',
+    }
+  : {
+      heading: 'Send a message',
+      category: 'Message type',
+      categories: [
+        ['bug', 'Report a bug'],
+        ['tool', 'Suggest a tool'],
+        ['feedback', 'Service feedback'],
+        ['other', 'Other'],
+      ],
+      email: 'Reply email (optional)',
+      emailHelp: 'Add this only if you would like a reply.',
+      message: 'Message',
+      placeholder: 'Tell us what went wrong or what kind of tool would help you.',
+      count: 'Up to 4,000 characters',
+      consent: 'I agree that my message and optional email may be stored for up to 180 days to handle this inquiry.',
+      privacy: 'Read the Privacy Policy',
+      caution: 'Do not send passwords, payment details, government identifiers, private documents, or other sensitive information.',
+      submit: 'Send message',
+      sending: 'Sending…',
+      success: 'Your message has been received. Thank you.',
+      invalid: 'Check your entries. The message must be at least 10 characters.',
+      rate: 'Too many messages were sent in a short time. Please try again later.',
+      failure: 'The message could not be sent right now. Please try again later.',
+      security: 'Do not disclose a security vulnerability here. Use GitHub private vulnerability reporting instead.',
+      securityLink: 'Open private security report',
+    };
+---
+
+<BaseLayout locale={locale} title={copy.title} description={copy.description}>
+  <div class="shell info-page contact-page">
+    <header class="page-hero contact-hero">
+      <p class="eyebrow">UTILARK</p>
+      <h1>{copy.title}</h1>
+      <p>{copy.lead}</p>
+    </header>
+
+    <div class="contact-grid">
+      <section class="contact-panel" aria-labelledby="contact-heading">
+        <h2 id="contact-heading">{form.heading}</h2>
+        <form id="contact-form" data-locale={locale} novalidate>
+          <label class="form-field">
+            <span>{form.category}</span>
+            <select name="category" required>
+              {form.categories.map(([value, label]) => <option value={value}>{label}</option>)}
+            </select>
+          </label>
+
+          <label class="form-field">
+            <span>{form.email}</span>
+            <input name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" />
+            <small>{form.emailHelp}</small>
+          </label>
+
+          <label class="form-field">
+            <span>{form.message}</span>
+            <textarea name="message" required minlength="10" maxlength="4000" rows="10" placeholder={form.placeholder}></textarea>
+            <small>{form.count}</small>
+          </label>
+
+          <label class="contact-honeypot" aria-hidden="true">
+            Website
+            <input name="website" tabindex="-1" autocomplete="off" />
+          </label>
+
+          <label class="consent-field">
+            <input name="consent" type="checkbox" required />
+            <span>{form.consent} <a href={`/${locale}/privacy/`}>{form.privacy}</a></span>
+          </label>
+
+          <p class="form-caution">{form.caution}</p>
+          <div class="contact-actions">
+            <button class="button" type="submit">{form.submit}</button>
+            <p class="contact-status" role="status" aria-live="polite"></p>
+          </div>
+        </form>
+      </section>
+
+      <aside class="security-note">
+        <span aria-hidden="true">◈</span>
+        <p>{form.security}</p>
+        <a href="https://github.com/dohyeong-kim-95/util-ark/security/advisories/new" rel="noopener noreferrer">
+          {form.securityLink} <span aria-hidden="true">↗</span>
+        </a>
+      </aside>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ messages: {
+    sending: form.sending,
+    success: form.success,
+    invalid: form.invalid,
+    rate: form.rate,
+    failure: form.failure,
+  } }}>
+    const contactForm = document.querySelector('#contact-form');
+    const status = contactForm?.querySelector('.contact-status');
+    const submit = contactForm?.querySelector('button[type="submit"]');
+
+    contactForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!contactForm.checkValidity()) {
+        contactForm.reportValidity();
+        if (status) status.textContent = messages.invalid;
+        return;
+      }
+
+      const data = new FormData(contactForm);
+      if (submit) submit.disabled = true;
+      if (status) status.textContent = messages.sending;
+
+      try {
+        const response = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            locale: contactForm.dataset.locale,
+            category: data.get('category'),
+            email: data.get('email'),
+            message: data.get('message'),
+            website: data.get('website'),
+            consent: data.get('consent') === 'on',
+          }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          if (response.status === 429 || result.error === 'rate_limited') throw new Error('rate');
+          if (response.status === 400) throw new Error('invalid');
+          throw new Error('failure');
+        }
+        contactForm.reset();
+        if (status) status.textContent = messages.success;
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'failure';
+        if (status) status.textContent = reason === 'rate' ? messages.rate : reason === 'invalid' ? messages.invalid : messages.failure;
+      } finally {
+        if (submit) submit.disabled = false;
+      }
+    });
+  </script>
+</BaseLayout>

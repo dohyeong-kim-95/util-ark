@@ -80,7 +80,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
         'How Utilark handles browser-processed files, access logs, advertising, and other data when you use the service.',
       lead: 'The current tools do not upload the files or text you choose to Utilark.',
       notice:
-        'This policy covers Utilark at utilark.app. Browser extensions, downloaded files, and third-party sites have their own policies.',
+        'This policy covers Utilark at utilark.app, including the contact form. Browser extensions, downloaded files, and third-party sites have their own policies.',
       sections: [
         {
           heading: 'Files and text used in tools',
@@ -96,6 +96,14 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
           ],
         },
         {
+          heading: 'Contact messages',
+          paragraphs: [
+            'When you use the contact form, Utilark stores the message, category, language, submission time, status, and any reply email you choose to provide. A reply email is optional. Do not include sensitive information or attach private documents.',
+            'Contact messages are used only to review and respond to the inquiry. They are available to the Utilark administrator at admin.utilark.app, are kept separately from Bubblelab data, and are automatically removed after 180 days unless deleted earlier.',
+            'For abuse prevention, the service temporarily uses a keyed one-way value derived from the connection IP address. The original IP address is not stored in the contact database, and expired rate-limit records are removed automatically.',
+          ],
+        },
+        {
           heading: 'Advertising and analytics',
           paragraphs: [
             'Utilark does not load advertising code in the initial release. If advertising is enabled later, this policy and the consent experience will be updated before personalized advertising is used where consent is required.',
@@ -107,6 +115,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
           items: [
             'Utilark does not currently offer user accounts.',
             'Utilark does not currently sell products or collect payment details.',
+            'A contact reply email is collected only when you choose to provide it.',
             'Do not enter sensitive information into a tool unless you are comfortable processing it on your own device.',
           ],
         },
@@ -124,7 +133,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
         'Utilark 이용 시 브라우저에서 처리되는 파일, 접속 기록, 광고 및 기타 데이터를 어떻게 다루는지 안내합니다.',
       lead: '현재 제공하는 도구는 사용자가 선택한 파일이나 글을 Utilark로 업로드하지 않습니다.',
       notice:
-        '이 방침은 utilark.app의 Utilark 서비스에 적용됩니다. 브라우저 확장 기능, 내려받은 파일, 외부 사이트에는 각각의 정책이 적용됩니다.',
+        '이 방침은 문의 폼을 포함한 utilark.app의 Utilark 서비스에 적용됩니다. 브라우저 확장 기능, 내려받은 파일, 외부 사이트에는 각각의 정책이 적용됩니다.',
       sections: [
         {
           heading: '도구에서 사용하는 파일과 글',
@@ -140,6 +149,14 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
           ],
         },
         {
+          heading: '문의 내용',
+          paragraphs: [
+            '문의 폼을 사용하면 문의 내용, 종류, 언어, 접수 시각, 처리 상태와 사용자가 선택적으로 제공한 답변용 이메일을 저장합니다. 이메일은 필수가 아닙니다. 민감정보나 비공개 문서는 보내지 마세요.',
+            '문의 데이터는 문의 확인과 답변에만 사용합니다. admin.utilark.app의 Utilark 관리자만 확인할 수 있고 Bubblelab 데이터와 분리해 보관하며, 먼저 삭제하지 않더라도 180일 뒤 자동으로 삭제합니다.',
+            '오남용 방지를 위해 접속 IP 주소에서 키가 적용된 단방향 값을 만들어 일시적으로 사용합니다. 문의 데이터베이스에 IP 주소 원문은 저장하지 않으며 기간이 지난 요청 제한 기록은 자동 삭제합니다.',
+          ],
+        },
+        {
           heading: '광고와 분석',
           paragraphs: [
             '초기 공개판에는 광고 코드를 불러오지 않습니다. 나중에 광고를 활성화하면 동의가 필요한 지역에서 맞춤형 광고를 사용하기 전에 이 방침과 동의 절차를 갱신합니다.',
@@ -151,6 +168,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
           items: [
             '현재 Utilark는 사용자 계정을 제공하지 않습니다.',
             '현재 상품을 판매하거나 결제 정보를 수집하지 않습니다.',
+            '문의 답변용 이메일은 사용자가 선택해서 제공한 경우에만 수집합니다.',
             '사용자 기기에서 직접 처리하더라도 민감정보는 필요성을 확인한 뒤 입력하세요.',
           ],
         },
@@ -234,8 +252,8 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
   contact: {
     en: {
       title: 'Contact',
-      description: 'Report a Utilark bug, suggest a tool, or send security feedback through the public repository.',
-      lead: 'The public GitHub repository is the current contact channel for Utilark.',
+      description: 'Send Utilark a bug report, tool suggestion, or service feedback through the private contact form.',
+      lead: 'Report a bug, suggest a tool, or share feedback without posting it publicly.',
       sections: [
         {
           heading: 'Bugs and suggestions',
@@ -260,8 +278,8 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
     },
     ko: {
       title: '문의',
-      description: '공개 저장소에서 Utilark 오류를 제보하고 새 도구를 제안하거나 보안 의견을 전달할 수 있습니다.',
-      lead: '현재 Utilark의 공식 문의 창구는 공개 GitHub 저장소입니다.',
+      description: '비공개 문의 폼으로 Utilark 오류를 제보하고 새 도구를 제안하거나 서비스 의견을 전달할 수 있습니다.',
+      lead: '공개 게시글을 남기지 않고 오류를 제보하거나 새 도구와 서비스 의견을 보내주세요.',
       sections: [
         {
           heading: '오류 제보와 제안',
