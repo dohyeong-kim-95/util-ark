@@ -50,6 +50,17 @@ If either variable is absent, Utilark does not load the AdSense script or render
 
 The build is static and host-neutral. Deployment configuration belongs in the infrastructure project or hosting dashboard, not in shared Bubblelab infrastructure.
 
+## Cloudflare deployment
+
+Production uses an independent Cloudflare Worker named `utilark`. Pushes to `main` deploy through GitHub Actions after all checks pass.
+
+Add these repository secrets under **Settings → Secrets and variables → Actions**:
+
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_API_TOKEN` — use a Utilark-specific token with Workers Scripts edit access
+
+The workflow creates or updates the Worker through Wrangler. After the first successful deployment, attach `utilark.app` under the Worker's **Settings → Domains & Routes → Add → Custom Domain** menu.
+
 ## Bubblelab migration boundary
 
 The original Bubblelab `util` directory was reviewed as a source of product ideas, not copied as shared infrastructure.
