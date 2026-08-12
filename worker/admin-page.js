@@ -8,7 +8,7 @@ const pageShell = (title, body, script = '') => `<!doctype html>
   <style>
     :root { color-scheme: light; --ink:#111319; --muted:#626670; --paper:#f7f6f2; --surface:#fff; --line:#dedfdc; --yellow:#f6d365; --red:#a53434; }
     * { box-sizing:border-box; }
-    body { margin:0; min-width:20rem; min-height:100vh; font-family:Inter,Pretendard,system-ui,sans-serif; background:radial-gradient(circle at 8% 4%,#f6d36533,transparent 28rem),var(--paper); color:var(--ink); }
+    body { margin:0; min-width:20rem; min-height:100vh; font-family:Inter,Pretendard,system-ui,sans-serif; word-break:keep-all; overflow-wrap:break-word; background:radial-gradient(circle at 8% 4%,#f6d36533,transparent 28rem),var(--paper); color:var(--ink); }
     button,input,select { font:inherit; color:inherit; }
     button { cursor:pointer; }
     main { width:min(68rem,calc(100% - 2rem)); margin:auto; padding:clamp(2rem,6vw,5rem) 0; }
@@ -45,7 +45,7 @@ const pageShell = (title, body, script = '') => `<!doctype html>
     .actions button { padding:.45rem .7rem; border:1px solid var(--line); border-radius:.6rem; background:#f8f8f5; font-size:.78rem; }
     .actions .danger { margin-left:auto; color:var(--red); }
     .empty { padding:3rem 1rem; border:1px dashed var(--line); border-radius:1rem; color:var(--muted); text-align:center; }
-    @media (max-width:36rem) { .dashboard-head { display:block; } .filters { width:100%; margin-top:1rem; } .actions .danger { margin-left:0; } }
+    @media (max-width:36rem) { h1 { font-size:clamp(1.9rem,10vw,2.7rem); line-height:1.08; } .dashboard-head { display:block; } .filters { width:100%; margin-top:1rem; } .actions .danger { margin-left:0; } }
   </style>
 </head>
 <body>${body}${script ? `<script>${script}</script>` : ''}</body>

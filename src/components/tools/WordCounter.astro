@@ -17,6 +17,7 @@ const labels = locale === 'ko'
       copy: '전체 복사',
       clear: '지우기',
       copied: '복사했습니다',
+      copyFailed: '복사하지 못했습니다',
     }
   : {
       placeholder: 'Type or paste your text here.',
@@ -28,11 +29,37 @@ const labels = locale === 'ko'
       copy: 'Copy all',
       clear: 'Clear',
       copied: 'Copied',
+      copyFailed: 'Could not copy',
     };
 ---
 
-<div class="counter-tool" data-locale={locale} data-copied={labels.copied}>
-  <textarea aria-label={labels.placeholder} placeholder={labels.placeholder} spellcheck="true"></textarea>
+<div
+  class="counter-tool"
+  data-locale={locale}
+  data-copied={labels.copied}
+  data-copy-failed={labels.copyFailed}
+>
+  <div class="counter-input">
+    <textarea
+      aria-label={labels.placeholder}
+      aria-describedby="counter-copy-status"
+      placeholder={labels.placeholder}
+      spellcheck="true"
+    ></textarea>
+    <button
+      type="button"
+      class="counter-copy"
+      data-action="copy"
+      aria-label={labels.copy}
+      title={labels.copy}
+      disabled
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <rect x="8" y="8" width="11" height="11" rx="2"></rect>
+        <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path>
+      </svg>
+    </button>
+  </div>
   <div class="counter-stats" aria-live="polite">
     <div><strong data-stat="words">0</strong><span>{labels.words}</span></div>
     <div><strong data-stat="characters">0</strong><span>{labels.characters}</span></div>
@@ -41,9 +68,8 @@ const labels = locale === 'ko'
     <div><strong data-stat="bytes">0</strong><span>{labels.bytes}</span></div>
   </div>
   <div class="tool-actions">
-    <button type="button" class="secondary" data-action="copy">{labels.copy}</button>
     <button type="button" class="ghost" data-action="clear">{labels.clear}</button>
-    <span class="action-status" role="status"></span>
+    <span id="counter-copy-status" class="action-status" role="status"></span>
   </div>
 </div>
 
@@ -52,6 +78,9 @@ const labels = locale === 'ko'
   if (root) {
     const input = root.querySelector<HTMLTextAreaElement>('textarea');
     const locale = root.dataset.locale || 'en';
+    const copyButton = root.querySelector<HTMLButtonElement>('[data-action="copy"]');
+    const status = root.querySelector<HTMLElement>('.action-status');
+    let statusTimer = 0;
     const values = Object.fromEntries(
       Array.from(root.querySelectorAll<HTMLElement>('[data-stat]')).map((node) => [node.dataset.stat, node]),
     );
@@ -76,6 +105,7 @@ const labels = locale === 'ko'
       Object.entries(stats).forEach(([key, value]) => {
         if (values[key]) values[key].textContent = value.toLocaleString(locale);
       });
+      if (copyButton) copyButton.disabled = !text;
     };
     input?.addEventListener('input', update);
     root.querySelector('[data-action="clear"]')?.addEventListener('click', () => {
@@ -84,13 +114,25 @@ const labels = locale === 'ko'
       input.focus();
       update();
     });
-    root.querySelector('[data-action="copy"]')?.addEventListener('click', async () => {
+    copyButton?.addEventListener('click', async () => {
       if (!input?.value) return;
-      await navigator.clipboard.writeText(input.value);
-      const status = root.querySelector<HTMLElement>('.action-status');
+      let copied = false;
+      try {
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(input.value);
+          copied = true;
+        }
+      } catch {
+        copied = false;
+      }
       if (status) {
-        status.textContent = root.dataset.copied ?? '';
-        window.setTimeout(() => { status.textContent = ''; }, 1800);
+        window.clearTimeout(statusTimer);
+        status.textContent = copied ? (root.dataset.copied ?? '') : (root.dataset.copyFailed ?? '');
+        copyButton.classList.toggle('is-copied', copied);
+        statusTimer = window.setTimeout(() => {
+          status.textContent = '';
+          copyButton.classList.remove('is-copied');
+        }, 1800);
       }
     });
     update();

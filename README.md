@@ -60,9 +60,9 @@ Add these repository secrets under **Settings → Secrets and variables → Acti
 - `CLOUDFLARE_ACCOUNT_ID`
 - `CLOUDFLARE_API_TOKEN` — use a Utilark-specific token with Workers Scripts edit access
 
-The workflow creates or updates the Worker through Wrangler. The declared custom domains are attached as part of deployment; if the token cannot edit domain routes, attach them under the Worker's **Settings → Domains & Routes → Add → Custom Domain** menu.
+The workflow creates or updates the Worker through Wrangler. Custom domains are managed in the Cloudflare dashboard so code deployments do not require zone route permissions or overwrite domain settings. Attach them under the Worker's **Domains → Add → Custom Domain** menu.
 
-The Wrangler configuration declares both production custom domains:
+The production custom domains are:
 
 - `utilark.app` — public site and `POST /api/contact`
 - `admin.utilark.app` — noindex administrator login and contact inbox

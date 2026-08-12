@@ -41,4 +41,23 @@ if (!sitemapFiles.includes('sitemap-index.xml')) throw new Error('missing sitema
 const robots = await readFile(new URL('robots.txt', dist), 'utf8');
 if (!robots.includes('https://utilark.app/sitemap-index.xml')) throw new Error('robots.txt has no sitemap');
 
-console.log(`SEO checks passed for ${requiredPages.length} localized pages.`);
+const assetFiles = await readdir(new URL('_astro/', dist));
+const cssFiles = assetFiles.filter((file) => file.endsWith('.css'));
+const css = (
+  await Promise.all(cssFiles.map((file) => readFile(new URL(`_astro/${file}`, dist), 'utf8')))
+).join('\n');
+
+const typographyChecks = [
+  ['Korean keep-all wrapping', /word-break:keep-all/u],
+  ['balanced paragraph wrapping', /text-wrap:pretty/u],
+  ['mobile home heading size', /clamp\(2\.45rem,12vw,4rem\)/u],
+  ['mobile tool heading size', /clamp\(2\.35rem,11vw,3\.8rem\)/u],
+];
+
+for (const [name, pattern] of typographyChecks) {
+  if (!pattern.test(css)) throw new Error(`built CSS: missing ${name}`);
+}
+
+console.log(
+  `SEO checks passed for ${requiredPages.length} localized pages; mobile typography checks passed.`,
+);

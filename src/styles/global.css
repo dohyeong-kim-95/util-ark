@@ -29,9 +29,22 @@ body {
   margin: 0;
   min-width: 20rem;
   min-height: 100vh;
+  overflow-wrap: break-word;
   background:
     radial-gradient(circle at 10% 8%, rgba(246, 211, 101, 0.18), transparent 28rem),
     var(--paper);
+}
+
+:where(h1, h2, h3, p, li, label, summary) {
+  overflow-wrap: break-word;
+}
+
+:where(p, li, label, summary) {
+  text-wrap: pretty;
+}
+
+html[lang='ko'] :where(h1, h2, h3, p, li, label, summary, .button, .privacy-pill) {
+  word-break: keep-all;
 }
 
 body,
@@ -777,15 +790,67 @@ button:disabled {
   box-shadow: var(--shadow);
 }
 
+.counter-input {
+  position: relative;
+}
+
 .counter-tool textarea {
   width: 100%;
   min-height: 18rem;
   resize: vertical;
-  padding: 1rem;
+  padding: 1rem 4.25rem 1rem 1rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: #fbfbf9;
   line-height: 1.7;
+}
+
+.counter-copy {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: rgb(255 255 255 / 92%);
+  color: var(--ink);
+  box-shadow: 0 0.3rem 0.9rem rgb(25 25 22 / 9%);
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.counter-copy:hover:not(:disabled) {
+  border-color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.counter-copy:focus-visible {
+  outline: 3px solid rgb(37 99 235 / 25%);
+  outline-offset: 2px;
+}
+
+.counter-copy:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.counter-copy.is-copied {
+  border-color: #1c9b5e;
+  color: #137246;
+}
+
+.counter-copy svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 .counter-stats {
@@ -1209,7 +1274,25 @@ button:disabled {
   }
 
   .hero h2 {
-    font-size: clamp(2.8rem, 15vw, 4.7rem);
+    font-size: clamp(2.45rem, 12vw, 4rem);
+    line-height: 1.04;
+  }
+
+  .page-hero h1,
+  .tool-hero h1 {
+    font-size: clamp(2.35rem, 11vw, 3.8rem);
+    line-height: 1.06;
+  }
+
+  .section-heading h1,
+  .section-heading h2 {
+    font-size: clamp(1.9rem, 8vw, 2.6rem);
+    line-height: 1.1;
+  }
+
+  .page-hero p,
+  .tool-hero > p {
+    font-size: 1rem;
   }
 
   .hero-visual {
