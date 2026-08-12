@@ -186,7 +186,7 @@ button:disabled {
   box-shadow: 0 0 0 0.35rem rgba(238, 191, 40, 0.16);
 }
 
-.hero h1,
+.hero h2,
 .page-hero h1,
 .tool-hero h1 {
   font-family: Inter, Pretendard, system-ui, sans-serif;
@@ -194,7 +194,7 @@ button:disabled {
   text-wrap: balance;
 }
 
-.hero h1 {
+.hero h2 {
   max-width: 13ch;
   margin: 0;
   font-size: clamp(3rem, 7vw, 6.25rem);
@@ -318,6 +318,15 @@ button:disabled {
   padding: 4.5rem 0 6.5rem;
 }
 
+.tools-section-first {
+  padding-top: clamp(2.5rem, 6vw, 4.5rem);
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.intro-section {
+  border-top: 1px solid var(--line);
+}
+
 .section-heading {
   display: flex;
   align-items: end;
@@ -326,6 +335,7 @@ button:disabled {
   margin-bottom: 2rem;
 }
 
+.section-heading h1,
 .section-heading h2 {
   margin: 0;
   font-family: Inter, Pretendard, system-ui, sans-serif;
@@ -1052,7 +1062,7 @@ button:disabled {
     padding-top: 4rem;
   }
 
-  .hero h1 {
+  .hero h2 {
     font-size: clamp(2.8rem, 15vw, 4.7rem);
   }
 

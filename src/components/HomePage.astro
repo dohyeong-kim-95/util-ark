@@ -32,15 +32,24 @@ const schema = {
 ---
 
 <BaseLayout locale={locale} title="Utilark" description={description} schema={schema}>
-  <section class="hero">
+  <section class="tools-section tools-section-first" id="tools">
+    <div class="shell">
+      <div class="section-heading">
+        <h1>{t.home.toolsTitle}</h1>
+        <p>{t.home.toolsDescription}</p>
+      </div>
+      <div class="tool-grid">
+        {tools.map((tool) => <ToolCard tool={tool} locale={locale} />)}
+      </div>
+    </div>
+  </section>
+
+  <section class="hero intro-section">
     <div class="shell hero-grid">
       <div class="hero-copy">
         <p class="eyebrow">{t.home.eyebrow}</p>
-        <h1>{t.home.title}</h1>
+        <h2>{t.home.title}</h2>
         <p>{t.home.description}</p>
-        <div class="hero-actions">
-          <a class="button" href="#tools">{t.home.primary}<span aria-hidden="true">↓</span></a>
-        </div>
       </div>
       <div class="hero-visual" aria-hidden="true">
         <div class="orbit"></div>
@@ -59,18 +68,6 @@ const schema = {
       <div>
         <h2>{t.home.privacyTitle}</h2>
         <p>{t.home.privacyBody}</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="tools-section" id="tools">
-    <div class="shell">
-      <div class="section-heading">
-        <h2>{t.home.toolsTitle}</h2>
-        <p>{t.home.toolsDescription}</p>
-      </div>
-      <div class="tool-grid">
-        {tools.map((tool) => <ToolCard tool={tool} locale={locale} />)}
       </div>
     </div>
   </section>
