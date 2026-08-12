@@ -1,0 +1,510 @@
+---
+import type { Locale } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const labels = locale === 'ko'
+  ? {
+      deckLabel: '단어 목록',
+      deckPlaceholder: 'apple, 사과\nlibrary, 도서관\ndiligent, 부지런한',
+      deckHint: '한 줄에 카드 하나. 앞면과 뒷면을 쉼표나 탭으로 나눕니다. 뒷면에 빗금(/)을 넣으면 어느 쪽이든 정답으로 처리합니다.',
+      limit: '제한 시간',
+      seconds: '초',
+      speech: '음성으로 답하기',
+      speechLanguage: '말하는 언어',
+      speechNotice: '음성 인식은 브라우저 기능이라 사용하는 브라우저가 녹음한 음성을 자사 서버로 보내 글자로 바꿀 수 있습니다. 이 부분은 Utilark가 아니라 브라우저가 처리합니다. 기기 밖으로 음성이 나가는 것을 원하지 않으면 이 설정을 끄고 타이핑으로 답하세요.',
+      speechUnsupported: '이 브라우저는 음성 인식을 지원하지 않아 타이핑으로만 답할 수 있습니다.',
+      start: '시작하기',
+      sample: '예시 채우기',
+      needCards: '카드를 한 장 이상 입력하세요.',
+      run: '회차',
+      remaining: '남은 카드',
+      carry: '다음 회차',
+      answerLabel: '뒷면 입력',
+      answerPlaceholder: '뒷면을 입력하세요',
+      listening: '듣는 중',
+      correct: '정답',
+      timeUp: '시간 초과',
+      wrong: '오답',
+      answerWas: '정답은',
+      nextRun: '회차를 넘깁니다',
+      skip: '모르겠어요',
+      stop: '그만하기',
+      doneTitle: '카드를 모두 맞혔습니다',
+      doneRuns: '걸린 회차',
+      doneCards: '카드 수',
+      doneMissed: '한 번 이상 틀린 카드',
+      restart: '다시 하기',
+      edit: '목록 고치기',
+      none: '없음',
+    }
+  : {
+      deckLabel: 'Card list',
+      deckPlaceholder: 'apple, 사과\nlibrary, 도서관\ndiligent, 부지런한',
+      deckHint: 'One card per line. Separate the front and back with a comma or a tab. Put a slash (/) in the back to accept more than one answer.',
+      limit: 'Time limit',
+      seconds: 's',
+      speech: 'Answer by speaking',
+      speechLanguage: 'Spoken language',
+      speechNotice: 'Speech recognition is a browser feature, so your browser may send the recorded audio to its own servers to turn it into text. That part is handled by the browser, not by Utilark. If you would rather keep audio on your device, leave this off and type your answers.',
+      speechUnsupported: 'This browser has no speech recognition, so answers can only be typed.',
+      start: 'Start',
+      sample: 'Use a sample list',
+      needCards: 'Enter at least one card.',
+      run: 'Run',
+      remaining: 'Cards left',
+      carry: 'Next run',
+      answerLabel: 'Type the back',
+      answerPlaceholder: 'Type the back of the card',
+      listening: 'Listening',
+      correct: 'Correct',
+      timeUp: 'Time is up',
+      wrong: 'Not quite',
+      answerWas: 'Answer:',
+      nextRun: 'Moving to the next run',
+      skip: 'I do not know',
+      stop: 'Stop',
+      doneTitle: 'Every card is answered',
+      doneRuns: 'Runs taken',
+      doneCards: 'Cards',
+      doneMissed: 'Cards missed at least once',
+      restart: 'Run again',
+      edit: 'Edit the list',
+      none: 'None',
+    };
+---
+
+<div
+  class="flashcards"
+  data-locale={locale}
+  data-label-correct={labels.correct}
+  data-label-timeup={labels.timeUp}
+  data-label-wrong={labels.wrong}
+  data-label-answer-was={labels.answerWas}
+  data-label-next-run={labels.nextRun}
+  data-label-listening={labels.listening}
+  data-label-need-cards={labels.needCards}
+  data-label-none={labels.none}
+>
+  <section data-phase="setup">
+    <label class="field-label" for="flashcards-deck">{labels.deckLabel}</label>
+    <textarea id="flashcards-deck" data-deck placeholder={labels.deckPlaceholder} spellcheck="false"></textarea>
+    <p class="field-hint">{labels.deckHint}</p>
+
+    <div class="flashcard-options">
+      <label>
+        <span>{labels.limit}</span>
+        <select data-limit>
+          <option value="3" selected>3{labels.seconds}</option>
+          <option value="5">5{labels.seconds}</option>
+          <option value="10">10{labels.seconds}</option>
+        </select>
+      </label>
+      <label class="flashcard-toggle">
+        <input type="checkbox" data-speech-toggle />
+        <span>{labels.speech}</span>
+      </label>
+      <label data-speech-language hidden>
+        <span>{labels.speechLanguage}</span>
+        <select data-speech-lang>
+          <option value="en-US">English</option>
+          <option value="ko-KR">한국어</option>
+        </select>
+      </label>
+    </div>
+    <p class="notice-inline" data-speech-notice hidden>{labels.speechNotice}</p>
+    <p class="notice-inline" data-speech-unsupported hidden>{labels.speechUnsupported}</p>
+
+    <div class="tool-actions">
+      <button type="button" class="primary" data-action="start">{labels.start}</button>
+      <button type="button" class="ghost" data-action="sample">{labels.sample}</button>
+      <span class="action-status" role="status" data-setup-status></span>
+    </div>
+  </section>
+
+  <section data-phase="play" hidden>
+    <div class="flashcard-meta">
+      <span>{labels.run} <strong data-run>1</strong></span>
+      <span>{labels.remaining} <strong data-remaining>0</strong></span>
+      <span>{labels.carry} <strong data-carry>0</strong></span>
+    </div>
+
+    <div class="flashcard-stage">
+      <div class="flashcard-timer" aria-hidden="true"><span data-timer></span></div>
+      <p class="flashcard-front" data-front></p>
+      <p class="flashcard-verdict" role="status" aria-live="assertive" data-verdict></p>
+    </div>
+
+    <label class="visually-hidden" for="flashcards-answer">{labels.answerLabel}</label>
+    <div class="flashcard-answer">
+      <input
+        id="flashcards-answer"
+        type="text"
+        data-answer
+        placeholder={labels.answerPlaceholder}
+        autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+      />
+      <span class="flashcard-mic" data-mic hidden aria-hidden="true">●</span>
+    </div>
+
+    <div class="tool-actions">
+      <button type="button" class="secondary" data-action="skip">{labels.skip}</button>
+      <button type="button" class="ghost" data-action="stop">{labels.stop}</button>
+    </div>
+  </section>
+
+  <section data-phase="done" hidden>
+    <div class="flashcard-summary">
+      <h3>{labels.doneTitle}</h3>
+      <dl>
+        <div><dt>{labels.doneRuns}</dt><dd data-summary-runs>0</dd></div>
+        <div><dt>{labels.doneCards}</dt><dd data-summary-cards>0</dd></div>
+      </dl>
+      <h4>{labels.doneMissed}</h4>
+      <ul data-summary-missed></ul>
+    </div>
+    <div class="tool-actions">
+      <button type="button" class="primary" data-action="restart">{labels.restart}</button>
+      <button type="button" class="ghost" data-action="edit">{labels.edit}</button>
+    </div>
+  </section>
+</div>
+
+<script>
+  type Card = { front: string; back: string; answers: string[]; missed: boolean };
+
+  const root = document.querySelector<HTMLElement>('.flashcards');
+  if (root) {
+    const locale = root.dataset.locale || 'en';
+    const text = (key: string) => root.dataset[key] ?? '';
+    const find = <T extends HTMLElement>(selector: string) => root.querySelector<T>(selector);
+
+    const sections = {
+      setup: find<HTMLElement>('[data-phase="setup"]'),
+      play: find<HTMLElement>('[data-phase="play"]'),
+      done: find<HTMLElement>('[data-phase="done"]'),
+    };
+    const deck = find<HTMLTextAreaElement>('[data-deck]');
+    const limitSelect = find<HTMLSelectElement>('[data-limit]');
+    const speechToggle = find<HTMLInputElement>('[data-speech-toggle]');
+    const speechLanguage = find<HTMLElement>('[data-speech-language]');
+    const speechLang = find<HTMLSelectElement>('[data-speech-lang]');
+    const speechNotice = find<HTMLElement>('[data-speech-notice]');
+    const speechUnsupported = find<HTMLElement>('[data-speech-unsupported]');
+    const setupStatus = find<HTMLElement>('[data-setup-status]');
+    const front = find<HTMLElement>('[data-front]');
+    const verdict = find<HTMLElement>('[data-verdict]');
+    const answer = find<HTMLInputElement>('[data-answer]');
+    const timerBar = find<HTMLElement>('[data-timer]');
+    const micDot = find<HTMLElement>('[data-mic]');
+    const runValue = find<HTMLElement>('[data-run]');
+    const remainingValue = find<HTMLElement>('[data-remaining]');
+    const carryValue = find<HTMLElement>('[data-carry]');
+
+    const SpeechRecognitionCtor =
+      (window as unknown as Record<string, unknown>).SpeechRecognition ??
+      (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
+    const speechSupported = typeof SpeechRecognitionCtor === 'function';
+    let recognition: { start: () => void; stop: () => void; abort: () => void } | null = null;
+
+    let queue: Card[] = [];
+    let carry: Card[] = [];
+    let all: Card[] = [];
+    let current: Card | null = null;
+    let run = 1;
+    let limitMs = 3000;
+    let deadline = 0;
+    let frame = 0;
+    let holding = false;
+
+    /* 앞뒤 공백, 대소문자, 문장 부호를 무시하고 비교한다. 3초 안에 답해야 해서
+       쉼표 하나나 물음표 하나로 오답 처리하면 연습이 되지 않는다. */
+    const normalize = (value: string) =>
+      value.normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, '');
+
+    const shuffle = <T,>(items: T[]) => {
+      const copy = items.slice();
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    };
+
+    const parseDeck = (value: string): Card[] =>
+      value
+        .split(/\r\n|\r|\n/u)
+        .map((line) => {
+          const parts = line.includes('\t') ? line.split('\t') : line.split(',');
+          const cardFront = (parts.shift() ?? '').trim();
+          const back = parts.join(',').trim();
+          if (!cardFront || !back) return null;
+          const answers = back
+            .split('/')
+            .map((option) => normalize(option))
+            .filter(Boolean);
+          if (!answers.length) return null;
+          return { front: cardFront, back, answers, missed: false };
+        })
+        .filter((card): card is Card => card !== null);
+
+    const showPhase = (name: 'setup' | 'play' | 'done') => {
+      (Object.keys(sections) as Array<'setup' | 'play' | 'done'>).forEach((key) => {
+        const section = sections[key];
+        if (section) section.hidden = key !== name;
+      });
+    };
+
+    const stopRecognition = () => {
+      if (!recognition) return;
+      try {
+        recognition.abort();
+      } catch {
+        /* 이미 멈춘 경우 */
+      }
+      recognition = null;
+      if (micDot) micDot.hidden = true;
+    };
+
+    const startRecognition = () => {
+      if (!speechSupported || !speechToggle?.checked) return;
+      stopRecognition();
+      try {
+        const Ctor = SpeechRecognitionCtor as new () => Record<string, unknown>;
+        const instance = new Ctor() as Record<string, unknown> & {
+          start: () => void;
+          stop: () => void;
+          abort: () => void;
+        };
+        instance.lang = speechLang?.value || (locale === 'ko' ? 'ko-KR' : 'en-US');
+        instance.interimResults = true;
+        instance.continuous = true;
+        instance.onresult = (event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => {
+          for (let i = 0; i < event.results.length; i++) {
+            const spoken = event.results[i][0]?.transcript ?? '';
+            if (matches(spoken)) {
+              succeed();
+              return;
+            }
+          }
+        };
+        instance.onerror = () => stopRecognition();
+        recognition = instance;
+        instance.start();
+        if (micDot) {
+          micDot.title = text('labelListening');
+          micDot.hidden = false;
+        }
+      } catch {
+        stopRecognition();
+      }
+    };
+
+    const matches = (value: string) => {
+      const normalized = normalize(value);
+      return Boolean(current && normalized && current.answers.includes(normalized));
+    };
+
+    const paintCounts = () => {
+      if (runValue) runValue.textContent = String(run);
+      if (remainingValue) remainingValue.textContent = String(queue.length + (current ? 1 : 0));
+      if (carryValue) carryValue.textContent = String(carry.length);
+    };
+
+    const tick = () => {
+      if (!current || holding) return;
+      const left = deadline - performance.now();
+      if (timerBar) timerBar.style.width = `${Math.max(0, Math.min(1, left / limitMs)) * 100}%`;
+      if (left <= 0) {
+        fail(text('labelTimeup'));
+        return;
+      }
+      frame = requestAnimationFrame(tick);
+    };
+
+    const settle = (card: Card, correct: boolean) => {
+      cancelAnimationFrame(frame);
+      stopRecognition();
+      holding = true;
+      current = null;
+      if (answer) answer.disabled = true;
+      if (!correct) {
+        card.missed = true;
+        carry.push(card);
+      }
+      paintCounts();
+      window.setTimeout(() => {
+        holding = false;
+        if (answer) answer.disabled = false;
+        nextCard();
+      }, correct ? 550 : 1500);
+    };
+
+    const succeed = () => {
+      if (!current || holding) return;
+      const card = current;
+      root.classList.add('is-correct');
+      if (verdict) verdict.textContent = text('labelCorrect');
+      settle(card, true);
+    };
+
+    const fail = (reason: string) => {
+      if (!current || holding) return;
+      const card = current;
+      root.classList.add('is-wrong');
+      if (verdict) verdict.textContent = `${reason} · ${text('labelAnswerWas')} ${card.back}`;
+      settle(card, false);
+    };
+
+    const nextCard = () => {
+      root.classList.remove('is-correct', 'is-wrong');
+      if (verdict) verdict.textContent = '';
+
+      if (!queue.length) {
+        if (!carry.length) {
+          finish();
+          return;
+        }
+        run += 1;
+        queue = shuffle(carry);
+        carry = [];
+        if (verdict) verdict.textContent = text('labelNextRun');
+      }
+
+      current = queue.shift() ?? null;
+      if (!current) {
+        finish();
+        return;
+      }
+      if (front) front.textContent = current.front;
+      if (answer) {
+        answer.value = '';
+        answer.focus();
+      }
+      if (timerBar) timerBar.style.width = '100%';
+      paintCounts();
+      deadline = performance.now() + limitMs;
+      frame = requestAnimationFrame(tick);
+      startRecognition();
+    };
+
+    const finish = () => {
+      cancelAnimationFrame(frame);
+      stopRecognition();
+      current = null;
+      const missed = all.filter((card) => card.missed);
+      const runs = find<HTMLElement>('[data-summary-runs]');
+      const cards = find<HTMLElement>('[data-summary-cards]');
+      const list = find<HTMLElement>('[data-summary-missed]');
+      if (runs) runs.textContent = run.toLocaleString(locale);
+      if (cards) cards.textContent = all.length.toLocaleString(locale);
+      if (list) {
+        list.replaceChildren(
+          ...(missed.length
+            ? missed.map((card) => {
+                const item = document.createElement('li');
+                const term = document.createElement('strong');
+                term.textContent = card.front;
+                const meaning = document.createElement('span');
+                meaning.textContent = card.back;
+                item.append(term, meaning);
+                return item;
+              })
+            : [
+                (() => {
+                  const item = document.createElement('li');
+                  item.textContent = text('labelNone');
+                  return item;
+                })(),
+              ]),
+        );
+      }
+      showPhase('done');
+    };
+
+    const startRun = (cards: Card[]) => {
+      all = cards;
+      all.forEach((card) => {
+        card.missed = false;
+      });
+      queue = shuffle(all);
+      carry = [];
+      run = 1;
+      limitMs = Number(limitSelect?.value ?? 3) * 1000;
+      showPhase('play');
+      if (answer) answer.disabled = false;
+      nextCard();
+    };
+
+    const stopRun = () => {
+      cancelAnimationFrame(frame);
+      stopRecognition();
+      current = null;
+      holding = false;
+      root.classList.remove('is-correct', 'is-wrong');
+      showPhase('setup');
+    };
+
+    answer?.addEventListener('input', () => {
+      if (matches(answer.value)) succeed();
+    });
+    answer?.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      if (matches(answer.value)) succeed();
+      else if (answer.value.trim()) fail(text('labelWrong'));
+    });
+
+    speechToggle?.addEventListener('change', () => {
+      const on = speechToggle.checked && speechSupported;
+      if (speechToggle.checked && !speechSupported) {
+        speechToggle.checked = false;
+        if (speechUnsupported) speechUnsupported.hidden = false;
+        return;
+      }
+      if (speechNotice) speechNotice.hidden = !on;
+      if (speechLanguage) speechLanguage.hidden = !on;
+      if (!on) stopRecognition();
+    });
+
+    find<HTMLButtonElement>('[data-action="sample"]')?.addEventListener('click', () => {
+      if (!deck) return;
+      deck.value = [
+        'apple, 사과',
+        'library, 도서관',
+        'diligent, 부지런한',
+        'schedule, 일정 / 스케줄',
+        'borrow, 빌리다',
+        'weather, 날씨',
+      ].join('\n');
+      deck.focus();
+    });
+
+    find<HTMLButtonElement>('[data-action="start"]')?.addEventListener('click', () => {
+      const cards = parseDeck(deck?.value ?? '');
+      if (!cards.length) {
+        if (setupStatus) setupStatus.textContent = text('labelNeedCards');
+        deck?.focus();
+        return;
+      }
+      if (setupStatus) setupStatus.textContent = '';
+      startRun(cards);
+    });
+
+    find<HTMLButtonElement>('[data-action="skip"]')?.addEventListener('click', () => fail(text('labelWrong')));
+    find<HTMLButtonElement>('[data-action="stop"]')?.addEventListener('click', stopRun);
+    find<HTMLButtonElement>('[data-action="restart"]')?.addEventListener('click', () => startRun(all));
+    find<HTMLButtonElement>('[data-action="edit"]')?.addEventListener('click', () => showPhase('setup'));
+
+    if (!speechSupported && speechToggle) speechToggle.disabled = true;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopRecognition();
+    });
+  }
+</script>

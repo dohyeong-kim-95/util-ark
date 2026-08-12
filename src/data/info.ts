@@ -113,8 +113,9 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
         {
           heading: 'Files and text used in tools',
           paragraphs: [
-            'Image conversion, word counting, and PDF merging run locally in your browser. Utilark does not receive, store, or review the files and text you use in these tools.',
+            'Image conversion, word counting, PDF merging, flashcards, and the ladder game run locally in your browser. Utilark does not receive, store, or review the files, text, card lists, or names you use in these tools.',
             'Closing or refreshing the page clears the tool state unless your browser itself retains form state. Downloaded results are saved wherever your browser is configured to save them.',
+            'The flashcard tool has one optional exception. If you turn on answering by speech, the browser\'s own speech recognition is used, and most browsers send the recorded audio to their vendor\'s servers to transcribe it. That transcription is performed by your browser vendor under its own policy; Utilark never receives the audio or the transcript. The setting is off by default, applies only while a card is on screen, and typing keeps every answer on your device.',
           ],
         },
         {
@@ -189,8 +190,9 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
         {
           heading: '도구에서 사용하는 파일과 글',
           paragraphs: [
-            '이미지 변환, 글자수 계산, PDF 합치기는 사용자의 브라우저에서 실행됩니다. Utilark는 이 도구에 넣은 파일이나 글을 받거나 저장하거나 열람하지 않습니다.',
+            '이미지 변환, 글자수 계산, PDF 합치기, 단어카드, 사다리타기는 사용자의 브라우저에서 실행됩니다. Utilark는 이 도구에 넣은 파일, 글, 카드 목록, 이름을 받거나 저장하거나 열람하지 않습니다.',
             '페이지를 닫거나 새로고침하면 브라우저 자체가 입력 상태를 복구하는 경우를 제외하고 도구 상태가 사라집니다. 결과 파일은 사용자의 브라우저에 설정된 위치에 저장됩니다.',
+            '단어카드에는 선택 사항인 예외가 하나 있습니다. 음성으로 답하기를 켜면 브라우저의 음성 인식 기능을 사용하는데, 대부분의 브라우저는 녹음한 음성을 자사 서버로 보내 글자로 바꿉니다. 이 변환은 브라우저 제조사가 자체 방침에 따라 수행하며 Utilark는 음성이나 변환 결과를 받지 않습니다. 이 설정은 기본으로 꺼져 있고 카드가 화면에 있는 동안에만 동작하며, 타이핑으로 답하면 모든 입력이 기기 안에 머뭅니다.',
           ],
         },
         {

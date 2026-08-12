@@ -1068,6 +1068,362 @@ button:disabled {
   accent-color: var(--ink);
 }
 
+/* 단어카드 */
+.field-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-family: Inter, Pretendard, system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.field-hint {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.notice-inline {
+  margin: 0.85rem 0 0;
+  padding: 0.8rem 0.95rem;
+  border-left: 3px solid var(--yellow-deep);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: #fff9df;
+  color: #4b4638;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.flashcards textarea {
+  width: 100%;
+  min-height: 10rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #fbfbf9;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+.flashcard-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.4rem;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+
+.flashcard-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.flashcard-options select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: white;
+  font: inherit;
+}
+
+.flashcard-toggle input {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.flashcard-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.3rem;
+  margin-bottom: 1rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.flashcard-meta strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.flashcard-stage {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.9rem;
+  min-height: 13rem;
+  padding: 1.5rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #fbfbf9;
+  text-align: center;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.flashcards.is-correct .flashcard-stage {
+  border-color: #1c9b5e;
+  background: #f0fbf5;
+}
+
+.flashcards.is-wrong .flashcard-stage {
+  border-color: #c2452f;
+  background: #fdf3f1;
+}
+
+.flashcard-timer {
+  width: min(24rem, 100%);
+  height: 0.4rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6e6e1;
+}
+
+.flashcard-timer span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ink);
+}
+
+.flashcard-front {
+  margin: 0;
+  font-family: Inter, Pretendard, system-ui, sans-serif;
+  font-size: clamp(1.9rem, 6vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+
+.flashcard-verdict {
+  min-height: 1.4rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.flashcards.is-correct .flashcard-verdict {
+  color: #137246;
+  font-weight: 700;
+}
+
+.flashcards.is-wrong .flashcard-verdict {
+  color: #a33724;
+  font-weight: 700;
+}
+
+.flashcard-answer {
+  position: relative;
+  margin-top: 1rem;
+}
+
+.flashcard-answer input {
+  width: 100%;
+  padding: 0.95rem 3rem 0.95rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: white;
+  font-size: 1.1rem;
+}
+
+.flashcard-mic {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  color: #c2452f;
+  font-size: 0.9rem;
+  transform: translateY(-50%);
+  animation: flashcard-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes flashcard-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flashcard-mic {
+    animation: none;
+  }
+}
+
+.flashcard-summary dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem 2rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.flashcard-summary dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.flashcard-summary dd {
+  margin: 0.2rem 0 0;
+  font-family: Inter, Pretendard, system-ui, sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.flashcard-summary ul {
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.flashcard-summary li {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.flashcard-summary li span {
+  color: var(--muted);
+}
+
+/* 사다리타기 */
+.ladder-setup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.ladder-setup .field-label {
+  margin-bottom: 0;
+}
+
+.ladder-setup button {
+  min-height: 2.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: #ecece8;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.ladder-stepper {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: white;
+}
+
+.ladder-stepper button {
+  min-height: 2.4rem;
+  border-radius: 0;
+  background: none;
+  font-size: 1.05rem;
+}
+
+.ladder-stepper span {
+  min-width: 2.2rem;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ladder-stage {
+  padding: 0.7rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #fbfbf9;
+}
+
+.ladder-row {
+  display: grid;
+  grid-template-columns: repeat(var(--columns, 4), minmax(0, 1fr));
+  gap: 3px;
+}
+
+.ladder-cell {
+  width: 100%;
+  min-width: 0;
+  padding: 0.5rem 0.15rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: white;
+  font-size: var(--cell-size, 0.85rem);
+  text-align: center;
+}
+
+.ladder-cell.name:read-only {
+  border-color: color-mix(in srgb, var(--tone, var(--line)) 55%, transparent);
+  cursor: pointer;
+}
+
+.ladder-cell.is-hit {
+  border-color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 13%, transparent);
+  color: var(--tone);
+  font-weight: 700;
+}
+
+.ladder-stage svg {
+  display: block;
+  width: 100%;
+}
+
+.ladder-stage svg .grid line {
+  stroke: #d8d8d2;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.ladder-stage svg .trace {
+  fill: none;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ladder-hint {
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.ladder-results {
+  margin: 1.2rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.ladder-results li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.35rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.ladder-results span[aria-hidden] {
+  color: var(--muted);
+}
+
 .tool-actions {
   min-height: 3.2rem;
   display: flex;

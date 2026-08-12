@@ -3,7 +3,9 @@ import type { ToolDefinition } from '../data/tools';
 import type { Locale } from '../i18n/ui';
 import { ui } from '../i18n/ui';
 import AdSlot from './AdSlot.astro';
+import Flashcards from './tools/Flashcards.astro';
 import ImageConverter from './tools/ImageConverter.astro';
+import Ladder from './tools/Ladder.astro';
 import MergePdf from './tools/MergePdf.astro';
 import WordCounter from './tools/WordCounter.astro';
 
@@ -18,6 +20,8 @@ const components = {
   'image-converter': ImageConverter,
   'word-counter': WordCounter,
   'merge-pdf': MergePdf,
+  flashcards: Flashcards,
+  ladder: Ladder,
 };
 const InteractiveTool = components[tool.slug];
 ---

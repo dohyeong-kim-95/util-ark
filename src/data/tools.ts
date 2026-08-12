@@ -11,7 +11,7 @@ export type ToolCopy = {
 };
 
 export type ToolDefinition = {
-  slug: 'image-converter' | 'word-counter' | 'merge-pdf';
+  slug: 'image-converter' | 'word-counter' | 'merge-pdf' | 'flashcards' | 'ladder';
   icon: string;
   accent: string;
   copy: Record<Locale, ToolCopy>;
@@ -214,6 +214,180 @@ export const tools: ToolDefinition[] = [
           {
             question: '용량이 큰 PDF가 실패하는 이유는 무엇인가요?',
             answer: '브라우저 처리는 기기의 메모리를 사용합니다. 파일 수를 나눠 처리하거나 메모리 여유가 있는 데스크톱 기기를 이용해보세요.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    slug: 'flashcards',
+    icon: '⚡',
+    accent: '#4fb783',
+    copy: {
+      en: {
+        name: 'Timed Flashcards',
+        short: 'Recall the back of each card within a few seconds.',
+        description:
+          'Free timed flashcard drill. Answer within the time limit by typing or speaking, and missed cards come back in the next run until every card is cleared.',
+        keywords: ['flashcards', 'vocabulary drill', 'spaced repetition', 'timed recall practice'],
+        intro: [
+          'Paste your own list of cards, then answer each front within the time limit. Recall under time pressure is what turns a word you recognize into a word you can actually produce.',
+          'Cards you clear leave the queue. Cards you miss are collected and shuffled into the next run, so a session ends only when every card has been answered correctly at least once.',
+          'The list stays in this page. Nothing is uploaded, and closing or refreshing the page clears it.',
+        ],
+        steps: [
+          'Enter one card per line, separating the front and back with a comma or a tab.',
+          'Choose a time limit, and turn on speaking if you want to answer out loud.',
+          'Answer each card before the bar runs out; typing is checked as you go.',
+          'Repeat the runs until the missed pile is empty.',
+        ],
+        faq: [
+          {
+            question: 'What happens when I miss a card?',
+            answer: 'It goes into a pile for the next run instead of disappearing. When the current run empties, that pile is shuffled and becomes the new run, so difficult cards keep coming back.',
+          },
+          {
+            question: 'Do I have to press Enter?',
+            answer: 'No. A typed answer is accepted the moment it matches, which matters at three seconds. Pressing Enter with a wrong answer ends the card early.',
+          },
+          {
+            question: 'Can one card accept several answers?',
+            answer: 'Yes. Separate the alternatives with a slash in the back of the card, for example "schedule, 일정 / 스케줄". Spacing, capitalization, and punctuation are ignored when comparing.',
+          },
+          {
+            question: 'Is speaking as private as typing?',
+            answer: 'No. Speech recognition is a browser feature, and most browsers send the recorded audio to their own servers to transcribe it. Utilark never receives it, but the audio does leave your device. Typing keeps everything local, so speaking is off by default.',
+          },
+          {
+            question: 'Is three seconds too short?',
+            answer: 'It is deliberately tight for short vocabulary. Longer answers are easier at five or ten seconds, which you can select before starting.',
+          },
+          {
+            question: 'Is my card list saved?',
+            answer: 'No. The list lives in the page only. Keep the original somewhere else, because refreshing clears it.',
+          },
+        ],
+      },
+      ko: {
+        name: '단어카드',
+        short: '앞면을 보고 제한 시간 안에 뒷면을 답하는 연습입니다.',
+        description:
+          '제한 시간 안에 뒷면을 타이핑하거나 말해서 맞히는 무료 단어카드입니다. 틀린 카드는 다음 회차에 다시 나와 모두 맞힐 때까지 반복합니다.',
+        keywords: ['단어카드', '영단어 암기', '단어 시험', '플래시카드'],
+        intro: [
+          '직접 만든 카드 목록을 붙여 넣고 제한 시간 안에 뒷면을 답합니다. 시간을 두고 떠올리는 연습이 눈으로 알아보는 단어를 실제로 말할 수 있는 단어로 바꿔줍니다.',
+          '맞힌 카드는 대기열에서 빠지고, 틀린 카드는 모아 두었다가 섞어서 다음 회차에 다시 냅니다. 모든 카드를 한 번 이상 맞혀야 한 판이 끝납니다.',
+          '카드 목록은 이 페이지 안에만 있습니다. 서버로 보내지 않으며 페이지를 닫거나 새로고침하면 사라집니다.',
+        ],
+        steps: [
+          '한 줄에 카드 하나씩, 앞면과 뒷면을 쉼표나 탭으로 나눠 입력합니다.',
+          '제한 시간을 고르고, 소리 내어 답하려면 음성 설정을 켭니다.',
+          '막대가 다 줄기 전에 답합니다. 타이핑은 입력하는 동안 바로 채점합니다.',
+          '틀린 카드가 없어질 때까지 회차를 반복합니다.',
+        ],
+        faq: [
+          {
+            question: '틀린 카드는 어떻게 되나요?',
+            answer: '사라지지 않고 다음 회차용으로 모입니다. 이번 회차가 끝나면 모인 카드를 섞어 다음 회차로 내보내므로 어려운 카드가 계속 다시 나옵니다.',
+          },
+          {
+            question: '엔터를 눌러야 하나요?',
+            answer: '아니요. 타이핑한 답이 맞는 순간 바로 정답 처리합니다. 3초 제한에서는 이 차이가 큽니다. 틀린 답으로 엔터를 누르면 그 카드를 그 자리에서 넘깁니다.',
+          },
+          {
+            question: '한 카드에 여러 답을 넣을 수 있나요?',
+            answer: '네. 뒷면에 빗금으로 나눠 적으면 됩니다. 예를 들어 "schedule, 일정 / 스케줄"처럼 쓰면 둘 다 정답입니다. 띄어쓰기, 대소문자, 문장 부호는 비교할 때 무시합니다.',
+          },
+          {
+            question: '말해서 답하는 것도 타이핑만큼 안전한가요?',
+            answer: '아니요. 음성 인식은 브라우저 기능이고, 대부분의 브라우저가 녹음한 음성을 자사 서버로 보내 글자로 바꿉니다. Utilark는 그 음성을 받지 않지만 기기 밖으로 나가는 것은 사실입니다. 타이핑은 전부 기기 안에서 처리되므로 음성 설정은 기본으로 꺼져 있습니다.',
+          },
+          {
+            question: '3초는 너무 짧지 않나요?',
+            answer: '짧은 단어를 겨냥해 일부러 빡빡하게 잡았습니다. 긴 답을 연습할 때는 시작 전에 5초나 10초를 고르면 됩니다.',
+          },
+          {
+            question: '카드 목록이 저장되나요?',
+            answer: '아니요. 목록은 페이지 안에만 있습니다. 새로고침하면 사라지니 원본은 따로 보관해주세요.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    slug: 'ladder',
+    icon: '⋕',
+    accent: '#e0a11f',
+    copy: {
+      en: {
+        name: 'Ladder Game',
+        short: 'Assign outcomes to people with a random ladder.',
+        description:
+          'Free ladder game for deciding who gets what. Enter names and outcomes, build a random ladder, and trace each line in your browser.',
+        keywords: ['ladder game', 'ghost leg', 'amidakuji', 'random assignment'],
+        intro: [
+          'Write the names along the top and the outcomes along the bottom, then build a ladder. Tapping a name traces the line down so everyone can watch the path instead of trusting a number generator.',
+          'The ladder is drawn so that no two rungs sit side by side on the same row, which keeps every branch a real choice, and so that every gap between columns is used at least once, which stops a line from dropping straight to its own starting slot.',
+          'Useful for settling who buys coffee, picking a presentation order, or splitting chores.',
+        ],
+        steps: [
+          'Set the number of people, from two to eight.',
+          'Type the names on top and the outcomes below, or use one of the quick fills.',
+          'Build the ladder, then tap a name to trace that line.',
+          'Reveal the rest, or build a new ladder to start over.',
+        ],
+        faq: [
+          {
+            question: 'Is the result actually random?',
+            answer: 'The rungs are placed with the browser\'s random number generator each time you build. Nothing about the order of names changes the odds.',
+          },
+          {
+            question: 'Can two people land on the same outcome?',
+            answer: 'No. A ladder is a one-to-one mapping, so each outcome is reached by exactly one line. That is the property that makes it useful for assigning chores or an order.',
+          },
+          {
+            question: 'Are the names saved?',
+            answer: 'No. Names and outcomes stay in the page and are cleared when you close or refresh it.',
+          },
+          {
+            question: 'Why did the ladder redraw when I rotated my phone?',
+            answer: 'The drawing is measured from the width available, so a rotation recomputes the coordinates. Traces you already revealed are drawn again in place.',
+          },
+        ],
+      },
+      ko: {
+        name: '사다리타기',
+        short: '무작위 사다리로 사람과 결과를 이어줍니다.',
+        description:
+          '이름과 결과를 적고 무작위 사다리를 만드는 무료 사다리타기입니다. 이름을 누르면 브라우저에서 선을 따라 내려가는 경로를 그려줍니다.',
+        keywords: ['사다리타기', '사다리 게임', '순서 정하기', '내기 정하기'],
+        intro: [
+          '위에는 이름, 아래에는 결과를 적고 사다리를 만드세요. 이름을 누르면 선이 내려가는 경로를 그려주기 때문에, 숫자만 툭 나오는 방식과 달리 결과가 어떻게 정해졌는지 다 같이 볼 수 있습니다.',
+          '같은 줄에 가로칸이 나란히 붙지 않도록 놓아 갈림길이 항상 진짜 선택이 되게 하고, 열 사이 간격을 최소 한 번씩 쓰게 해서 어떤 줄도 제자리로 내려오지 않게 만듭니다.',
+          '커피 내기, 발표 순서 정하기, 집안일 나누기에 쓰기 좋습니다.',
+        ],
+        steps: [
+          '인원을 2명에서 8명 사이로 정합니다.',
+          '위에 이름, 아래에 결과를 적거나 빠른 채우기 버튼을 누릅니다.',
+          '사다리를 만든 뒤 이름을 눌러 경로를 확인합니다.',
+          '전체 보기로 나머지를 확인하거나 다시 만들어 새로 시작합니다.',
+        ],
+        faq: [
+          {
+            question: '결과가 정말 무작위인가요?',
+            answer: '사다리를 만들 때마다 브라우저의 난수로 가로칸을 새로 놓습니다. 이름을 어떤 순서로 적든 확률은 달라지지 않습니다.',
+          },
+          {
+            question: '두 사람이 같은 결과에 걸릴 수 있나요?',
+            answer: '아니요. 사다리는 일대일로 이어지므로 각 결과에는 정확히 한 줄만 도착합니다. 순서를 정하거나 역할을 나눌 때 사다리를 쓰는 이유가 바로 이 성질입니다.',
+          },
+          {
+            question: '입력한 이름이 저장되나요?',
+            answer: '아니요. 이름과 결과는 페이지 안에만 있고 닫거나 새로고침하면 사라집니다.',
+          },
+          {
+            question: '휴대폰을 돌렸더니 사다리를 다시 그리는데 왜 그런가요?',
+            answer: '화면 폭을 재서 좌표를 잡기 때문에 회전하면 다시 계산합니다. 이미 확인한 경로는 같은 자리에 다시 그려집니다.',
           },
         ],
       },

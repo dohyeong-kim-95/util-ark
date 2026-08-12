@@ -7,6 +7,8 @@ Private-by-default browser utilities for [utilark.app](https://utilark.app), mai
 - Image converter: JPG, PNG, and WebP conversion in the browser
 - Word and character counter: words, characters, lines, and UTF-8 bytes
 - PDF merger: reorder and combine PDF files with `pdf-lib` in the browser
+- Timed flashcards: answer the back of each card by typing or speaking before the timer runs out
+- Ladder game: assign outcomes to people with a random ladder drawn in SVG
 - Localized `/en/` and `/ko/` routes with matching policy and help pages
 - Canonical URLs, `hreflang`, Open Graph metadata, JSON-LD, sitemap, and robots.txt
 - Private bilingual contact form with an independent Utilark admin inbox
@@ -97,8 +99,11 @@ Before the admin and contact form can open, add these encrypted Worker secrets u
 The original Bubblelab `util` directory was reviewed as a source of product ideas, not copied as shared infrastructure.
 
 - Migrated first: image conversion and browser-side PDF merging
+- Migrated next: the ladder game, reimplemented on this site's components without the original `localStorage` persistence, so it matches the privacy policy statement that tool state is cleared on refresh
+- Added here: timed flashcards, which has no Bubblelab counterpart
 - Reframed first: a language-neutral word/character counter before migrating the Korean-specific proofreader
-- Later browser-only candidates: calendar, ladder, photo tools, stars, lotto, passport photo
+- Remaining browser-only candidates: calendar, photo tools, stars, passport photo
+- Excluded: lotto, because AdSense restricts gambling-related content and the site is applying for review
 - Separate infrastructure required: brief, fortune, planner, and chat
 - Separate administration required for any future content, user, ad, or server-operated feature
 
