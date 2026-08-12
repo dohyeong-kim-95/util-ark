@@ -1,4 +1,5 @@
 const RETENTION_MS = 180 * 24 * 60 * 60 * 1000;
+const ANALYTICS_RETENTION_DAYS = 90;
 
 const json = (data, init = {}) => {
   const headers = new Headers(init.headers);
@@ -29,12 +30,26 @@ export class ContactStore {
         count INTEGER NOT NULL,
         PRIMARY KEY (scope, visitor_key)
       );
+      CREATE TABLE IF NOT EXISTS analytics_daily (
+        day TEXT PRIMARY KEY,
+        page_views INTEGER NOT NULL DEFAULT 0,
+        bot_requests INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE TABLE IF NOT EXISTS analytics_visitors (
+        day TEXT NOT NULL,
+        visitor_key TEXT NOT NULL,
+        PRIMARY KEY (day, visitor_key)
+      );
+      CREATE INDEX IF NOT EXISTS analytics_visitors_day ON analytics_visitors(day);
     `);
   }
 
   purge(now) {
     this.sql.exec('DELETE FROM contacts WHERE created_at < ?', now - RETENTION_MS);
     this.sql.exec('DELETE FROM rate_limits WHERE window_started_at < ?', now - 24 * 60 * 60 * 1000);
+    const cutoff = new Date(now - ANALYTICS_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    this.sql.exec('DELETE FROM analytics_daily WHERE day < ?', cutoff);
+    this.sql.exec('DELETE FROM analytics_visitors WHERE day < ?', cutoff);
   }
 
   consumeRateLimit(scope, visitorKey, limit, windowMs, now) {
@@ -109,6 +124,86 @@ export class ContactStore {
         contact.message,
       );
       return json({ ok: true, id }, { status: 201 });
+    }
+
+    if (url.pathname === '/analytics/record' && request.method === 'POST') {
+      const body = await request.json().catch(() => null);
+      const day = typeof body?.day === 'string' && /^\d{4}-\d{2}-\d{2}$/u.test(body.day) ? body.day : null;
+      if (!day || (!body.bot && !body.visitorKey)) {
+        return json({ error: 'invalid analytics record' }, { status: 400 });
+      }
+      this.sql.exec(
+        `INSERT INTO analytics_daily (day, page_views, bot_requests)
+         VALUES (?, ?, ?)
+         ON CONFLICT(day) DO UPDATE SET
+           page_views = page_views + excluded.page_views,
+           bot_requests = bot_requests + excluded.bot_requests`,
+        day,
+        body.bot ? 0 : 1,
+        body.bot ? 1 : 0,
+      );
+      if (!body.bot) {
+        this.sql.exec(
+          'INSERT OR IGNORE INTO analytics_visitors (day, visitor_key) VALUES (?, ?)',
+          day,
+          String(body.visitorKey),
+        );
+      }
+      return json({ ok: true }, { status: 201 });
+    }
+
+    if (url.pathname === '/analytics' && request.method === 'GET') {
+      const days = Math.min(90, Math.max(1, Number(url.searchParams.get('days')) || 30));
+      const today = new Date(now).toISOString().slice(0, 10);
+      const firstDay = new Date(now - (days - 1) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const daily = Object.fromEntries(
+        [...this.sql.exec(
+          `SELECT d.day, d.page_views, d.bot_requests, COUNT(v.visitor_key) AS unique_visitors
+           FROM analytics_daily d
+           LEFT JOIN analytics_visitors v ON v.day = d.day
+           WHERE d.day BETWEEN ? AND ?
+           GROUP BY d.day, d.page_views, d.bot_requests
+           ORDER BY d.day DESC`,
+          firstDay,
+          today,
+        )].map((row) => [row.day, row]),
+      );
+      const items = [];
+      for (let offset = 0; offset < days; offset += 1) {
+        const day = new Date(now - offset * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const row = daily[day];
+        items.push({
+          day,
+          dau: Number(row?.unique_visitors ?? 0),
+          pageViews: Number(row?.page_views ?? 0),
+          botRequests: Number(row?.bot_requests ?? 0),
+        });
+      }
+      return json({ timeZone: 'UTC', retentionDays: ANALYTICS_RETENTION_DAYS, items });
+    }
+
+    if (url.pathname === '/analytics/public' && request.method === 'GET') {
+      const today = new Date(now).toISOString().slice(0, 10);
+      const weekStart = new Date(now - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const monthStart = new Date(now - 29 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const row = [...this.sql.exec(
+        `SELECT
+           SUM(CASE WHEN day = ? THEN 1 ELSE 0 END) AS today,
+           SUM(CASE WHEN day >= ? THEN 1 ELSE 0 END) AS week,
+           COUNT(*) AS month
+         FROM analytics_visitors
+         WHERE day BETWEEN ? AND ?`,
+        today,
+        weekStart,
+        monthStart,
+        today,
+      )][0];
+      return json({
+        today: Number(row?.today ?? 0),
+        week: Number(row?.week ?? 0),
+        month: Number(row?.month ?? 0),
+        method: 'sum_of_daily_unique_visitors',
+      });
     }
 
     if (url.pathname === '/contacts' && request.method === 'GET') {

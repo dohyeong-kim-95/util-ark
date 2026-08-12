@@ -10,6 +10,7 @@ Private-by-default browser utilities for [utilark.app](https://utilark.app), mai
 - Localized `/en/` and `/ko/` routes with matching policy and help pages
 - Canonical URLs, `hreflang`, Open Graph metadata, JSON-LD, sitemap, and robots.txt
 - Private bilingual contact form with an independent Utilark admin inbox
+- Privacy-preserving 90-day DAU, page-view, and excluded-bot totals in Utilark Admin
 - Optional AdSense loading through public environment variables after approval and consent review
 
 No selected file or text entered into a tool is sent to Utilark. The contact form is the explicit exception: its message and optional reply email are sent to the Utilark Worker and retained for up to 180 days.
@@ -68,6 +69,10 @@ The production custom domains are:
 - `admin.utilark.app` — noindex administrator login and contact inbox
 
 Contact records use a Utilark-only SQLite-backed Durable Object. Tool files and tool text never enter this storage. Records expire after 180 days, and public submissions are rate-limited using an HMAC value instead of storing the source IP address.
+
+Anonymous usage totals use a day-scoped HMAC of the connection IP and user-agent to deduplicate DAU without storing either original value or a cross-day visitor ID. Bot signals and common bot user-agents are excluded, DNT/GPC requests are skipped, and aggregate records expire after 90 days. Collection begins only after deployment and does not backfill earlier traffic.
+
+The localized home-page footer publishes Today, Week, and Month visitor-day totals. Week and Month are sums of daily deduplicated counts, not cross-day unique-user figures. Authenticated admins can set a five-year, domain-wide HttpOnly exclusion cookie so their current browser is omitted from future counts.
 
 Before the admin and contact form can open, add these encrypted Worker secrets under **Workers & Pages → utilark → Settings → Variables and Secrets**:
 

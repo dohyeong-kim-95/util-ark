@@ -527,6 +527,37 @@ button:disabled {
   font-size: 0.8rem;
 }
 
+.visitor-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.8rem;
+  padding-top: 0.7rem;
+  color: var(--muted);
+  font-family: Inter, Pretendard, system-ui, sans-serif;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+}
+
+.visitor-stats > span {
+  white-space: nowrap;
+}
+
+.visitor-stats strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.visitor-stats small {
+  flex-basis: 100%;
+  max-width: 48rem;
+  color: #777a82;
+  font-family: inherit;
+  font-size: 0.68rem;
+  letter-spacing: 0;
+  line-height: 1.55;
+}
+
 .page-hero {
   padding: 5.5rem 0 2.5rem;
 }

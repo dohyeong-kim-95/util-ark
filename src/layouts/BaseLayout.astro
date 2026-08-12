@@ -21,6 +21,7 @@ const englishPath = locale === 'en' ? Astro.url.pathname : alternatePath;
 const xDefaultUrl = new URL(englishPath, site);
 const fullTitle = title === 'Utilark' ? title : `${title} · Utilark`;
 const adsenseClient = import.meta.env.PUBLIC_ADSENSE_CLIENT?.trim();
+const showVisitorStats = Astro.url.pathname === `/${locale}/`;
 
 const schemas = [
   {
@@ -122,6 +123,19 @@ const schemas = [
         </nav>
       </div>
       <div class="shell footer-bottom">© {new Date().getFullYear()} Utilark</div>
+      {showVisitorStats && (
+        <div class="shell visitor-stats" data-visitor-stats>
+          <span>TODAY <strong data-period="today">–</strong></span>
+          <span>WEEK <strong data-period="week">–</strong></span>
+          <span>MONTH <strong data-period="month">–</strong></span>
+          <small>
+            {locale === 'ko'
+              ? '개인 식별 정보 없이 당일 중복을 제외한 방문 합계입니다. 주·월 수치는 일별 방문 수의 합입니다.'
+              : 'Privacy-preserving visit totals deduplicated per day. Week and month sum the daily counts.'}
+            {' '}<a href={`/${locale}/privacy/`}>{t.nav.privacy}</a>
+          </small>
+        </div>
+      )}
     </footer>
 
     <script>
@@ -131,6 +145,19 @@ const schemas = [
           if (language) localStorage.setItem('utilark-language', language);
         });
       });
+
+      const visitorStats = document.querySelector<HTMLElement>('[data-visitor-stats]');
+      if (visitorStats) {
+        fetch('/api/analytics/public', { cache: 'no-store' })
+          .then((response) => response.ok ? response.json() : Promise.reject())
+          .then((data) => {
+            for (const period of ['today', 'week', 'month']) {
+              const value = visitorStats.querySelector<HTMLElement>(`[data-period="${period}"]`);
+              if (value) value.textContent = Number(data[period] || 0).toLocaleString(document.documentElement.lang);
+            }
+          })
+          .catch(() => visitorStats.remove());
+      }
     </script>
   </body>
 </html>

@@ -41,6 +41,21 @@ if (!sitemapFiles.includes('sitemap-index.xml')) throw new Error('missing sitema
 const robots = await readFile(new URL('robots.txt', dist), 'utf8');
 if (!robots.includes('https://utilark.app/sitemap-index.xml')) throw new Error('robots.txt has no sitemap');
 
+const koreanHome = await readFile(new URL('ko/index.html', dist), 'utf8');
+for (const label of ['TODAY', 'WEEK', 'MONTH', 'data-visitor-stats']) {
+  if (!koreanHome.includes(label)) throw new Error(`Korean home: missing public visitor counter ${label}`);
+}
+
+const koreanPrivacy = await readFile(new URL('ko/privacy/index.html', dist), 'utf8');
+if (!koreanPrivacy.includes('utilark_notrack') || !koreanPrivacy.includes('90일')) {
+  throw new Error('Korean privacy policy: missing analytics disclosure');
+}
+
+const koreanTerms = await readFile(new URL('ko/terms/index.html', dist), 'utf8');
+if (!koreanTerms.includes('접속 수와 개인정보 보호')) {
+  throw new Error('Korean terms: missing access-count disclosure');
+}
+
 const assetFiles = await readdir(new URL('_astro/', dist));
 const cssFiles = assetFiles.filter((file) => file.endsWith('.css'));
 const css = (

@@ -93,6 +93,8 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
           heading: 'Technical access data',
           paragraphs: [
             'The hosting and security providers may process standard request information such as IP address, browser type, requested URL, time, and security signals. This information is used to deliver and protect the website and may be retained according to the provider configuration.',
+            'Utilark keeps privacy-preserving daily usage totals for up to 90 days. To remove repeat visits from DAU, the date, connection IP address, and browser user-agent are converted into a keyed one-way daily value. The original values, individual browsing history, and cross-day visitor identifier are not stored in the Utilark analytics database. Known bots are excluded where Cloudflare signals or common automated user-agents identify them, and DNT or Global Privacy Control requests are not counted.',
+            'An authenticated administrator can exclude the current browser from future counts. This setting uses the HttpOnly utilark_notrack cookie across utilark.app for up to five years, contains only the value 1, and is removed when the setting is turned off. It is not an advertising or cross-site tracking cookie.',
           ],
         },
         {
@@ -106,6 +108,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
         {
           heading: 'Advertising and analytics',
           paragraphs: [
+            'The daily usage totals described above are stored in Utilark infrastructure and are visible only to the Utilark administrator. No third-party analytics script is loaded in the initial release.',
             'Utilark does not load advertising code in the initial release. If advertising is enabled later, this policy and the consent experience will be updated before personalized advertising is used where consent is required.',
             'Google AdSense or another advertising provider may use cookies or similar technologies and process device and interaction information. You will be able to review the relevant provider policy from the consent notice.',
           ],
@@ -146,6 +149,8 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
           heading: '기술적인 접속 정보',
           paragraphs: [
             '호스팅 및 보안 제공업체는 사이트 전송과 보호를 위해 IP 주소, 브라우저 종류, 요청 URL, 접속 시각, 보안 신호와 같은 일반적인 요청 정보를 처리할 수 있습니다. 보관 기간은 제공업체 설정에 따라 달라질 수 있습니다.',
+            'Utilark는 개인정보 보호형 일별 이용 통계를 최대 90일간 보관합니다. DAU에서 당일 중복 방문을 제외하기 위해 날짜·접속 IP 주소·브라우저 User-Agent를 키가 적용된 일방향 일별 값으로 변환합니다. Utilark 분석 데이터베이스에는 원문 값, 개별 페이지 방문 기록, 날짜를 넘어 사용자를 연결하는 식별자를 저장하지 않습니다. Cloudflare 신호나 일반적인 자동화 User-Agent로 확인되는 봇은 제외하고, DNT 또는 Global Privacy Control 요청은 집계하지 않습니다.',
+            '인증된 관리자는 현재 브라우저를 이후 집계에서 제외할 수 있습니다. 이 설정은 utilark.app 전체에서 최대 5년간 유지되는 HttpOnly utilark_notrack 쿠키를 사용하며 값 1만 담습니다. 설정을 끄면 쿠키를 삭제하며, 광고 또는 사이트 간 추적 쿠키로 사용하지 않습니다.',
           ],
         },
         {
@@ -159,6 +164,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
         {
           heading: '광고와 분석',
           paragraphs: [
+            '앞에서 설명한 일별 이용 통계는 Utilark 인프라에 저장되며 Utilark 관리자만 확인할 수 있습니다. 초기 공개판에는 외부 분석 스크립트를 불러오지 않습니다.',
             '초기 공개판에는 광고 코드를 불러오지 않습니다. 나중에 광고를 활성화하면 동의가 필요한 지역에서 맞춤형 광고를 사용하기 전에 이 방침과 동의 절차를 갱신합니다.',
             'Google AdSense 또는 다른 광고 제공업체는 쿠키나 유사 기술을 사용하고 기기·이용 정보를 처리할 수 있습니다. 동의 안내에서 해당 제공업체의 정책을 확인할 수 있도록 합니다.',
           ],
@@ -202,6 +208,13 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
           ],
         },
         {
+          heading: 'Access counts and privacy',
+          paragraphs: [
+            'Utilark may display approximate daily, weekly, and monthly visit totals. These figures exclude same-day repeats using the privacy-preserving method described in the Privacy Policy. Week and month figures add the daily totals and are not cross-day unique-user counts. They may differ from other analytics and must not be treated as audited measurements.',
+            'Using the public service is subject to the data handling described in the Privacy Policy. Utilark does not require an account for the current browser tools, and the tool files or text remain on your device.',
+          ],
+        },
+        {
           heading: 'Availability and warranties',
           paragraphs: [
             'Utilark is provided as available without a promise that every file, browser, or device will work. Features may change, pause, or be removed. To the extent permitted by law, Utilark is not liable for indirect loss caused by use of or inability to use a tool.',
@@ -232,6 +245,13 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
           heading: '파일과 결과물',
           paragraphs: [
             '선택한 파일과 내려받은 결과물에 대한 책임은 사용자에게 있습니다. 법률, 금융, 의료, 보관 또는 실제 운영에 사용하기 전에는 중요한 결과를 반드시 확인하세요.',
+          ],
+        },
+        {
+          heading: '접속 수와 개인정보 보호',
+          paragraphs: [
+            'Utilark는 대략적인 일간·주간·월간 방문 수를 표시할 수 있습니다. 개인정보 처리방침에 설명한 보호 방식으로 같은 날의 중복 방문을 제외합니다. 주·월 수치는 일별 수치를 더한 값이며, 날짜를 넘어 같은 사용자를 식별한 순사용자 수가 아닙니다. 다른 분석 자료와 차이가 날 수 있고 감사된 공식 수치로 보아서는 안 됩니다.',
+            '공개 서비스 이용에는 개인정보 처리방침에 안내한 데이터 처리가 적용됩니다. 현재 브라우저 도구는 계정을 요구하지 않으며, 도구에 넣은 파일과 글은 사용자의 기기에만 머뭅니다.',
           ],
         },
         {

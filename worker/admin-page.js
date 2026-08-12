@@ -27,6 +27,28 @@ const pageShell = (title, body, script = '') => `<!doctype html>
     .logout { border:0; background:none; color:var(--muted); font-size:.85rem; text-decoration:underline; }
     .dashboard-head { display:flex; align-items:end; justify-content:space-between; gap:1rem; margin-bottom:1.4rem; }
     .dashboard-head h1 { font-size:clamp(2rem,5vw,3.8rem); }
+    .analytics { margin-bottom:3rem; }
+    .section-title { margin:0; font-size:clamp(1.45rem,4vw,2rem); letter-spacing:-.04em; }
+    .section-note { max-width:52rem; margin:.55rem 0 0; color:var(--muted); font-size:.8rem; line-height:1.6; }
+    .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.75rem; margin-top:1.1rem; }
+    .metric { min-width:0; padding:1rem; border:1px solid var(--line); border-radius:1rem; background:var(--surface); }
+    .metric span,.metric strong { display:block; }
+    .metric span { color:var(--muted); font-size:.75rem; }
+    .metric strong { margin-top:.35rem; font-size:clamp(1.45rem,4vw,2.1rem); overflow-wrap:anywhere; }
+    .exclusion { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-top:.85rem; padding:.85rem 1rem; border:1px solid var(--line); border-radius:1rem; background:#fffdf5; }
+    .exclusion strong,.exclusion small { display:block; }
+    .exclusion strong { font-size:.85rem; }
+    .exclusion small { margin-top:.25rem; color:var(--muted); font-size:.72rem; line-height:1.5; }
+    .switch { flex:0 0 auto; width:3.25rem; height:1.85rem; padding:.18rem; border:1px solid #b9bbb7; border-radius:999px; background:#d9dad6; transition:background .16s,border-color .16s; }
+    .switch span { display:block; width:1.35rem; height:1.35rem; border-radius:50%; background:#fff; box-shadow:0 1px 4px #1113; transition:transform .16s; }
+    .switch[aria-checked="true"] { border-color:#137246; background:#1c9b5e; }
+    .switch[aria-checked="true"] span { transform:translateX(1.35rem); }
+    .analytics-table { margin-top:1rem; border:1px solid var(--line); border-radius:1rem; background:var(--surface); overflow:auto; }
+    table { width:100%; border-collapse:collapse; font-size:.82rem; }
+    th,td { padding:.7rem .85rem; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+    th:first-child,td:first-child { text-align:left; }
+    th { color:var(--muted); font-size:.72rem; }
+    tbody tr:last-child td { border-bottom:0; }
     .counts { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1rem; }
     .count { padding:.45rem .7rem; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--muted); font-size:.8rem; }
     .count strong { color:var(--ink); }
@@ -45,7 +67,8 @@ const pageShell = (title, body, script = '') => `<!doctype html>
     .actions button { padding:.45rem .7rem; border:1px solid var(--line); border-radius:.6rem; background:#f8f8f5; font-size:.78rem; }
     .actions .danger { margin-left:auto; color:var(--red); }
     .empty { padding:3rem 1rem; border:1px dashed var(--line); border-radius:1rem; color:var(--muted); text-align:center; }
-    @media (max-width:36rem) { h1 { font-size:clamp(1.9rem,10vw,2.7rem); line-height:1.08; } .dashboard-head { display:block; } .filters { width:100%; margin-top:1rem; } .actions .danger { margin-left:0; } }
+    @media (max-width:42rem) { .metrics { grid-template-columns:1fr 1fr; } }
+    @media (max-width:36rem) { h1 { font-size:clamp(1.9rem,10vw,2.7rem); line-height:1.08; } .dashboard-head { display:block; } .filters { width:100%; margin-top:1rem; } .actions .danger { margin-left:0; } .metric { padding:.85rem; } .exclusion { align-items:flex-start; } }
   </style>
 </head>
 <body>${body}${script ? `<script>${script}</script>` : ''}</body>
@@ -76,7 +99,12 @@ const dashboardScript = String.raw`
   const list = document.getElementById('contacts');
   const statusText = document.getElementById('status');
   const filter = document.getElementById('filter');
+  const analyticsStatus = document.getElementById('analytics-status');
+  const analyticsRows = document.getElementById('analytics-rows');
+  const exclusionSwitch = document.getElementById('analytics-exclusion');
+  const exclusionState = document.getElementById('exclusion-state');
   const date = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Seoul' });
+  const day = new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric', weekday: 'short', timeZone: 'UTC' });
 
   function element(name, className, text) {
     const node = document.createElement(name);
@@ -151,6 +179,62 @@ const dashboardScript = String.raw`
     return card;
   }
 
+  function number(value) {
+    return Number(value || 0).toLocaleString('ko-KR');
+  }
+
+  async function loadAnalytics() {
+    analyticsStatus.textContent = '접속 통계를 불러오는 중…';
+    try {
+      const data = await api('/api/analytics');
+      const today = data.items[0] || { dau: 0, pageViews: 0, botRequests: 0 };
+      const firstWeek = data.items.slice(0, 7);
+      const averageDau = firstWeek.length
+        ? Math.round(firstWeek.reduce((sum, item) => sum + item.dau, 0) / firstWeek.length * 10) / 10
+        : 0;
+      const excludedBots = data.items.reduce((sum, item) => sum + item.botRequests, 0);
+      document.getElementById('today-dau').textContent = number(today.dau);
+      document.getElementById('today-views').textContent = number(today.pageViews);
+      document.getElementById('week-dau').textContent = averageDau.toLocaleString('ko-KR');
+      document.getElementById('bot-requests').textContent = number(excludedBots);
+      analyticsRows.replaceChildren(...data.items.map((item) => {
+        const row = document.createElement('tr');
+        row.append(
+          element('td', '', day.format(new Date(item.day + 'T00:00:00Z'))),
+          element('td', '', number(item.dau)),
+          element('td', '', number(item.pageViews)),
+          element('td', '', number(item.botRequests)),
+        );
+        return row;
+      }));
+      analyticsStatus.textContent = 'UTC 기준 · 최대 ' + number(data.retentionDays) + '일 보관';
+    } catch (error) {
+      analyticsRows.replaceChildren();
+      analyticsStatus.textContent = error.message;
+    }
+  }
+
+  function renderExclusion(excluded) {
+    exclusionSwitch.dataset.excluded = String(excluded);
+    exclusionSwitch.setAttribute('aria-checked', String(excluded));
+    exclusionSwitch.setAttribute('aria-label', excluded ? '이 기기 방문 집계 제외 끄기' : '이 기기 방문 집계 제외 켜기');
+    exclusionState.textContent = excluded
+      ? '제외 중 · 이 브라우저의 이후 방문은 집계하지 않습니다.'
+      : '집계 중 · 켜면 이 브라우저의 이후 방문을 제외합니다.';
+  }
+
+  async function loadExclusion() {
+    exclusionSwitch.disabled = true;
+    try {
+      const data = await api('/api/analytics/exclusion');
+      renderExclusion(Boolean(data.excluded));
+    } catch (error) {
+      exclusionState.textContent = error.message;
+    } finally {
+      exclusionSwitch.disabled = false;
+    }
+  }
+
   async function load() {
     statusText.textContent = '불러오는 중…';
     const query = filter.value ? '?status=' + encodeURIComponent(filter.value) : '';
@@ -169,6 +253,24 @@ const dashboardScript = String.raw`
   }
 
   filter.addEventListener('change', load);
+  exclusionSwitch.addEventListener('click', async () => {
+    const excluded = exclusionSwitch.dataset.excluded !== 'true';
+    exclusionSwitch.disabled = true;
+    try {
+      const data = await api('/api/analytics/exclusion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ excluded }),
+      });
+      renderExclusion(Boolean(data.excluded));
+    } catch (error) {
+      exclusionState.textContent = error.message;
+    } finally {
+      exclusionSwitch.disabled = false;
+    }
+  });
+  loadExclusion();
+  loadAnalytics();
   load();
 `;
 
@@ -179,9 +281,33 @@ export const dashboardPage = () => pageShell(
       <a class="brand" href="/"><span class="mark" aria-hidden="true">U</span><span>Utilark Admin</span></a>
       <form action="/logout" method="post"><button class="logout" type="submit">로그아웃</button></form>
     </header>
+    <section class="analytics" aria-labelledby="analytics-title">
+      <h1 id="analytics-title">접속 현황</h1>
+      <p class="section-note">원 IP나 브라우저 정보는 저장하지 않습니다. DAU는 날짜·IP·User-Agent의 일별 단방향 값으로 당일 중복을 제거한 추정치이며, 알려진 봇과 DNT/GPC 요청은 제외합니다.</p>
+      <div class="metrics">
+        <div class="metric"><span>오늘 DAU</span><strong id="today-dau">–</strong></div>
+        <div class="metric"><span>오늘 페이지뷰</span><strong id="today-views">–</strong></div>
+        <div class="metric"><span>최근 7일 평균 DAU</span><strong id="week-dau">–</strong></div>
+        <div class="metric"><span>30일 제외 봇 요청</span><strong id="bot-requests">–</strong></div>
+      </div>
+      <div class="exclusion">
+        <div>
+          <strong>이 기기 방문자 수 합계 제외</strong>
+          <small id="exclusion-state">현재 상태를 확인하는 중…</small>
+        </div>
+        <button id="analytics-exclusion" class="switch" type="button" role="switch" aria-checked="false" aria-label="이 기기 방문 집계 제외 켜기" disabled><span aria-hidden="true"></span></button>
+      </div>
+      <p id="analytics-status" class="section-note" role="status"></p>
+      <div class="analytics-table">
+        <table>
+          <thead><tr><th scope="col">날짜</th><th scope="col">DAU</th><th scope="col">페이지뷰</th><th scope="col">제외 봇</th></tr></thead>
+          <tbody id="analytics-rows"></tbody>
+        </table>
+      </div>
+    </section>
     <div class="dashboard-head">
       <div>
-        <h1>문의함</h1>
+        <h2 class="section-title">문의함</h2>
         <div class="counts" aria-label="문의 상태별 건수">
           <span class="count">새 문의 <strong id="new-count">–</strong></span>
           <span class="count">확인함 <strong id="read-count">–</strong></span>

@@ -1,4 +1,5 @@
 import { dashboardPage, loginPage, unavailablePage } from './admin-page.js';
+import { analyticsDay, dailyVisitorKey, likelyBot, trackablePageView } from './analytics.js';
 import { ContactStore } from './contact-store.js';
 import {
   anonymousVisitorKey,
@@ -16,6 +17,7 @@ export { ContactStore };
 
 const ADMIN_HOST = 'admin.utilark.app';
 const ADMIN_COOKIE = 'utilark_admin';
+const ANALYTICS_EXCLUSION_COOKIE = 'utilark_notrack';
 const CONTACT_MAX_BYTES = 8 * 1024;
 const categories = new Set(['bug', 'tool', 'feedback', 'other']);
 
@@ -35,6 +37,9 @@ const adminConfigured = (env) => Boolean(env.ADMIN_ID && env.ADMIN_PASSWORD && e
 
 const adminCookie = (token, secure = true) =>
   `${ADMIN_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${secure ? '; Secure' : ''}`;
+
+const analyticsExclusionCookie = (excluded, secure = true) =>
+  `${ANALYTICS_EXCLUSION_COOKIE}=${excluded ? '1' : ''}; Path=/; HttpOnly; Max-Age=${excluded ? 157680000 : 0}; SameSite=Lax; Domain=utilark.app${secure ? '; Secure' : ''}`;
 
 async function consumeRateLimit(request, env, options) {
   const secret = env.ADMIN_SESSION_SECRET;
@@ -87,6 +92,18 @@ async function handleContact(request, env) {
   return new Response(response.body, { status: response.status, headers: response.headers });
 }
 
+async function recordPageView(request, env) {
+  const day = analyticsDay();
+  const bot = likelyBot(request);
+  const visitorKey = bot ? undefined : await dailyVisitorKey(request, env.ADMIN_SESSION_SECRET, day);
+  const response = await contactStub(env).fetch('https://contacts.internal/analytics/record', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ day, bot, visitorKey }),
+  });
+  if (!response.ok) throw new Error(`analytics record failed: ${response.status}`);
+}
+
 async function handleAdmin(request, env, url) {
   if (!adminConfigured(env)) return html(unavailablePage(), 503);
   const session = parseCookies(request)[ADMIN_COOKIE];
@@ -128,6 +145,25 @@ async function handleAdmin(request, env, url) {
     return contactStub(env).fetch(internal);
   }
 
+  if (url.pathname === '/api/analytics' && request.method === 'GET') {
+    return contactStub(env).fetch('https://contacts.internal/analytics?days=30');
+  }
+
+  if (url.pathname === '/api/analytics/exclusion' && request.method === 'GET') {
+    return jsonResponse({ excluded: parseCookies(request)[ANALYTICS_EXCLUSION_COOKIE] === '1' });
+  }
+
+  if (url.pathname === '/api/analytics/exclusion' && request.method === 'POST') {
+    if (!sameOriginMutation(request) || !declaredBodyFits(request, 1024)) {
+      return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
+    }
+    const body = await request.json().catch(() => null);
+    if (typeof body?.excluded !== 'boolean') return jsonResponse({ error: 'invalid_request' }, { status: 400 });
+    return jsonResponse({ excluded: body.excluded }, {
+      headers: { 'Set-Cookie': analyticsExclusionCookie(body.excluded, secure) },
+    });
+  }
+
   const match = url.pathname.match(/^\/api\/contacts\/([0-9a-f-]+)$/u);
   if (match && ['PATCH', 'DELETE'].includes(request.method)) {
     if (!sameOriginMutation(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
@@ -148,7 +184,7 @@ async function handleAdmin(request, env, url) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const isAdmin = url.hostname === ADMIN_HOST || (url.hostname === 'localhost' && url.pathname.startsWith('/__admin'));
     if (isAdmin) {
@@ -159,7 +195,19 @@ export default {
 
     let response;
     if (url.pathname === '/api/contact') response = await handleContact(request, env);
+    else if (url.pathname === '/api/analytics/public' && request.method === 'GET' && env.CONTACTS) {
+      response = await contactStub(env).fetch('https://contacts.internal/analytics/public');
+    }
     else response = await env.ASSETS.fetch(request);
+    if (
+      env.CONTACTS
+      && env.ADMIN_SESSION_SECRET
+      && trackablePageView(request, response)
+    ) {
+      const task = recordPageView(request, env).catch((error) => console.error(error));
+      if (ctx?.waitUntil) ctx.waitUntil(task);
+      else await task;
+    }
     return withSecurityHeaders(response);
   },
 };
