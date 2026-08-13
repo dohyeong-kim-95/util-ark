@@ -6,6 +6,18 @@ AdSense 준비 작업(`6e62b57`)에서 남은 항목입니다. 코드로 끝낼 
 
 ## 사람이 직접 해야 하는 것
 
+- [ ] **Google Search Console 등록 + 사이트맵 제출** — **지금 가장 중요한 항목입니다.** `utilark app`으로 검색해도 안 나오는 이유는 순위가 아니라 발견입니다. 구글이 사이트를 찾는 경로는 다른 사이트의 링크와 Search Console 제출 두 가지인데, 도메인이 하루 됐고 링크를 걸어주는 곳이 없으며 제출도 안 했습니다. 구글은 이 도메인이 존재하는지 모릅니다.
+
+  빌드 쪽은 막는 게 없습니다 — `robots.txt`가 `Allow: /`, 사이트맵에 18개 URL이 전부 새 주소로 들어 있고, 홈·도구 페이지에 `noindex`가 없습니다(`npm test`가 확인). 남은 건 알리는 일뿐입니다.
+
+  1. [search.google.com/search-console](https://search.google.com/search-console) → **도메인** 속성으로 `utilark.app` 추가. 확인은 DNS TXT 레코드 한 줄이고, SPF·DMARC를 넣어본 그 자리입니다.
+  2. **Sitemaps** → `sitemap-index.xml` 제출.
+  3. **URL 검사**에 `https://utilark.app/ko/`를 넣고 **색인 생성 요청**. 주요 도구 페이지도 같이. 크롤러를 기다리는 것보다 빠릅니다.
+
+  URL을 오늘 `/{언어}/{슬러그}/`로 바꿨으므로 지금 제출하면 처음부터 최종 주소로 들어갑니다. 타이밍이 좋습니다.
+
+- [ ] **네이버 서치어드바이저 등록** — 한국어 시장에 집중하기로 했으므로(위 "이름 유지 결정") 네이버는 구글과 별개로 필요합니다. 네이버는 자체 색인을 쓰기 때문에 Search Console 등록이 네이버 노출에 아무 영향을 주지 않습니다. [searchadvisor.naver.com](https://searchadvisor.naver.com)에서 사이트 등록 후 `robots.txt`와 `sitemap-index.xml`을 제출하면 됩니다. `글자수 세기`·`PDF 합치기`·`사다리타기` 같은 조사한 키워드는 국내 검색 비중이 큽니다.
+
 - [ ] **AdSense 저장소 변수 등록** — Settings → Secrets and variables → Actions → **Variables** 탭에 `PUBLIC_ADSENSE_CLIENT` 추가. Secrets 탭이 아닙니다. 등록 후 재배포해야 심사용 스크립트와 `/ads.txt`가 살아납니다.
 - [ ] **AdSense 콘솔에서 동의 메시지 게시** — 개인정보 보호 및 메시지에서 GDPR 메시지와 미국 주법 메시지를 게시. Google 인증 동의 메시지는 `adsbygoogle.js`를 통해 전달되므로 저장소에 추가할 스크립트는 없습니다. 이 단계를 건너뛰면 EEA·영국·스위스 게재가 규정 위반입니다.
 - [ ] **승인 후 `PUBLIC_ADSENSE_SLOT` 등록** — 도구 페이지에 실제 광고 단위가 렌더됩니다.
