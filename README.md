@@ -101,7 +101,7 @@ Before the admin and contact form can open, add these encrypted Worker secrets u
 
 ## Bubblelab migration boundary
 
-The original Bubblelab `util` directory was reviewed as a source of product ideas, not copied as shared infrastructure.
+The original Bubblelab `util` directory was reviewed as a source of product ideas, not copied as shared infrastructure. Bubblelab lives at `dohyeong-kim-95/bubblelab`; see `AGENTS.md` for how to pull it up when a question needs to be answered from it rather than from memory.
 
 - Migrated first: image conversion and browser-side PDF merging
 - Migrated next: the ladder game, reimplemented on this site's components without the original `localStorage` persistence, so it matches the privacy policy statement that tool state is cleared on refresh
