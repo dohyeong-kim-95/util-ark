@@ -52,11 +52,9 @@ Both are read at build time, so production values live in **Settings → Secrets
 
 `PUBLIC_NAVER_SITE_VERIFICATION` holds the value Naver Webmaster Tools issues for the meta-tag method. Set it as a repository variable like the AdSense ones — it is a public identifier that ships in the HTML, not a credential, but it stays out of the source so it can be changed or removed without a commit. With no variable set, no verification tag is rendered at all, and `npm test` enforces both states.
 
-The tag is emitted on every page rather than only on the language gate, because the site root answers with a redirect.
+Naver's verifier does not run JavaScript and ignores the tag if it sits in `<body>` or inside a frame, so the tag is rendered into `<head>` of every page — not only the language gate, since the site root answers with a redirect and the verifier lands on a localized page. Naver supports server-side `301` and `302` redirects, which is what the Worker issues; what it cannot follow is a redirect performed in the browser by JavaScript, `meta refresh`, or a cookie. `npm test` checks the placement rules so a later change cannot quietly break verification.
 
-Expect the meta-tag method to be unreliable here. Naver states that it guarantees ownership checks only across a `301`, and that a JavaScript redirect cannot be verified at all; this site answers `/` with a `302` because the destination depends on the visitor's language, and the language gate redirects with JavaScript. Neither can change without pinning visitors to whichever language they first arrived in.
-
-The HTML-file method avoids the root entirely and is the reliable option: commit the `naverXXXX.html` file Naver issues to `public/`. The Worker serves that filename at its exact URL, resolving the trailing-slash redirect that asset routing would otherwise return, since Naver would have to follow that redirect to find the file.
+If the meta tag is rejected anyway, Naver's HTML-file method avoids the root entirely: commit the `naverXXXX.html` file it issues to `public/`. The Worker serves that filename at its exact URL, resolving the trailing-slash redirect that asset routing would otherwise return.
 
 ### AdSense review checklist
 

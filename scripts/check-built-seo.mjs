@@ -101,19 +101,27 @@ for (const tool of allTools) {
   }
 }
 
-// Naver's ownership check reads a meta tag. The site root answers with a
-// redirect, so the tag has to be on the localized pages the verifier lands on,
-// not only on the language gate.
+// Naver's ownership check reads a meta tag, and its rules are specific: the tag
+// is ignored inside <body> or a frame, and the verifier does not run
+// JavaScript. The site root answers with a server-side redirect, which Naver
+// does support (301 and 302 both), so the tag also has to be on the localized
+// pages the verifier lands on rather than only on the language gate.
 const naverVerification = process.env.PUBLIC_NAVER_SITE_VERIFICATION?.trim();
+const NAVER_TAG = 'name="naver-site-verification"';
 for (const page of ['index.html', 'en/index.html', 'ko/index.html', 'en/merge-pdf/index.html']) {
   const html = await readFile(new URL(page, dist), 'utf8');
-  const present = html.includes('name="naver-site-verification"');
-  if (naverVerification && !html.includes(`content="${naverVerification}"`)) {
-    throw new Error(`${page}: missing the configured Naver verification tag`);
-  }
-  if (!naverVerification && present) {
+  const head = html.slice(html.indexOf('<head>'), html.indexOf('</head>'));
+  if (naverVerification) {
+    if (!head.includes(`content="${naverVerification}"`)) {
+      throw new Error(`${page}: the Naver verification tag is missing from <head>`);
+    }
+    if (html.slice(html.indexOf('</head>')).includes(NAVER_TAG)) {
+      throw new Error(`${page}: a Naver verification tag sits outside <head>, where it is ignored`);
+    }
+  } else if (html.includes(NAVER_TAG)) {
     throw new Error(`${page}: has a Naver verification tag with no variable configured`);
   }
+  if (/<frame[\s>]/iu.test(html)) throw new Error(`${page}: frames hide the verification tag from Naver`);
 }
 
 const sitemapFiles = await readdir(new URL('.', dist));
