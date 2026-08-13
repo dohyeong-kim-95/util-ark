@@ -42,6 +42,7 @@ export const ui = {
       breadcrumbTools: 'Tools',
       language: '한국어',
       adLabel: 'Advertisement',
+      moreTools: 'More Utilark tools',
       lastUpdated: 'Last updated:',
     },
     footer: {
@@ -79,6 +80,7 @@ export const ui = {
       breadcrumbTools: '도구',
       language: 'English',
       adLabel: '광고',
+      moreTools: '다른 Utilark 도구',
       lastUpdated: '최종 업데이트:',
     },
     footer: {

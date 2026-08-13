@@ -2,6 +2,17 @@ import type { Locale } from '../i18n/ui';
 
 export type ToolCopy = {
   name: string;
+  /**
+   * The complete <title>, brand included, used instead of `${name} · Utilark`.
+   *
+   * Ranking tool pages put the keyword first and then spend the remaining room
+   * on a synonym and on "free"/"online" — `Merge PDF - Combine PDF Files for
+   * Free | FoxyUtils`, `PDF 합치기 - 무료로 인터넷에서 PDF 파일 병합하기`. The
+   * Korean titles also carry the spacing and synonym variants people actually
+   * type, since `글자수`/`글자 수` and `사다리타기`/`사다리 게임` are separate
+   * queries. Keep these under roughly 60 characters or Google truncates them.
+   */
+  titleTag: string;
   short: string;
   description: string;
   keywords: string[];
@@ -25,6 +36,7 @@ export const tools: ToolDefinition[] = [
     copy: {
       en: {
         name: 'Image Converter',
+        titleTag: 'Image Converter - JPG, PNG & WebP Free Online | Utilark',
         short: 'Convert JPG, PNG, and WebP images in your browser.',
         description:
           'Free private image converter for JPG, PNG, and WebP. Images are processed locally and never uploaded to Utilark.',
@@ -55,6 +67,7 @@ export const tools: ToolDefinition[] = [
       },
       ko: {
         name: '이미지 변환기',
+        titleTag: '이미지 변환 - JPG PNG WebP 무료 변환기 | Utilark',
         short: 'JPG·PNG·WebP 이미지를 브라우저에서 변환합니다.',
         description:
           'JPG, PNG, WebP 무료 이미지 변환기입니다. 이미지를 서버에 올리지 않고 사용자의 브라우저에서 처리합니다.',
@@ -92,6 +105,7 @@ export const tools: ToolDefinition[] = [
     copy: {
       en: {
         name: 'Word & Character Counter',
+        titleTag: 'Word Counter - Free Online Character & Byte Count | Utilark',
         short: 'Count words, characters, lines, and UTF-8 bytes instantly.',
         description:
           'Free online word and character counter with line and UTF-8 byte counts. Text stays in your browser and is never uploaded.',
@@ -122,6 +136,7 @@ export const tools: ToolDefinition[] = [
       },
       ko: {
         name: '글자수·단어수 계산기',
+        titleTag: '글자수 세기 - 무료 글자 수 단어수 바이트 계산 | Utilark',
         short: '글자, 단어, 줄, UTF-8 바이트 수를 바로 계산합니다.',
         description:
           '공백 포함·제외 글자수, 단어수, 줄 수와 UTF-8 바이트를 계산합니다. 입력한 글은 브라우저 밖으로 전송하지 않습니다.',
@@ -159,6 +174,7 @@ export const tools: ToolDefinition[] = [
     copy: {
       en: {
         name: 'Merge PDF',
+        titleTag: 'Merge PDF - Combine PDF Files Free Online | Utilark',
         short: 'Combine multiple PDF files without uploading them.',
         description:
           'Merge PDF files privately in your browser. Reorder files, combine every page, and download one PDF without uploading documents.',
@@ -189,6 +205,7 @@ export const tools: ToolDefinition[] = [
       },
       ko: {
         name: 'PDF 합치기',
+        titleTag: 'PDF 합치기 - 무료 온라인 PDF 병합 | Utilark',
         short: 'PDF를 업로드하지 않고 하나의 파일로 합칩니다.',
         description:
           '여러 PDF 파일을 브라우저에서 안전하게 합칩니다. 문서를 서버에 업로드하지 않고 순서를 바꿔 하나의 PDF로 저장하세요.',
@@ -226,6 +243,7 @@ export const tools: ToolDefinition[] = [
     copy: {
       en: {
         name: 'Ladder Game',
+        titleTag: 'Ladder Game - Free Online Ghost Leg Picker | Utilark',
         short: 'Assign outcomes to people with a random ladder.',
         description:
           'Free ladder game for deciding who gets what. Enter names and outcomes, build a random ladder, and trace each line in your browser.',
@@ -262,6 +280,7 @@ export const tools: ToolDefinition[] = [
       },
       ko: {
         name: '사다리타기',
+        titleTag: '사다리타기 - 무료 온라인 사다리 게임 | Utilark',
         short: '무작위 사다리로 사람과 결과를 이어줍니다.',
         description:
           '이름과 결과를 적고 무작위 사다리를 만드는 무료 사다리타기입니다. 이름을 누르면 브라우저에서 선을 따라 내려가는 경로를 그려줍니다.',

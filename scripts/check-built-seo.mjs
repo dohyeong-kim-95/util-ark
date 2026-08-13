@@ -39,6 +39,45 @@ for (const page of requiredPages) {
   }
 }
 
+// Tool pages target search queries, so their titles carry the keyword plus a
+// synonym and "free"/"online" instead of the plain `${name} · Utilark` form.
+// Google truncates past roughly 60 characters.
+for (const [page, freeWord] of [['en', 'Free'], ['ko', '무료']]) {
+  for (const tool of ['image-converter', 'word-counter', 'merge-pdf', 'ladder']) {
+    const file = `${page}/tools/${tool}/index.html`;
+    const html = await readFile(new URL(file, dist), 'utf8');
+    // Measure what the search result shows, not the escaped source: `&amp;`
+    // is one character on the page and five in the markup.
+    const title = html.match(/<title>([^<]*)<\/title>/u)?.[1]
+      ?.replaceAll('&amp;', '&')
+      .replaceAll('&#39;', "'")
+      .replaceAll('&quot;', '"')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>');
+    if (!title) throw new Error(`${file}: no title`);
+    if (title.includes(' · Utilark')) throw new Error(`${file}: still uses the plain title form`);
+    if (!title.endsWith('| Utilark')) throw new Error(`${file}: title does not end with the brand`);
+    if (!title.includes(freeWord)) throw new Error(`${file}: title is missing "${freeWord}"`);
+    if (title.length > 60) throw new Error(`${file}: title is ${title.length} characters, over 60`);
+  }
+}
+
+// A tool page must link to every other tool. Ranking competitors carry the whole
+// tool list on each tool page; without it these pages never pass signal to each
+// other and the only way out is the breadcrumb.
+const allTools = ['image-converter', 'word-counter', 'merge-pdf', 'ladder'];
+for (const locale of ['en', 'ko']) {
+  for (const tool of allTools) {
+    const file = `${locale}/tools/${tool}/index.html`;
+    const html = await readFile(new URL(file, dist), 'utf8');
+    for (const other of allTools.filter((entry) => entry !== tool)) {
+      if (!html.includes(`href="/${locale}/tools/${other}/"`)) {
+        throw new Error(`${file}: does not link to the ${other} tool`);
+      }
+    }
+  }
+}
+
 // Every subdomain in worker/subdomains.js has to point at a page that was built,
 // and every built tool has to be reachable from one of them.
 const builtTools = await readdir(new URL('en/tools/', dist));

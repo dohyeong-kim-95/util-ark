@@ -1246,6 +1246,17 @@ button:disabled {
   margin-top: 4rem;
 }
 
+.more-tools {
+  margin-top: clamp(3rem, 8vw, 4.5rem);
+  padding-top: clamp(2rem, 5vw, 3rem);
+  border-top: 1px solid var(--line);
+}
+
+.more-tools > h2 {
+  margin: 0 0 1.25rem;
+  font-size: 1.15rem;
+}
+
 .faq-list {
   display: grid;
   gap: 0.65rem;
@@ -1301,9 +1312,12 @@ button:disabled {
   text-decoration: none;
 }
 
+/* The slot sits below the finished tool, never between the heading and it.
+   The gap is wide on purpose: the last thing above it is a download button,
+   and on a phone a close ad turns a mis-tap into a click on someone's ad. */
 .ad-slot {
   min-height: 6rem;
-  margin-top: 2rem;
+  margin-top: 3.5rem;
   display: grid;
   place-items: center;
   border: 1px solid var(--line);

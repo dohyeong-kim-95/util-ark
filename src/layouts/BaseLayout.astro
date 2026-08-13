@@ -5,12 +5,14 @@ import { otherLocale, switchLocalePath, ui, type Locale } from '../i18n/ui';
 interface Props {
   locale: Locale;
   title: string;
+  /** Complete <title> including the brand, for pages that target a search query. */
+  titleTag?: string;
   description: string;
   noindex?: boolean;
   schema?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
 
-const { locale, title, description, noindex = false, schema } = Astro.props;
+const { locale, title, titleTag, description, noindex = false, schema } = Astro.props;
 const t = ui[locale];
 const site = Astro.site ?? new URL('https://utilark.app');
 const canonicalUrl = new URL(Astro.url.pathname, site);
@@ -19,7 +21,7 @@ const alternatePath = switchLocalePath(Astro.url.pathname, locale);
 const alternateUrl = new URL(alternatePath, site);
 const englishPath = locale === 'en' ? Astro.url.pathname : alternatePath;
 const xDefaultUrl = new URL(englishPath, site);
-const fullTitle = title === 'Utilark' ? title : `${title} · Utilark`;
+const fullTitle = titleTag ?? (title === 'Utilark' ? title : `${title} · Utilark`);
 const adsenseClient = import.meta.env.PUBLIC_ADSENSE_CLIENT?.trim();
 const showVisitorStats = Astro.url.pathname === `/${locale}/`;
 

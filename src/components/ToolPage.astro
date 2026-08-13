@@ -1,8 +1,9 @@
 ---
-import type { ToolDefinition } from '../data/tools';
+import { tools, type ToolDefinition } from '../data/tools';
 import type { Locale } from '../i18n/ui';
 import { ui } from '../i18n/ui';
 import AdSlot from './AdSlot.astro';
+import ToolCard from './ToolCard.astro';
 import ImageConverter from './tools/ImageConverter.astro';
 import Ladder from './tools/Ladder.astro';
 import MergePdf from './tools/MergePdf.astro';
@@ -22,6 +23,10 @@ const components = {
   ladder: Ladder,
 };
 const InteractiveTool = components[tool.slug];
+// Without this a tool page is a dead end: the only ways out were the breadcrumb
+// and the footer. Sites that rank for these keywords carry the whole tool list
+// on every tool page, which is how the pages pass signal to each other.
+const otherTools = tools.filter((entry) => entry.slug !== tool.slug);
 ---
 
 <div class="shell tool-page">
@@ -72,4 +77,11 @@ const InteractiveTool = components[tool.slug];
       <a href={`/${locale}/privacy/`}>{ui[locale].nav.privacy} →</a>
     </aside>
   </div>
+
+  <section class="more-tools" aria-labelledby="more-tools-heading">
+    <h2 id="more-tools-heading">{ui[locale].common.moreTools}</h2>
+    <div class="tool-grid">
+      {otherTools.map((entry) => <ToolCard tool={entry} locale={locale} />)}
+    </div>
+  </section>
 </div>

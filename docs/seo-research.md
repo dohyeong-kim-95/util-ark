@@ -151,3 +151,127 @@ Utilark는 `/ko/tools/merge-pdf/`로 3개이고 `tools/` 세그먼트가 하는 
 - FAQ 섹션과 `FAQPage` 구조화 데이터를 쓰는지
 - 변환 쌍 페이지끼리 서로 내부 링크를 거는지 (건다면 Utilark도 쌍 페이지 사이를 이어야 함)
 - 국내 SERP 실제 순위 (이 조사는 US 로케일 기준)
+
+---
+
+# 추가 조사: FoxyUtils (2026-08-13)
+
+`foxyutils.com/mergepdf/`를 따로 봤습니다. 근거 수준이 위 조사와 다릅니다.
+
+- **URL과 제목**: 검색 결과에서 관찰. 위 조사와 같은 수준.
+- **본문·광고 배치**: 조사 환경에서 `foxyutils.com`이 egress 차단(`EGRESS_BLOCKED`)이라 열지 못했고, **운영자가 모바일 브라우저에서 찍은 스크린샷**으로 확인했습니다. 이 부분은 위 조사보다 근거가 강합니다.
+- **본문 분량, H2 구조, 구조화 데이터, 내부 링크**: 여전히 확인하지 못했습니다.
+
+## 베낄 것
+
+### 1. URL이 한 세그먼트다
+
+`/mergepdf/` · `/splitpdf/` · `/rotatepdf/` · `/unlockpdf/` · `/wordtopdf/` · `/pdftojpg/` · `/jpgtopdf/` · `/epubtopdf/`
+
+위 조사의 7번(URL 깊이)을 다시 확인해 줍니다. `tools/` 같은 중간 세그먼트가 없고, 로케일도 경로에 없습니다.
+
+### 2. 방향 쌍이 각각 별도 페이지다
+
+`pdftojpg`와 `jpgtopdf`가 **서로 다른 페이지**입니다. 1번 발견의 세 번째 독립 사례입니다(앞의 둘은 `freeconvert`, `canva`). 이 패턴에서 예외를 아직 못 찾았습니다.
+
+이름 규칙은 `{from}to{to}`이고, `png2jpg.com` 계열은 `{from}2{to}`입니다. 둘 다 실제로 쓰입니다. Utilark 서브도메인은 `2` 쪽을 씁니다(`docs/subdomains.md`).
+
+### 3. 제목 공식이 위 조사의 5번과 정확히 같다
+
+| 관찰된 제목 |
+|---|
+| `Merge PDF - Combine PDF Files for Free \| FoxyUtils` |
+| `Split PDF Files Online for Free \| FoxyUtils` |
+| `Unlock PDF Files for Free \| FoxyUtils` |
+| `PDF to JPG Converter \| FoxyUtils` |
+| `Word to PDF Converter \| FoxyUtils` |
+
+`키워드 + 동의어 + Free/Online | 브랜드`. **적용했습니다** — `ToolCopy.titleTag`가 생겼고 `PDF 합치기 · Utilark`는 `PDF 합치기 - 무료 온라인 PDF 병합 | Utilark`가 됐습니다. 한국어 제목에는 6번(동의어·띄어쓰기 변형)을 함께 넣었습니다. `npm test`가 형식과 60자 상한을 검사합니다.
+
+### 4. 한 키워드를 지면 세 개로 덮는다
+
+"merge pdf" 하나에 대해:
+
+| 지면 | 예시 |
+|---|---|
+| 도구 페이지 | `foxyutils.com/mergepdf/` |
+| 헬프 문서 | `help.foxyutils.com/article/23-how-to-merge-pdf-files` |
+| 블로그 글 | `foxyutils.com/blog/2019/04/02/why-is-knowing-how-to-combine-pdfs-essential/` |
+
+도구 페이지는 얇아도 되고 깊이는 다른 지면이 담당하는 구조입니다. `todo.md`의 "도구 페이지 본문 확충 / `/{lang}/guides/` 신설"과 같은 방향이고, 이쪽이 더 나은 근거입니다. 헬프를 **서브도메인**에 둔 것도 눈여겨볼 만하지만, Utilark는 서브도메인을 진입점으로만 쓰기로 했으므로 `/{lang}/guides/` 경로가 맞습니다.
+
+### 5. 신뢰 신호를 사람으로 만든다
+
+"2008년부터", "네트워크 보안 전문가 두 명이 창업", "5,000회 변환마다 나무 한 그루". 도구 사이트에서 E-E-A-T를 만드는 방식입니다. Utilark 소개 페이지의 "회사가 아니라 한 명의 독립 개발자가 운영"도 같은 축인데, 지금은 면책 문구처럼 읽힙니다.
+
+## 베끼지 말 것
+
+### 1. 광고 배치 — 정확히 반대로 가야 한다
+
+스크린샷에서 확인된 모바일 순서입니다.
+
+```
+H1 "Merge PDF"
+부제 "Combine PDF files by uploading them below"
+[광고]                        ← 도구보다 위
+"Tired of ads? Get Premium to go unlimited and ad free."
+[업로드 박스]                  ← 여기서야 도구가 나온다
+[앱 설치 광고 — PDF Reader]
+[광고]
+```
+
+**도구를 쓰러 온 사람이 도구를 보기 전에 광고를 두 번 지나갑니다.** 그리고 그 짜증 자체를 유료 전환 문구로 씁니다. 이건 도메인 권위(2008년~)와 유료 플랜이 있으니까 감당되는 배치이고, Utilark는 둘 다 없습니다.
+
+Utilark는 `AdSlot`이 `ToolPage.astro`에서 `interactive-panel` **뒤**에 있어 구조는 이미 반대입니다. 다만 간격이 `2rem`이라 결과 다운로드 버튼과 가까웠습니다 — `3.5rem`으로 벌리고 이유를 CSS에 적어 뒀습니다. 모바일에서 오터치가 남의 광고 클릭이 되는 자리이기 때문입니다.
+
+위 조사의 반증 항목("광고 없음을 경쟁력으로 내세우는 상위 사이트가 있다")과 합치면 결론은 하나입니다. **광고는 도구 아래, 충분히 떨어져서.** AdSense 심사를 앞둔 시점이라 더 그렇습니다.
+
+### 2. 업로드 모델
+
+FoxyUtils는 서버로 올리고 "1시간 내 삭제"로 신뢰를 삽니다. Smallpdf와 같은 포지션입니다. `AGENTS.md`의 브라우저 전용 원칙과 정면으로 충돌하므로 도입 대상이 아닙니다. 위 조사가 이미 짚었듯 이 축은 순위 승부처가 아니라서, 포기할 이유도 없습니다.
+
+### 3. 가입 벽과 `/operation_info/` 페이지
+
+Sign in / Sign up, Pricing이 전역 내비게이션에 있습니다. Utilark는 계정이 없습니다.
+
+그리고 `foxyutils.com/operation_info/mergepdf/<uuid>/` 형태의 **작업 결과 페이지가 검색에 노출됩니다.** 사용자마다 생기는 얇은 중복 페이지가 색인된 것이라, 베낄 패턴이 아니라 피할 실수에 가깝습니다. 브라우저 전용인 Utilark에는 애초에 이런 URL이 생기지 않습니다.
+
+## 이 조사로 바뀐 우선순위
+
+`todo.md`의 미결정 항목 중 두 개가 근거를 얻었습니다.
+
+1. **이미지 변환 쌍별 페이지 분리** — 세 번째 독립 사례. 여전히 가장 큰 항목.
+2. **`/{lang}/guides/` 신설** — FoxyUtils는 헬프와 블로그 두 층을 더 씁니다. 도구 페이지 본문을 무리하게 늘리는 것보다 지면을 나누는 쪽이 관찰된 패턴에 맞습니다.
+
+---
+
+# 추가 조사: Foxit (2026-08-13)
+
+`foxit.com/merge-pdf/`의 도구 그리드를 운영자 스크린샷으로 확인했습니다.
+
+## 미해결 질문 하나가 답을 얻었다
+
+위 조사 끝의 "변환 쌍 페이지끼리 서로 내부 링크를 거는지" — **겁니다.** Foxit은 모든 도구 페이지 하단에 전체 도구 그리드를 깝니다. 관찰된 카드:
+
+```
+Word to PDF · PDF to JPG · PDF to Excel · Excel to PDF · PNG to PDF · PPT to PDF
+PDF to PNG · PDF to PPT · HTML to PDF · Text to PDF · TIFF to PDF · PDF to Text
+OCR PDF · RTF to PDF · PDF to TIFF · PDF to HTML · BMP to PDF · GIF to PDF
+PDF to BMP · Merge PDF · Compress PDF · Split PDF · Delete Pages from PDF
+Crop PDF · Rotate PDF · Extract PDF Pages · Add Pages to PDF · Rearrange PDF
+Add Page Numbers to PDF · Unlock PDF
+```
+
+**적용했습니다** — 도구 페이지 하단에 다른 도구 그리드가 생겼습니다. 이전에는 도구 페이지에서 다른 도구로 가는 링크가 **하나도** 없어서, 나가는 길이 breadcrumb과 푸터뿐인 막다른 길이었습니다. `npm test`가 모든 도구 페이지가 나머지 도구 전부를 링크하는지 검사합니다.
+
+## 쌍 분리의 네 번째 사례
+
+`PDF to PNG`와 `PNG to PDF`, `PDF to Excel`과 `Excel to PDF`, `PDF to TIFF`와 `TIFF to PDF`가 전부 **양방향 각각** 카드를 가집니다. 앞의 세 사례(`freeconvert`, `canva`, `foxyutils`)에 이어 네 번째이고, 여전히 반례를 못 찾았습니다.
+
+`todo.md`의 "이미지 변환을 쌍별 페이지로 분리"는 이제 근거가 넷입니다.
+
+## 규모 감각
+
+Foxit은 PDF 하나로 30개 안팎의 도구 지면을 가집니다. 방향 쌍을 나누면 지면이 이렇게 늘어난다는 뜻이고, Utilark는 전체가 4개입니다. 이미지 변환만 쌍으로 나눠도 6쌍 × 2언어 = 12지면이 되어 지금의 3배가 됩니다.
+
+다만 Foxit은 유료 제품(Buy Now·장바구니·계정)의 유입 창구로 이 지면들을 운영합니다. 도구 자체가 목적인 Utilark와 사업 구조가 다르므로, 베낄 것은 **지면 분할과 상호 링크**이지 도구 개수 경쟁이 아닙니다.

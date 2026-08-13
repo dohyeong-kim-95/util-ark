@@ -45,6 +45,12 @@ const schema = [
 ];
 ---
 
-<BaseLayout locale={locale} title={copy.name} description={copy.description} schema={schema}>
+<BaseLayout
+  locale={locale}
+  title={copy.name}
+  titleTag={copy.titleTag}
+  description={copy.description}
+  schema={schema}
+>
   <ToolPage tool={tool} locale={locale} />
 </BaseLayout>
