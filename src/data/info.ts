@@ -123,7 +123,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
             'The hosting and security providers may process standard request information such as IP address, browser type, requested URL, time, and security signals. This information is used to deliver and protect the website and may be retained according to the provider configuration.',
             'Utilark keeps privacy-preserving daily usage totals for up to 90 days. To remove repeat visits from DAU, the date, connection IP address, and browser user-agent are converted into a keyed one-way daily value. The original values, individual browsing history, and cross-day visitor identifier are not stored in the Utilark analytics database. Known bots are excluded where Cloudflare signals or common automated user-agents identify them, and DNT or Global Privacy Control requests are not counted.',
             'An authenticated administrator can exclude the current browser from future counts. This setting uses the HttpOnly utilark_notrack cookie across utilark.app for up to five years, contains only the value 1, and is removed when the setting is turned off. It is not an advertising or cross-site tracking cookie.',
-            'Choosing a language stores the utilark_lang cookie for up to one year so that utilark.app opens in the language you picked. It holds only the value en or ko and is not used for advertising or cross-site tracking.',
+            'Choosing a language stores the utilark_lang cookie across utilark.app for up to one year so that the site and its short tool addresses open in the language you picked. It holds only the value en or ko and is not used for advertising or cross-site tracking.',
           ],
         },
         {
@@ -199,7 +199,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
             '호스팅 및 보안 제공업체는 사이트 전송과 보호를 위해 IP 주소, 브라우저 종류, 요청 URL, 접속 시각, 보안 신호와 같은 일반적인 요청 정보를 처리할 수 있습니다. 보관 기간은 제공업체 설정에 따라 달라질 수 있습니다.',
             'Utilark는 개인정보 보호형 일별 이용 통계를 최대 90일간 보관합니다. DAU에서 당일 중복 방문을 제외하기 위해 날짜·접속 IP 주소·브라우저 User-Agent를 키가 적용된 일방향 일별 값으로 변환합니다. Utilark 분석 데이터베이스에는 원문 값, 개별 페이지 방문 기록, 날짜를 넘어 사용자를 연결하는 식별자를 저장하지 않습니다. Cloudflare 신호나 일반적인 자동화 User-Agent로 확인되는 봇은 제외하고, DNT 또는 Global Privacy Control 요청은 집계하지 않습니다.',
             '인증된 관리자는 현재 브라우저를 이후 집계에서 제외할 수 있습니다. 이 설정은 utilark.app 전체에서 최대 5년간 유지되는 HttpOnly utilark_notrack 쿠키를 사용하며 값 1만 담습니다. 설정을 끄면 쿠키를 삭제하며, 광고 또는 사이트 간 추적 쿠키로 사용하지 않습니다.',
-            '언어를 선택하면 utilark.app을 다시 열 때 같은 언어로 이동하도록 utilark_lang 쿠키를 최대 1년간 저장합니다. 이 쿠키는 en 또는 ko 값만 담으며 광고나 사이트 간 추적에 사용하지 않습니다.',
+            '언어를 선택하면 사이트와 짧은 도구 주소를 다시 열 때 같은 언어로 이동하도록 utilark.app 전체에서 최대 1년간 유지되는 utilark_lang 쿠키를 저장합니다. 이 쿠키는 en 또는 ko 값만 담으며 광고나 사이트 간 추적에 사용하지 않습니다.',
           ],
         },
         {

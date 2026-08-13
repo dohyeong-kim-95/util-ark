@@ -2,9 +2,11 @@
 
 AdSense 준비 작업(`6e62b57`)에서 남은 항목입니다. 코드로 끝낼 수 없거나 결정이 필요한 것만 적습니다.
 
-경쟁 키워드 조사는 `docs/seo-research.md`에 있습니다.
+경쟁 키워드 조사는 `docs/seo-research.md`에, 서브도메인 정책은 `docs/subdomains.md`에 있습니다.
 
 ## 사람이 직접 해야 하는 것
+
+- [ ] **서브도메인 Custom Domain 등록** — Workers & Pages → utilark → Domains → Add → Custom Domain 에서 11개를 한 줄씩 추가. 목록과 확인용 `curl`은 `docs/subdomains.md`에 있습니다. 와일드카드를 지원하지 않아 개별 등록이 필요하고, 등록 전까지는 서브도메인이 조회되지 않습니다. 코드는 이미 배포돼 있어도 됩니다.
 
 - [ ] **AdSense 저장소 변수 등록** — Settings → Secrets and variables → Actions → **Variables** 탭에 `PUBLIC_ADSENSE_CLIENT` 추가. Secrets 탭이 아닙니다. 등록 후 재배포해야 심사용 스크립트와 `/ads.txt`가 살아납니다.
 - [ ] **AdSense 콘솔에서 동의 메시지 게시** — 개인정보 보호 및 메시지에서 GDPR 메시지와 미국 주법 메시지를 게시. Google 인증 동의 메시지는 `adsbygoogle.js`를 통해 전달되므로 저장소에 추가할 스크립트는 없습니다. 이 단계를 건너뛰면 EEA·영국·스위스 게재가 규정 위반입니다.
@@ -38,7 +40,7 @@ AdSense 준비 작업(`6e62b57`)에서 남은 항목입니다. 코드로 끝낼 
 
 - [ ] **광고 문구 시점** — 개인정보 처리방침의 광고 문단을 현재형("Utilark는 Google AdSense가 제공하는 광고를 게재합니다")으로 써 두었습니다. `PUBLIC_ADSENSE_CLIENT`를 설정해 배포하는 시점부터 사실이 됩니다. 당분간 변수를 설정하지 않을 계획이면 문구가 실제보다 앞서므로 되돌려야 합니다.
 - [ ] **원격 브랜치 정리** — `claude/google-adsense-eligibility-b6ke9x`는 main에 모두 머지됐지만 원격에 남아 있습니다.
-- [ ] **이미지 변환을 쌍별 페이지로 분리** — `docs/seo-research.md`의 가장 큰 발견입니다. 상위 노출되는 변환 도구는 예외 없이 방향이 정해진 쌍마다 페이지가 하나씩 있고(`png2jpg.com`과 `jpg2png.com`은 도메인까지 따로), Utilark는 한 페이지가 6쌍을 전부 덮어 어느 키워드에도 걸리지 않습니다. 쌍별로 나누면 12개 색인 페이지가 생겨 검색 유입과 아래의 얇은 콘텐츠 문제를 함께 해결합니다.
+- [ ] **이미지 변환을 쌍별 페이지로 분리** — `docs/seo-research.md`의 가장 큰 발견입니다. 서브도메인 쪽은 `jpg2png`·`png2jpg`·`jpg2webp`·`webp2jpg`·`png2webp`·`webp2png` 이름을 이미 예약해 뒀으므로, 쌍별 페이지가 생기면 `worker/subdomains.js`에서 `pending`을 지우고 `tool` 슬러그만 바꾸면 연결됩니다. 상위 노출되는 변환 도구는 예외 없이 방향이 정해진 쌍마다 페이지가 하나씩 있고(`png2jpg.com`과 `jpg2png.com`은 도메인까지 따로), Utilark는 한 페이지가 6쌍을 전부 덮어 어느 키워드에도 걸리지 않습니다. 쌍별로 나누면 12개 색인 페이지가 생겨 검색 유입과 아래의 얇은 콘텐츠 문제를 함께 해결합니다.
 - [ ] **제목 태그 공식 적용** — 상위 제목은 `키워드 + 무료 + 온라인 + 동의어` 형태인데 Utilark는 `PDF 합치기 · Utilark`입니다. `ToolCopy`에 로케일별 `titleTag`를 추가하면 됩니다. 비용 대비 효과가 가장 좋습니다.
 - [ ] **도구 페이지 본문 확충** — 승인의 실질적 관문입니다. 도구가 3개에서 4개로 늘고 사다리타기 페이지는 본문이 더 두껍지만(영문 377단어), 먼저 만든 세 도구는 여전히 235단어 수준입니다. 기존 세 도구의 본문을 새 두 도구 수준으로 맞추고 `/{lang}/guides/` 섹션을 신설하는 방향을 제안합니다.
 - [ ] **남은 Bubblelab 마이그레이션 후보** — `calendar`, `photo`, `passport-pic`, `stars`가 브라우저 전용으로 남아 있습니다. `passport-pic`(증명사진)이 검색 수요와 콘텐츠 밀도 면에서 다음 후보로 가장 좋아 보입니다. `brief`·`fortune`·`planner`·`chat`은 서버가 필요해 제외했고, `proofread`는 한국어 전용이라 별도 판단이 필요합니다.

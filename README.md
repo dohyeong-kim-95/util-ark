@@ -61,6 +61,7 @@ Both are read at build time, so production values live in **Settings → Secrets
 - `/en/`, `/ko/` — localized home pages
 - `/en/tools/{tool}/`, `/ko/tools/{tool}/` — localized tool pages
 - Localized about, privacy, terms, and contact pages
+- `{tool}.utilark.app/` — `302` to that tool's localized page, chosen the same way as `/`; any other path on a subdomain is `301`ed to the same path on `utilark.app`
 
 The Astro site is served by the Utilark Worker together with the contact API and a separate admin hostname. It does not use shared Bubblelab infrastructure.
 
@@ -79,6 +80,9 @@ The production custom domains are:
 
 - `utilark.app` — public site and `POST /api/contact`
 - `admin.utilark.app` — noindex administrator login and contact inbox
+- One short entry-point subdomain per tool, such as `mergepdf.utilark.app`, plus names reserved for conversion pages that do not exist yet, such as `png2jpg.utilark.app`
+
+Every tool subdomain redirects to a localized page on `utilark.app` rather than serving its own copy, so indexing, link signals, the sitemap, and the AdSense site registration stay on one host. `docs/subdomains.md` has the full map, the redirect rules, and the dashboard steps; `worker/subdomains.js` is the source of truth, and `npm test` fails if it drifts from the tools that were built.
 
 Contact records use a Utilark-only SQLite-backed Durable Object. Tool files and tool text never enter this storage. Records expire after 180 days, and public submissions are rate-limited using an HMAC value instead of storing the source IP address.
 

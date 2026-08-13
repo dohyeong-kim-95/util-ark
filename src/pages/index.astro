@@ -35,7 +35,11 @@ import '../styles/global.css';
         const language = link.dataset.language ?? 'en';
         localStorage.setItem('utilark-language', language);
         const secure = location.protocol === 'https:' ? '; Secure' : '';
-        document.cookie = `utilark_lang=${language}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
+        // Scoped to the whole domain so the short tool addresses open in the chosen language.
+        const scope = /(^|\.)utilark\.app$/.test(location.hostname) ? '; Domain=utilark.app' : '';
+        // Drop an earlier host-only cookie first, or both would be sent with conflicting values.
+        document.cookie = `utilark_lang=; Path=/; Max-Age=0; SameSite=Lax${secure}`;
+        document.cookie = `utilark_lang=${language}; Path=/; Max-Age=31536000; SameSite=Lax${scope}${secure}`;
       }));
 
       const saved = localStorage.getItem('utilark-language');

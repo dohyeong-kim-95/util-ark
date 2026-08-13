@@ -1,5 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 
+import { TOOL_SUBDOMAINS } from '../worker/subdomains.js';
+
 const dist = new URL('../dist/', import.meta.url);
 const requiredPages = [
   'en/index.html',
@@ -34,6 +36,22 @@ for (const page of requiredPages) {
   const html = await readFile(new URL(page, dist), 'utf8');
   for (const [name, pattern] of checks) {
     if (!pattern.test(html)) throw new Error(`${page}: missing ${name}`);
+  }
+}
+
+// Every subdomain in worker/subdomains.js has to point at a page that was built,
+// and every built tool has to be reachable from one of them.
+const builtTools = await readdir(new URL('en/tools/', dist));
+const liveSubdomainTools = new Set();
+for (const [label, entry] of Object.entries(TOOL_SUBDOMAINS)) {
+  if (entry.tool && !builtTools.includes(entry.tool)) {
+    throw new Error(`${label}.utilark.app points at /tools/${entry.tool}/, which was not built`);
+  }
+  if (!entry.pending) liveSubdomainTools.add(entry.tool);
+}
+for (const tool of builtTools) {
+  if (!liveSubdomainTools.has(tool)) {
+    throw new Error(`the ${tool} tool has no subdomain in worker/subdomains.js`);
   }
 }
 

@@ -2,6 +2,7 @@ import { dashboardPage, loginPage, unavailablePage } from './admin-page.js';
 import { analyticsDay, dailyVisitorKey, likelyBot, trackablePageView } from './analytics.js';
 import { ContactStore } from './contact-store.js';
 import { preferredLocale } from './locale.js';
+import { resolveHost, subdomainRedirect } from './subdomains.js';
 import {
   anonymousVisitorKey,
   declaredBodyFits,
@@ -16,7 +17,6 @@ import {
 
 export { ContactStore };
 
-const ADMIN_HOST = 'admin.utilark.app';
 const ADMIN_COOKIE = 'utilark_admin';
 const ANALYTICS_EXCLUSION_COOKIE = 'utilark_notrack';
 const CONTACT_MAX_BYTES = 8 * 1024;
@@ -196,11 +196,16 @@ async function handleAdmin(request, env, url) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const isAdmin = url.hostname === ADMIN_HOST || (url.hostname === 'localhost' && url.pathname.startsWith('/__admin'));
+    const host = resolveHost(url.hostname);
+    const isAdmin = host.kind === 'admin' || (url.hostname === 'localhost' && url.pathname.startsWith('/__admin'));
     if (isAdmin) {
       if (url.hostname === 'localhost') url.pathname = url.pathname.replace(/^\/__admin/u, '') || '/';
       const response = await handleAdmin(new Request(url, request), env, url);
       return withSecurityHeaders(response, { admin: true });
+    }
+
+    if (host.kind === 'tool' || host.kind === 'unknown') {
+      return withSecurityHeaders(subdomainRedirect(url, host, preferredLocale(request)));
     }
 
     let response;
