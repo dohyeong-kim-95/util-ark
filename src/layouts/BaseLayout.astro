@@ -33,6 +33,12 @@ const schemas = [
     url: new URL(`/${locale}/`, site).href,
     inLanguage: locale,
     description: t.brandTagline,
+    isAccessibleForFree: true,
+    // A site with the same name exists on another domain, so state which
+    // Utilark this is. The public source repository is the one reference that
+    // cannot be copied by a lookalike, and it is what separates a tool site
+    // from something wearing its name.
+    sameAs: ['https://github.com/dohyeong-kim-95/util-ark'],
   },
   ...(schema ? (Array.isArray(schema) ? schema : [schema]) : []),
 ];
