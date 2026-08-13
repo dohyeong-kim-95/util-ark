@@ -21,13 +21,15 @@ export const TOOL_SUBDOMAINS = {
   wordcount: { tool: 'word-counter' },
   ladder: { tool: 'ladder' },
 
-  // Reserved for the pair-split conversion pages in docs/seo-research.md.
-  jpg2png: { tool: 'image-converter', pending: true },
-  png2jpg: { tool: 'image-converter', pending: true },
-  jpg2webp: { tool: 'image-converter', pending: true },
-  webp2jpg: { tool: 'image-converter', pending: true },
-  png2webp: { tool: 'image-converter', pending: true },
-  webp2png: { tool: 'image-converter', pending: true },
+  // The pair-split conversion pages these names were reserved for now exist.
+  // The subdomain keeps the `{from}2{to}` spelling and the path keeps
+  // `{from}-to-{to}`; both are used by ranking competitors.
+  jpg2png: { tool: 'jpg-to-png' },
+  png2jpg: { tool: 'png-to-jpg' },
+  jpg2webp: { tool: 'jpg-to-webp' },
+  webp2jpg: { tool: 'webp-to-jpg' },
+  png2webp: { tool: 'png-to-webp' },
+  webp2png: { tool: 'webp-to-png' },
 
   // Reserved for a tool that does not exist yet.
   pdf2image: { tool: null, pending: true },

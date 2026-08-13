@@ -13,7 +13,7 @@ AdSense 준비 작업(`6e62b57`)에서 남은 항목입니다. 코드로 끝낼 
   1. **Sitemaps** → `sitemap-index.xml` 제출.
   2. **URL 검사**에 `https://utilark.app/ko/`를 넣고 **색인 생성 요청**. 주요 도구 페이지도 같이. 크롤러를 기다리는 것보다 빠릅니다.
 
-  빌드 쪽은 막는 게 없습니다 — `robots.txt`가 `Allow: /`, 사이트맵에 26개 URL(도구·가이드 포함)이 전부 새 주소로 들어 있고, 홈·도구 페이지에 `noindex`가 없습니다(`npm test`가 확인). URL을 2026-08-13에 `/{언어}/{슬러그}/`로 바꿨으므로 지금 제출하면 처음부터 최종 주소로 들어갑니다.
+  빌드 쪽은 막는 게 없습니다 — `robots.txt`가 `Allow: /`, 사이트맵에 38개 URL(도구·변환 쌍·가이드 포함)이 전부 새 주소로 들어 있고, 홈·도구 페이지에 `noindex`가 없습니다(`npm test`가 확인). URL을 2026-08-13에 `/{언어}/{슬러그}/`로 바꿨으므로 지금 제출하면 처음부터 최종 주소로 들어갑니다.
 
   제출해도 즉시 나오지는 않습니다. 원문이 "크롤링·색인·게재를 보장하지 않는다"고 못 박고 있고, 보통 며칠에서 몇 주가 걸립니다(`docs/how-search-works.md`).
 
@@ -64,7 +64,7 @@ AdSense 준비 작업(`6e62b57`)에서 남은 항목입니다. 코드로 끝낼 
 
   ```bash
   curl -sI -H 'Accept-Language: ko-KR,ko;q=0.9' https://mergepdf.utilark.app/ | head -5  # 302 → utilark.app/ko/merge-pdf/
-  curl -sI -H 'Accept-Language: en-US' https://png2jpg.utilark.app/ | head -5            # 302 → utilark.app/en/image-converter/
+  curl -sI -H 'Accept-Language: en-US' https://png2jpg.utilark.app/ | head -5            # 302 → utilark.app/en/png-to-jpg/
   curl -sI https://mergepdf.utilark.app/ko/privacy/ | head -5                            # 301 → utilark.app/ko/privacy/
   curl -sI https://www.utilark.app/ | head -5                                            # 301 → utilark.app/
   curl -sI https://utilark.app/ko/tools/merge-pdf/ | head -5                             # 301 → /ko/merge-pdf/ (옛 경로)
@@ -87,13 +87,20 @@ AdSense 준비 작업(`6e62b57`)에서 남은 항목입니다. 코드로 끝낼 
 
 - [ ] **광고 문구 시점** — 개인정보 처리방침의 광고 문단을 현재형("Utilark는 Google AdSense가 제공하는 광고를 게재합니다")으로 써 두었습니다. `PUBLIC_ADSENSE_CLIENT`를 설정해 배포하는 시점부터 사실이 됩니다. 당분간 변수를 설정하지 않을 계획이면 문구가 실제보다 앞서므로 되돌려야 합니다.
 - [ ] **원격 브랜치 정리** — `claude/google-adsense-eligibility-b6ke9x`는 main에 모두 머지됐지만 원격에 남아 있습니다.
-- [ ] **이미지 변환을 쌍별 페이지로 분리** — `docs/seo-research.md`의 가장 큰 발견이고, 이제 독립 사례가 넷입니다(`freeconvert`·`canva`·`foxyutils`·`foxit`). 반례를 아직 못 찾았습니다. 서브도메인 쪽은 `jpg2png`·`png2jpg`·`jpg2webp`·`webp2jpg`·`png2webp`·`webp2png` 이름을 이미 예약해 뒀으므로, 쌍별 페이지가 생기면 `worker/subdomains.js`에서 `pending`을 지우고 `tool` 슬러그만 바꾸면 연결됩니다. 상위 노출되는 변환 도구는 예외 없이 방향이 정해진 쌍마다 페이지가 하나씩 있고(`png2jpg.com`과 `jpg2png.com`은 도메인까지 따로), Utilark는 한 페이지가 6쌍을 전부 덮어 어느 키워드에도 걸리지 않습니다. 쌍별로 나누면 12개 색인 페이지가 생겨 검색 유입과 아래의 얇은 콘텐츠 문제를 함께 해결합니다.
 - [ ] **광고 노출 시 실제 배치 확인** — `PUBLIC_ADSENSE_SLOT`을 넣기 전에는 슬롯이 렌더되지 않아 실기기 확인이 불가능합니다. 넣은 뒤 모바일에서 **결과 다운로드 버튼과 광고 사이 간격**을 눈으로 보세요. FoxyUtils는 도구보다 위에 광고를 두 개 깔아 도구가 한참 밀리는데(`docs/seo-research.md`의 추가 조사), Utilark는 도구 아래 `3.5rem`으로 떨어뜨려 뒀습니다. 오터치가 광고 클릭이 되면 AdSense 정책 위반 위험도 있습니다.
 
 - [ ] **가이드 3편 더** — `/{lang}/guides/`를 신설하고 3편을 썼습니다(아래 "가이드 섹션 신설"). 사다리타기에 붙는 가이드가 아직 없고, 이미지 변환은 쌍별 페이지로 나눌 때 쌍마다 짧은 가이드를 붙이는 편이 좋습니다. 도구 페이지 본문(235단어)을 억지로 늘리기보다 지면을 나누는 쪽이 관찰된 패턴에 맞습니다(`docs/seo-research.md`의 FoxyUtils 조사).
 - [ ] **남은 Bubblelab 마이그레이션 후보** — `calendar`, `photo`, `passport-pic`, `stars`가 브라우저 전용으로 남아 있습니다. `passport-pic`(증명사진)이 검색 수요와 콘텐츠 밀도 면에서 다음 후보로 가장 좋아 보입니다. `brief`·`fortune`·`planner`·`chat`은 서버가 필요해 제외했고, `proofread`는 한국어 전용이라 별도 판단이 필요합니다.
 
 ## 정리된 것
+
+- **이미지 변환 쌍별 페이지 분리 (2026-08-13)** — `png-to-jpg`·`jpg-to-png`·`jpg-to-webp`·`webp-to-jpg`·`png-to-webp`·`webp-to-png` 여섯 쌍을 만들어 색인 페이지가 12개 늘었습니다(사이트맵 26 → 38). `docs/seo-research.md`의 최대 발견이었고 독립 사례가 넷이었습니다.
+
+  각 페이지는 원본 형식으로 파일 선택이 잠기고 대상 형식이 미리 선택되며, PNG 대상은 무손실이라 화질 슬라이더를 감춥니다. `image-converter`는 여섯 쌍을 모으는 허브로 남아 "이미지 변환" 상위 개념어를 계속 담당합니다.
+
+  **중복 클러스터링이 최대 위험이었습니다** — 여섯 페이지가 형식 이름만 바꾼 같은 글이면 구글이 묶어서 하나만 노출하고 분리한 의미가 사라집니다(`docs/how-search-works.md`). 방향마다 실제로 다른 이야기를 씁니다(무엇을 잃는가·무엇이 커지는가·왜 이 방향으로 바꾸는가). 측정한 본문 자카드 유사도는 최대 0.20입니다.
+
+  `npm test`가 쌍끼리의 상호 링크, 허브 양방향 링크, 서브도메인 대응, 제목 공식을 검사합니다. 예약해 둔 `{from}2{to}` 서브도메인 여섯 개도 실제 페이지로 연결했습니다.
 
 - **가이드 섹션 신설 (2026-08-13)** — `/{lang}/guides/`와 가이드 3편(자소서 글자수·이미지 형식 선택·PDF 안전하게 합치기)을 영문·국문으로 만들었습니다. 영문 488~538단어, 국문 1050~1260자로 기존 도구 페이지(235단어)보다 두껍습니다. 도구 페이지는 가이드를 가리키고 가이드는 도구를 가리켜 양방향으로 이어집니다. `npm test`가 분량 하한(영문 450단어·국문 900자), 양방향 링크, 목록 페이지의 전체 링크를 검사합니다. 근거는 `docs/seo-research.md`의 FoxyUtils 조사 — 상위 사이트는 키워드 하나를 도구 페이지·헬프 문서·블로그 세 지면으로 덮습니다.
 

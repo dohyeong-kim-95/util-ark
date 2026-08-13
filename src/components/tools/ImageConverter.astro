@@ -1,15 +1,24 @@
 ---
+import { MIME, type ImageFormat } from '../../data/conversions';
 import type { Locale } from '../../i18n/ui';
 
 interface Props {
   locale: Locale;
+  /** Preset a directed pair so a conversion page opens ready to run. */
+  from?: ImageFormat;
+  to?: ImageFormat;
 }
 
-const { locale } = Astro.props;
+const { locale, from, to } = Astro.props;
+const accept = from ? MIME[from] : 'image/jpeg,image/png,image/webp';
+const target = to ? MIME[to] : 'image/webp';
+// PNG is lossless, so a quality slider on a PNG target would do nothing.
+const showQuality = to !== 'png';
+const sourceHint = from ? from.toUpperCase() : 'JPG, PNG, WebP';
 const labels = locale === 'ko'
   ? {
       pick: '이미지 선택',
-      hint: 'JPG, PNG, WebP · 여러 장 선택 가능',
+      hint: `${sourceHint} · 여러 장 선택 가능`,
       format: '저장 형식',
       quality: '화질',
       convert: '변환하고 내려받기',
@@ -21,7 +30,7 @@ const labels = locale === 'ko'
     }
   : {
       pick: 'Choose images',
-      hint: 'JPG, PNG, WebP · multiple files supported',
+      hint: `${sourceHint} · multiple files supported`,
       format: 'Output format',
       quality: 'Quality',
       convert: 'Convert & download',
@@ -42,7 +51,7 @@ const labels = locale === 'ko'
   data-remove={labels.remove}
 >
   <label class="drop-zone">
-    <input type="file" accept="image/jpeg,image/png,image/webp" multiple />
+    <input type="file" accept={accept} multiple />
     <strong>{labels.pick}</strong>
     <span>{labels.hint}</span>
   </label>
@@ -53,15 +62,17 @@ const labels = locale === 'ko'
     <label>
       <span>{labels.format}</span>
       <select data-option="format">
-        <option value="image/webp">WebP</option>
-        <option value="image/jpeg">JPG</option>
-        <option value="image/png">PNG</option>
+        <option value="image/webp" selected={target === 'image/webp'}>WebP</option>
+        <option value="image/jpeg" selected={target === 'image/jpeg'}>JPG</option>
+        <option value="image/png" selected={target === 'image/png'}>PNG</option>
       </select>
     </label>
-    <label>
-      <span>{labels.quality}: <output>85%</output></span>
-      <input data-option="quality" type="range" min="40" max="100" value="85" step="1" />
-    </label>
+    {showQuality && (
+      <label>
+        <span>{labels.quality}: <output>85%</output></span>
+        <input data-option="quality" type="range" min="40" max="100" value="85" step="1" />
+      </label>
+    )}
   </div>
 
   <div class="tool-actions">

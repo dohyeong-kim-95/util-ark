@@ -1,24 +1,37 @@
 ---
+import ConversionPage from '../../components/ConversionPage.astro';
 import ToolPage from '../../components/ToolPage.astro';
+import { conversions, type ConversionDefinition } from '../../data/conversions';
 import { tools, type ToolDefinition } from '../../data/tools';
 import { locales, type Locale } from '../../i18n/ui';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 
+// Tools and directed conversion pairs share this route because they share a URL
+// shape: /{locale}/{slug}/. Two dynamic routes at the same depth would collide.
 export function getStaticPaths() {
-  return locales.flatMap((lang) => tools.map((tool) => ({
-    params: { lang, tool: tool.slug },
-    props: { locale: lang, tool },
-  })));
+  return locales.flatMap((lang) => [
+    ...tools.map((tool) => ({
+      params: { lang, tool: tool.slug },
+      props: { locale: lang, tool, conversion: undefined },
+    })),
+    ...conversions.map((conversion) => ({
+      params: { lang, tool: conversion.slug },
+      props: { locale: lang, tool: undefined, conversion },
+    })),
+  ]);
 }
 
 interface Props {
   locale: Locale;
-  tool: ToolDefinition;
+  tool?: ToolDefinition;
+  conversion?: ConversionDefinition;
 }
 
-const { locale, tool } = Astro.props;
-const copy = tool.copy[locale];
-const url = `https://utilark.app/${locale}/${tool.slug}/`;
+const { locale, tool, conversion } = Astro.props;
+const entry = tool ?? conversion!;
+const copy = entry.copy[locale];
+const slug = entry.slug;
+const url = `https://utilark.app/${locale}/${slug}/`;
 const schema = [
   {
     '@context': 'https://schema.org',
@@ -52,5 +65,7 @@ const schema = [
   description={copy.description}
   schema={schema}
 >
-  <ToolPage tool={tool} locale={locale} />
+  {conversion
+    ? <ConversionPage conversion={conversion} locale={locale} />
+    : <ToolPage tool={tool!} locale={locale} />}
 </BaseLayout>

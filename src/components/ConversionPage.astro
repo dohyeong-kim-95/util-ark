@@ -1,0 +1,117 @@
+---
+import { conversions, type ConversionDefinition } from '../data/conversions';
+import { guidesForTool } from '../data/guides';
+import { getTool } from '../data/tools';
+import { ui, type Locale } from '../i18n/ui';
+import AdSlot from './AdSlot.astro';
+import ImageConverter from './tools/ImageConverter.astro';
+
+interface Props {
+  conversion: ConversionDefinition;
+  locale: Locale;
+}
+
+const { conversion, locale } = Astro.props;
+const copy = conversion.copy[locale];
+const t = ui[locale];
+// Every pair links to every other pair and back to the hub. Directed-pair pages
+// are near neighbours of each other, so this is where internal linking does the
+// most work — a visitor who wanted PNG to JPG often wants the reverse next.
+const otherPairs = conversions.filter((entry) => entry.slug !== conversion.slug);
+// Someone who converted one way often needs the way back, so the reverse pair
+// gets a place in the body rather than only a slot in the list below.
+const reverse = conversions.find(
+  (entry) => entry.from === conversion.to && entry.to === conversion.from,
+);
+const hub = getTool('image-converter');
+const relatedGuides = guidesForTool('image-converter');
+---
+
+<div class="shell tool-page">
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a href={`/${locale}/`}>{t.common.breadcrumbHome}</a>
+    <span aria-hidden="true">/</span>
+    <a href={`/${locale}/image-converter/`}>{hub?.copy[locale].name ?? t.common.breadcrumbTools}</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{copy.name}</span>
+  </nav>
+
+  <header class="tool-hero" style={`--tool-accent:${conversion.accent}`}>
+    <span class="privacy-pill"><span aria-hidden="true">●</span>{t.common.localBadge}</span>
+    <h1>{copy.name}</h1>
+    <p>{copy.short}</p>
+  </header>
+
+  <section class="interactive-panel" aria-label={copy.name}>
+    <ImageConverter locale={locale} from={conversion.from} to={conversion.to} />
+  </section>
+
+  <AdSlot locale={locale} />
+
+  <div class="content-grid">
+    <article class="prose">
+      {copy.intro.map((paragraph) => (
+        <p set:html={paragraph.replace(/\*\*(.+?)\*\*/gu, '<strong>$1</strong>')} />
+      ))}
+
+      {reverse && (
+        <p class="reverse-pair">
+          {t.common.reverseConversion}{' '}
+          <a href={`/${locale}/${reverse.slug}/`}>{reverse.copy[locale].name}</a>
+        </p>
+      )}
+
+      <h2>{t.common.howItWorks}</h2>
+      <ol>
+        {copy.steps.map((step) => <li>{step}</li>)}
+      </ol>
+
+      <h2>{t.common.faq}</h2>
+      <div class="faq-list">
+        {copy.faq.map((item) => (
+          <details>
+            <summary>{item.question}</summary>
+            <p>{item.answer}</p>
+          </details>
+        ))}
+      </div>
+    </article>
+
+    <aside class="trust-card">
+      <span aria-hidden="true">◎</span>
+      <h2>{t.home.privacyTitle}</h2>
+      <p>{t.home.privacyBody}</p>
+      <a href={`/${locale}/privacy/`}>{t.nav.privacy} →</a>
+    </aside>
+  </div>
+
+  {relatedGuides.length > 0 && (
+    <section class="related-guides" aria-labelledby="related-guides-heading">
+      <h2 id="related-guides-heading">{t.common.relatedGuides}</h2>
+      <ul>
+        {relatedGuides.map((guide) => (
+          <li>
+            <a href={`/${locale}/guides/${guide.slug}/`}>{guide.copy[locale].title}</a>
+            <p>{guide.copy[locale].description}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <section class="more-tools" aria-labelledby="more-conversions-heading">
+    <h2 id="more-conversions-heading">{t.common.otherConversions}</h2>
+    <ul class="conversion-links">
+      {otherPairs.map((entry) => (
+        <li style={`--tool-accent:${entry.accent}`}>
+          <a href={`/${locale}/${entry.slug}/`}>{entry.copy[locale].name}</a>
+        </li>
+      ))}
+      {hub && (
+        <li class="conversion-links-hub">
+          <a href={`/${locale}/image-converter/`}>{hub.copy[locale].name}</a>
+        </li>
+      )}
+    </ul>
+  </section>
+</div>

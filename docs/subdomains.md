@@ -12,7 +12,7 @@
 
 반대로 비용은 확실합니다. 구글은 서브도메인을 별개 사이트로 취급할 수 있어서, 아직 색인이 거의 없는 지금 11개 호스트로 쪼개면 각각 권위 0에서 다시 시작합니다. Search Console 속성, AdSense 사이트 등록, `canonical`·`hreflang`·사이트맵도 호스트 수만큼 늘어납니다.
 
-같은 SERP에서 `freeconvert.com/png-to-jpg`, `canva.com/features/png-to-jpg-converter/`, `picflow.com/convert/jpg-to-png` 처럼 **한 도메인의 경로로** 쌍을 나눈 사이트들이 나란히 상위에 있습니다. 검색 유입을 위한 실제 작업은 경로를 쌍별로 쪼개는 쪽(`todo.md`의 미결정 항목)이고, 서브도메인은 **외우기 쉽고 공유하기 좋은 짧은 주소**라는 별개의 값을 합니다.
+같은 SERP에서 `freeconvert.com/png-to-jpg`, `canva.com/features/png-to-jpg-converter/`, `picflow.com/convert/jpg-to-png` 처럼 **한 도메인의 경로로** 쌍을 나눈 사이트들이 나란히 상위에 있습니다. 검색 유입을 위한 실제 작업은 경로를 쌍별로 쪼개는 쪽이고(2026-08-13 완료), 서브도메인은 **외우기 쉽고 공유하기 좋은 짧은 주소**라는 별개의 값을 합니다.
 
 ## 이름 규칙
 
@@ -38,14 +38,24 @@
 
 ### 예약된 주소
 
-전용 페이지가 아직 없는 이름입니다. 지금은 같은 일을 하는 도구로 보내고, 페이지가 생기면 `TOOL_SUBDOMAINS`에서 `pending`을 지우고 `tool`만 바꾸면 됩니다.
+전용 페이지가 아직 없는 이름입니다. 지금은 언어별 홈으로 보내고, 페이지가 생기면 `TOOL_SUBDOMAINS`에서 `pending`을 지우고 `tool`만 바꾸면 됩니다.
 
 | 서브도메인 | 현재 도착지 | 비고 |
 |---|---|---|
-| `jpg2png` · `png2jpg` | `/{언어}/image-converter/` | 쌍별 페이지 분리 대기 |
-| `jpg2webp` · `webp2jpg` | `/{언어}/image-converter/` | 쌍별 페이지 분리 대기 |
-| `png2webp` · `webp2png` | `/{언어}/image-converter/` | 쌍별 페이지 분리 대기 |
 | `pdf2image` | `/{언어}/` | 해당 도구 자체가 없음 |
+
+2026-08-13에 변환 쌍 여섯 개가 예약에서 실제 페이지로 바뀌었습니다. `pending`을 지우고 `tool` 슬러그만 바꾸면 된다고 적어 뒀던 그대로였습니다.
+
+| 서브도메인 | 도착지 |
+|---|---|
+| `png2jpg.utilark.app` | `/{언어}/png-to-jpg/` |
+| `jpg2png.utilark.app` | `/{언어}/jpg-to-png/` |
+| `jpg2webp.utilark.app` | `/{언어}/jpg-to-webp/` |
+| `webp2jpg.utilark.app` | `/{언어}/webp-to-jpg/` |
+| `png2webp.utilark.app` | `/{언어}/png-to-webp/` |
+| `webp2png.utilark.app` | `/{언어}/webp-to-png/` |
+
+서브도메인은 `{from}2{to}`, 경로는 `{from}-to-{to}`로 철자가 다릅니다. 둘 다 상위 경쟁자가 실제로 쓰는 표기입니다 — `png2jpg.com`과 `freeconvert.com/png-to-jpg`.
 
 ## 동작 규칙
 
@@ -115,7 +125,7 @@ curl -sI -H 'Accept-Language: ko-KR,ko;q=0.9' https://mergepdf.utilark.app/ | he
 # 302 · Location: https://utilark.app/ko/merge-pdf/
 
 curl -sI -H 'Accept-Language: en-US' https://png2jpg.utilark.app/ | head -5
-# 302 · Location: https://utilark.app/en/image-converter/
+# 302 · Location: https://utilark.app/en/png-to-jpg/
 
 curl -sI https://mergepdf.utilark.app/ko/privacy/ | head -5
 # 301 · Location: https://utilark.app/ko/privacy/
@@ -129,9 +139,9 @@ curl -sI -H 'Host: mergepdf.utilark.app' http://127.0.0.1:8787/ | head -5
 
 ## 도구를 추가할 때
 
-`npm test`가 `worker/subdomains.js`와 `src/data/tools.ts`의 슬러그 목록을 대조합니다. 도구를 새로 만들고 서브도메인을 안 정하면 실패하고, 존재하지 않는 도구를 가리켜도 실패합니다. 순서는 이렇습니다.
+`npm test`가 `worker/subdomains.js`를 `src/data/tools.ts`·`src/data/conversions.ts`의 슬러그와 대조합니다. 페이지를 새로 만들고 서브도메인을 안 정하면 실패하고, 존재하지 않는 페이지를 가리켜도 실패합니다. 순서는 이렇습니다.
 
-1. `src/data/tools.ts`에 도구를 추가한다
+1. `src/data/tools.ts`(도구) 또는 `src/data/conversions.ts`(변환 쌍)에 추가한다
 2. `worker/subdomains.js`에 라벨 한 줄을 추가한다
 3. `npm test`
 

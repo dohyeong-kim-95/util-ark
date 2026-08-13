@@ -50,11 +50,17 @@ const slugUnion = toolSource.match(/slug:\s*((?:'[a-z0-9-]+'\s*\|\s*)*'[a-z0-9-]
 if (!slugUnion) throw new Error('src/data/tools.ts: could not read the tool slug union');
 const allTools = [...slugUnion.matchAll(/'([a-z0-9-]+)'/gu)].map((match) => match[1]);
 
+// Directed conversion pairs are separate indexed pages sharing the tool route.
+const conversionSource = await readFile(new URL('../src/data/conversions.ts', import.meta.url), 'utf8');
+const allConversions = [...conversionSource.matchAll(/^\s{4}slug: '([a-z0-9-]+)',$/gmu)].map((match) => match[1]);
+if (allConversions.length === 0) throw new Error('src/data/conversions.ts: could not read the pair slugs');
+const indexedPages = [...allTools, ...allConversions];
+
 // Tool pages target search queries, so their titles carry the keyword plus a
 // synonym and "free"/"online" instead of the plain `${name} · Utilark` form.
 // Google truncates past roughly 60 characters.
 for (const [page, freeWord] of [['en', 'Free'], ['ko', '무료']]) {
-  for (const tool of allTools) {
+  for (const tool of indexedPages) {
     const file = `${page}/${tool}/index.html`;
     const html = await readFile(new URL(file, dist), 'utf8');
     // Measure what the search result shows, not the escaped source: `&amp;`
@@ -128,16 +134,37 @@ for (const locale of ['en', 'ko']) {
 
 // Every subdomain in worker/subdomains.js has to point at a page that was built,
 // and every built tool has to be reachable from one of them.
-const liveSubdomainTools = new Set();
+const liveSubdomainTargets = new Set();
 for (const [label, entry] of Object.entries(TOOL_SUBDOMAINS)) {
-  if (entry.tool && !allTools.includes(entry.tool)) {
-    throw new Error(`${label}.utilark.app points at /${entry.tool}/, which is not a tool`);
+  if (entry.tool && !indexedPages.includes(entry.tool)) {
+    throw new Error(`${label}.utilark.app points at /${entry.tool}/, which is not a page`);
   }
-  if (!entry.pending) liveSubdomainTools.add(entry.tool);
+  if (!entry.pending) liveSubdomainTargets.add(entry.tool);
 }
-for (const tool of allTools) {
-  if (!liveSubdomainTools.has(tool)) {
-    throw new Error(`the ${tool} tool has no subdomain in worker/subdomains.js`);
+for (const page of indexedPages) {
+  if (!liveSubdomainTargets.has(page)) {
+    throw new Error(`the ${page} page has no subdomain in worker/subdomains.js`);
+  }
+}
+
+// Every pair links to the other five and back to the hub, and the hub lists all
+// six. Six near-identical pages that only link outward would be clustered as
+// duplicates, which is exactly what splitting them is meant to avoid.
+for (const locale of ['en', 'ko']) {
+  const hub = await readFile(new URL(`${locale}/image-converter/index.html`, dist), 'utf8');
+  for (const pair of allConversions) {
+    if (!hub.includes(`href="/${locale}/${pair}/"`)) {
+      throw new Error(`${locale}/image-converter/: does not link to the ${pair} page`);
+    }
+    const html = await readFile(new URL(`${locale}/${pair}/index.html`, dist), 'utf8');
+    if (!html.includes(`href="/${locale}/image-converter/"`)) {
+      throw new Error(`${locale}/${pair}/: does not link back to the converter hub`);
+    }
+    for (const other of allConversions.filter((entry) => entry !== pair)) {
+      if (!html.includes(`href="/${locale}/${other}/"`)) {
+        throw new Error(`${locale}/${pair}/: does not link to the ${other} page`);
+      }
+    }
   }
 }
 

@@ -41,10 +41,18 @@ test('an explicit language choice outranks the browser header', async () => {
   assert.equal(response.headers.get('Location'), 'https://utilark.app/ko/word-counter/');
 });
 
-test('a reserved conversion name lands on the tool that already does the job', async () => {
-  const response = await visit('https://png2jpg.utilark.app/', { 'Accept-Language': 'en' });
-  assert.equal(response.status, 302);
-  assert.equal(response.headers.get('Location'), 'https://utilark.app/en/image-converter/');
+test('a conversion subdomain lands on that directed pair, not the general converter', async () => {
+  const english = await visit('https://png2jpg.utilark.app/', { 'Accept-Language': 'en' });
+  assert.equal(english.status, 302);
+  assert.equal(english.headers.get('Location'), 'https://utilark.app/en/png-to-jpg/');
+
+  // The reverse direction is its own page, which is the point of the split.
+  const reverse = await visit('https://jpg2png.utilark.app/', { 'Accept-Language': 'ko' });
+  assert.equal(reverse.headers.get('Location'), 'https://utilark.app/ko/jpg-to-png/');
+
+  // The subdomain spells the pair with a digit, the path spells it out.
+  const webp = await visit('https://webp2jpg.utilark.app/', { 'Accept-Language': 'en' });
+  assert.equal(webp.headers.get('Location'), 'https://utilark.app/en/webp-to-jpg/');
 });
 
 test('a reserved name with no tool yet lands on the localized home', async () => {

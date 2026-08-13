@@ -1332,6 +1332,31 @@ button:disabled {
   font-size: 0.85rem;
 }
 
+.conversion-links {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
+
+.conversion-links li {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--tool-accent, var(--line));
+  border-radius: var(--radius-md);
+}
+
+.conversion-links a {
+  display: block;
+  padding: 0.9rem 1.1rem;
+  font-weight: 600;
+}
+
+.conversion-links-hub {
+  border-left-color: var(--line);
+}
+
 .related-guides {
   margin-top: clamp(3rem, 8vw, 4.5rem);
   padding-top: clamp(2rem, 5vw, 3rem);
@@ -1635,4 +1660,16 @@ button:disabled {
   .interactive-panel {
     border-radius: var(--radius-md);
   }
+}
+
+.reverse-pair {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: baseline;
+  padding: 0.7rem 1rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  color: var(--muted);
 }
