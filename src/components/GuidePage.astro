@@ -1,0 +1,56 @@
+---
+import type { GuideDefinition } from '../data/guides';
+import { getTool } from '../data/tools';
+import { ui, type Locale } from '../i18n/ui';
+import ToolCard from './ToolCard.astro';
+
+interface Props {
+  guide: GuideDefinition;
+  locale: Locale;
+}
+
+const { guide, locale } = Astro.props;
+const copy = guide.copy[locale];
+const t = ui[locale];
+const tool = getTool(guide.tool);
+---
+
+<div class="shell guide-page">
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a href={`/${locale}/`}>{t.common.breadcrumbHome}</a>
+    <span aria-hidden="true">/</span>
+    <a href={`/${locale}/guides/`}>{t.common.breadcrumbGuides}</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{copy.title}</span>
+  </nav>
+
+  <header class="guide-hero">
+    <h1>{copy.title}</h1>
+    {copy.intro.map((paragraph) => <p class="guide-intro">{paragraph}</p>)}
+    <p class="guide-meta">{t.common.lastUpdated} <time datetime={guide.updated}>{guide.updated}</time></p>
+  </header>
+
+  <article class="prose guide-body">
+    {copy.sections.map((section) => (
+      <section>
+        <h2>{section.heading}</h2>
+        {section.paragraphs?.map((paragraph) => <p set:html={paragraph.replace(/\*\*(.+?)\*\*/gu, '<strong>$1</strong>')} />)}
+        {section.list && (
+          <ul>
+            {section.list.map((item) => <li>{item}</li>)}
+          </ul>
+        )}
+      </section>
+    ))}
+  </article>
+
+  {tool && (
+    <section class="guide-tool" aria-labelledby="guide-tool-heading">
+      <h2 id="guide-tool-heading">{tool.copy[locale].name}</h2>
+      <p>{copy.toolCta}</p>
+      <div class="tool-grid tool-grid-single">
+        <ToolCard tool={tool} locale={locale} />
+      </div>
+    </section>
+  )}
+</div>

@@ -1,0 +1,72 @@
+---
+import { guides } from '../../../data/guides';
+import { getTool } from '../../../data/tools';
+import { isLocale, locales, ui, type Locale } from '../../../i18n/ui';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+export function getStaticPaths() {
+  return locales.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params;
+const locale: Locale = isLocale(lang) ? lang : 'en';
+const t = ui[locale];
+const description = locale === 'ko'
+  ? '글자수 제한, 이미지 형식 선택, PDF 합치기처럼 도구를 쓰다 생기는 질문을 정리한 무료 가이드입니다.'
+  : 'Free guides on character limits, choosing an image format, and merging PDFs safely — the questions the tools raise.';
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: t.common.guidesTitle,
+  description,
+  inLanguage: locale,
+  mainEntity: {
+    '@type': 'ItemList',
+    itemListElement: guides.map((guide, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: guide.copy[locale].title,
+      url: `https://utilark.app/${locale}/guides/${guide.slug}/`,
+    })),
+  },
+};
+---
+
+<BaseLayout
+  locale={locale}
+  title={t.common.guidesTitle}
+  titleTag={locale === 'ko' ? '가이드 - 무료 온라인 도구 사용법 | Utilark' : 'Guides - Free Online Tool How-Tos | Utilark'}
+  description={description}
+  schema={schema}
+>
+  <div class="shell guide-index">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href={`/${locale}/`}>{t.common.breadcrumbHome}</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">{t.common.breadcrumbGuides}</span>
+    </nav>
+
+    <header class="guide-hero">
+      <h1>{t.common.guidesTitle}</h1>
+      <p class="guide-intro">{t.common.guidesDescription}</p>
+    </header>
+
+    <ul class="guide-list">
+      {guides.map((guide) => {
+        const copy = guide.copy[locale];
+        const tool = getTool(guide.tool);
+        return (
+          <li class="guide-card" style={tool ? `--tool-accent:${tool.accent}` : undefined}>
+            <h2><a href={`/${locale}/guides/${guide.slug}/`}>{copy.title}</a></h2>
+            <p>{copy.description}</p>
+            {tool && (
+              <a class="guide-card-tool" href={`/${locale}/${tool.slug}/`}>
+                {tool.copy[locale].name}<span aria-hidden="true"> ↗</span>
+              </a>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+</BaseLayout>

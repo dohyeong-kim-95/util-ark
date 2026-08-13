@@ -1,0 +1,43 @@
+---
+import GuidePage from '../../../components/GuidePage.astro';
+import { guides, type GuideDefinition } from '../../../data/guides';
+import { locales, type Locale } from '../../../i18n/ui';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+export function getStaticPaths() {
+  return locales.flatMap((lang) => guides.map((guide) => ({
+    params: { lang, guide: guide.slug },
+    props: { locale: lang, guide },
+  })));
+}
+
+interface Props {
+  locale: Locale;
+  guide: GuideDefinition;
+}
+
+const { locale, guide } = Astro.props;
+const copy = guide.copy[locale];
+const url = `https://utilark.app/${locale}/guides/${guide.slug}/`;
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: copy.title,
+  description: copy.description,
+  inLanguage: locale,
+  dateModified: guide.updated,
+  mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+  author: { '@type': 'Organization', name: 'Utilark', url: 'https://utilark.app/' },
+  publisher: { '@type': 'Organization', name: 'Utilark', url: 'https://utilark.app/' },
+};
+---
+
+<BaseLayout
+  locale={locale}
+  title={copy.title}
+  titleTag={copy.titleTag}
+  description={copy.description}
+  schema={schema}
+>
+  <GuidePage guide={guide} locale={locale} />
+</BaseLayout>

@@ -1246,6 +1246,124 @@ button:disabled {
   margin-top: 4rem;
 }
 
+.guide-page,
+.guide-index {
+  padding-block: clamp(2rem, 6vw, 3.5rem) clamp(3rem, 8vw, 5rem);
+}
+
+.guide-hero {
+  max-width: 46rem;
+  margin-bottom: clamp(2rem, 5vw, 3rem);
+}
+
+.guide-hero h1 {
+  font-size: clamp(2rem, 8vw, 3rem);
+  margin: 0 0 1rem;
+}
+
+.guide-intro {
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.guide-meta {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-top: 1.5rem;
+}
+
+.guide-body {
+  max-width: 46rem;
+}
+
+.guide-body section + section {
+  margin-top: 2.5rem;
+}
+
+.guide-tool {
+  margin-top: clamp(3rem, 8vw, 4.5rem);
+  padding-top: clamp(2rem, 5vw, 3rem);
+  border-top: 1px solid var(--line);
+}
+
+.guide-tool > h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+}
+
+.guide-tool > p {
+  color: var(--muted);
+  margin: 0 0 1.25rem;
+  max-width: 40rem;
+}
+
+.tool-grid-single {
+  grid-template-columns: minmax(0, 22rem);
+}
+
+.guide-list {
+  display: grid;
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+}
+
+.guide-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  border-top: 3px solid var(--tool-accent, var(--line));
+}
+
+.guide-card h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.15rem;
+}
+
+.guide-card p {
+  color: var(--muted);
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+}
+
+.guide-card-tool {
+  font-size: 0.85rem;
+}
+
+.related-guides {
+  margin-top: clamp(3rem, 8vw, 4.5rem);
+  padding-top: clamp(2rem, 5vw, 3rem);
+  border-top: 1px solid var(--line);
+}
+
+.related-guides > h2 {
+  margin: 0 0 1.25rem;
+  font-size: 1.15rem;
+}
+
+.related-guides ul {
+  display: grid;
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+}
+
+.related-guides li {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+}
+
+.related-guides li p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0;
+}
+
 .more-tools {
   margin-top: clamp(3rem, 8vw, 4.5rem);
   padding-top: clamp(2rem, 5vw, 3rem);

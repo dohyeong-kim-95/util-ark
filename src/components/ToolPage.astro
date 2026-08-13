@@ -1,4 +1,5 @@
 ---
+import { guidesForTool } from '../data/guides';
 import { tools, type ToolDefinition } from '../data/tools';
 import type { Locale } from '../i18n/ui';
 import { ui } from '../i18n/ui';
@@ -27,6 +28,9 @@ const InteractiveTool = components[tool.slug];
 // and the footer. Sites that rank for these keywords carry the whole tool list
 // on every tool page, which is how the pages pass signal to each other.
 const otherTools = tools.filter((entry) => entry.slug !== tool.slug);
+// A tool page has to stay usable at a glance, so the depth lives in guides and
+// the page points at them instead of growing.
+const relatedGuides = guidesForTool(tool.slug);
 ---
 
 <div class="shell tool-page">
@@ -77,6 +81,20 @@ const otherTools = tools.filter((entry) => entry.slug !== tool.slug);
       <a href={`/${locale}/privacy/`}>{ui[locale].nav.privacy} →</a>
     </aside>
   </div>
+
+  {relatedGuides.length > 0 && (
+    <section class="related-guides" aria-labelledby="related-guides-heading">
+      <h2 id="related-guides-heading">{ui[locale].common.relatedGuides}</h2>
+      <ul>
+        {relatedGuides.map((guide) => (
+          <li>
+            <a href={`/${locale}/guides/${guide.slug}/`}>{guide.copy[locale].title}</a>
+            <p>{guide.copy[locale].description}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
 
   <section class="more-tools" aria-labelledby="more-tools-heading">
     <h2 id="more-tools-heading">{ui[locale].common.moreTools}</h2>

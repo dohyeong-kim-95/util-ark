@@ -20,6 +20,8 @@ const requiredPages = [
   'ko/merge-pdf/index.html',
   'en/ladder/index.html',
   'ko/ladder/index.html',
+  'en/guides/index.html',
+  'ko/guides/index.html',
 ];
 
 const checks = [
@@ -68,6 +70,44 @@ for (const [page, freeWord] of [['en', 'Free'], ['ko', '무료']]) {
     if (!title.endsWith('| Utilark')) throw new Error(`${file}: title does not end with the brand`);
     if (!title.includes(freeWord)) throw new Error(`${file}: title is missing "${freeWord}"`);
     if (title.length > 60) throw new Error(`${file}: title is ${title.length} characters, over 60`);
+  }
+}
+
+// Guides carry the depth the tool pages cannot, so they have to be substantial
+// and reachable. Each one links to the tool it explains, and that tool links
+// back, which is the internal linking the research doc found on ranking sites.
+const guideSource = await readFile(new URL('../src/data/guides.ts', import.meta.url), 'utf8');
+const guideEntries = [...guideSource.matchAll(/slug: '([a-z0-9-]+)',\s*\n\s*tool: '([a-z0-9-]+)',/gu)]
+  .map((match) => ({ slug: match[1], tool: match[2] }));
+if (guideEntries.length === 0) throw new Error('src/data/guides.ts: could not read the guides');
+
+for (const locale of ['en', 'ko']) {
+  const index = await readFile(new URL(`${locale}/guides/index.html`, dist), 'utf8');
+  for (const { slug, tool } of guideEntries) {
+    if (!index.includes(`href="/${locale}/guides/${slug}/"`)) {
+      throw new Error(`${locale}/guides/: does not link to the ${slug} guide`);
+    }
+
+    const file = `${locale}/guides/${slug}/index.html`;
+    const html = await readFile(new URL(file, dist), 'utf8');
+    for (const [name, pattern] of checks) {
+      if (!pattern.test(html)) throw new Error(`${file}: missing ${name}`);
+    }
+
+    const main = html.slice(html.indexOf('<main'), html.indexOf('</main>'));
+    const words = main.replace(/<script[\s\S]*?<\/script>/gu, '').replace(/<[^>]+>/gu, ' ');
+    const size = locale === 'ko' ? words.replace(/\s+/gu, '').length : words.split(/\s+/u).filter(Boolean).length;
+    const floor = locale === 'ko' ? 900 : 450;
+    if (size < floor) throw new Error(`${file}: body is ${size}, under the ${floor} a guide should carry`);
+
+    if (!html.includes(`href="/${locale}/${tool}/"`)) {
+      throw new Error(`${file}: does not link to the ${tool} tool it explains`);
+    }
+
+    const toolPage = await readFile(new URL(`${locale}/${tool}/index.html`, dist), 'utf8');
+    if (!toolPage.includes(`href="/${locale}/guides/${slug}/"`)) {
+      throw new Error(`${locale}/${tool}/: does not link back to its ${slug} guide`);
+    }
   }
 }
 

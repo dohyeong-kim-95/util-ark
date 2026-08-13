@@ -17,6 +17,7 @@ export const ui = {
     brandTagline: 'Small tools. Clear results.',
     nav: {
       tools: 'Tools',
+      guides: 'Guides',
       about: 'About',
       privacy: 'Privacy',
       contact: 'Contact',
@@ -42,7 +43,12 @@ export const ui = {
       breadcrumbTools: 'Tools',
       language: '한국어',
       adLabel: 'Advertisement',
+      breadcrumbGuides: 'Guides',
       moreTools: 'More Utilark tools',
+      relatedGuides: 'Read more about this',
+      guidesTitle: 'Guides',
+      guidesDescription: 'Longer answers to the questions the tools raise.',
+      readGuide: 'Read guide',
       lastUpdated: 'Last updated:',
     },
     footer: {
@@ -55,6 +61,7 @@ export const ui = {
     brandTagline: '작은 도구, 분명한 결과.',
     nav: {
       tools: '도구',
+      guides: '가이드',
       about: '소개',
       privacy: '개인정보',
       contact: '문의',
@@ -80,7 +87,12 @@ export const ui = {
       breadcrumbTools: '도구',
       language: 'English',
       adLabel: '광고',
+      breadcrumbGuides: '가이드',
       moreTools: '다른 Utilark 도구',
+      relatedGuides: '더 알아보기',
+      guidesTitle: '가이드',
+      guidesDescription: '도구를 쓰다 생기는 질문에 대한 더 긴 답입니다.',
+      readGuide: '가이드 읽기',
       lastUpdated: '최종 업데이트:',
     },
     footer: {
