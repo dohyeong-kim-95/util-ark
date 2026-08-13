@@ -26,10 +26,11 @@ AdSense 준비 작업(`6e62b57`)에서 남은 항목입니다. 코드로 끝낼 
 - [ ] **라이브 서브도메인 리다이렉트 확인** — 같은 egress 차단으로 확인하지 못했습니다. DNS는 세션에서 조회해 확인했고(`mergepdf`·`png2jpg`·`pdf2image`가 모두 Cloudflare로 해석), 라우트는 배포 로그에 찍혔습니다(`*.utilark.app/* (zone name: utilark.app)`). 남은 건 실제 응답입니다.
 
   ```bash
-  curl -sI -H 'Accept-Language: ko-KR,ko;q=0.9' https://mergepdf.utilark.app/ | head -5  # 302 → utilark.app/ko/tools/merge-pdf/
-  curl -sI -H 'Accept-Language: en-US' https://png2jpg.utilark.app/ | head -5            # 302 → utilark.app/en/tools/image-converter/
+  curl -sI -H 'Accept-Language: ko-KR,ko;q=0.9' https://mergepdf.utilark.app/ | head -5  # 302 → utilark.app/ko/merge-pdf/
+  curl -sI -H 'Accept-Language: en-US' https://png2jpg.utilark.app/ | head -5            # 302 → utilark.app/en/image-converter/
   curl -sI https://mergepdf.utilark.app/ko/privacy/ | head -5                            # 301 → utilark.app/ko/privacy/
   curl -sI https://www.utilark.app/ | head -5                                            # 301 → utilark.app/
+  curl -sI https://utilark.app/ko/tools/merge-pdf/ | head -5                             # 301 → /ko/merge-pdf/ (옛 경로)
   ```
 
   `1001`·`1016` 오류가 나오면 와일드카드 DNS 레코드가 프록시(주황 구름)가 아닌 DNS only(회색)인지 확인해야 합니다. 회색이면 라우트가 걸리지 않습니다.
