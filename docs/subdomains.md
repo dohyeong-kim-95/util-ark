@@ -87,26 +87,28 @@
 
 와일드카드가 걸리면 표에 없는 이름도 Worker에 도달하므로, **미등록 서브도메인을 apex로 301 보내는 규칙이 실제로 동작합니다.** 아무 이름이나 사이트 사본을 서빙하지 못하게 막는 것이 그 규칙입니다.
 
-### 한 번만 해야 하는 준비 두 가지
+### 갖춰 둔 것 (2026-08-13, 최초 1회로 끝남)
 
-와일드카드 라우트는 아래 두 가지가 갖춰져야 실제로 요청을 받습니다. 둘 다 최초 1회이고, 이후 서브도메인을 늘려도 다시 할 일이 없습니다.
+와일드카드 라우트는 아래 둘이 있어야 실제로 요청을 받습니다. 둘 다 설정을 마쳤고, 이후 서브도메인을 늘려도 다시 할 일이 없습니다.
 
-1. **와일드카드 DNS 레코드** — Cloudflare DNS에서 이름 `*`, 프록시 켬(주황 구름). Workers 라우트는 호스트가 Cloudflare를 통해 조회돼야 걸립니다. Universal SSL 인증서가 `utilark.app`과 `*.utilark.app`(한 단계)을 함께 덮으므로 인증서 작업은 없습니다.
+1. **와일드카드 DNS 레코드** — 이름 `*`, `utilark.app`을 가리키는 CNAME, 프록시 켬(주황 구름). Workers 라우트는 호스트가 Cloudflare를 통해 조회돼야 걸립니다. A 레코드로 해도 동일하게 동작합니다 — 프록시가 켜지면 요청이 엣지에서 끝나 레코드가 가리키는 주소는 쓰이지 않습니다. Universal SSL이 `utilark.app`과 `*.utilark.app`(한 단계)을 함께 덮으므로 인증서 작업은 없습니다.
 
-2. **배포 토큰에 zone 권한 추가** — `CLOUDFLARE_API_TOKEN`에 `Zone → Workers Routes → Edit`(및 `Zone → Zone → Read`)을 더합니다. 라우트를 코드로 배포하는 대가입니다. 권한이 없으면 `wrangler deploy`가 라우트 단계에서 실패합니다.
+2. **배포 토큰의 zone 권한** — `CLOUDFLARE_API_TOKEN`에 `Zone → Workers Routes → Edit`. 라우트를 코드로 배포하는 대가입니다. 권한이 없으면 `wrangler deploy`가 스크립트 업로드까지는 성공하고 라우트 단계에서만 `Authentication error [code: 10000]`으로 실패합니다. `Zone → Zone → Read`는 필요 없었습니다 — zone 조회는 기존 권한으로 됩니다.
 
-2번은 이전 방침("배포 토큰에 zone 권한을 주지 않는다")을 바꾸는 것입니다. 대시보드에서 도메인을 관리하면 토큰을 좁게 유지할 수 있지만, 도구가 늘 때마다 수작업이 붙습니다. 서브도메인을 계속 늘릴 계획이라 자동화 쪽을 택했습니다.
+2번은 이전 방침("배포 토큰에 zone 권한을 주지 않는다")을 바꾼 것입니다. 대시보드에서 도메인을 관리하면 토큰을 좁게 유지할 수 있지만, 도구가 늘 때마다 수작업이 붙습니다. 서브도메인을 계속 늘릴 계획이라 자동화 쪽을 택했습니다.
 
-### 배포 시 확인할 것 하나
+### admin Custom Domain과의 겹침 — 문제 없었음
 
-`*.utilark.app/*` 와일드카드가 이미 Custom Domain인 `admin.utilark.app`과 겹칩니다. 같은 Worker를 가리키므로 동작은 같지만, Cloudflare가 겹침을 이유로 라우트 생성을 거부하는지는 **실제 배포에서만 확인됩니다.** 거부되면 두 가지 중 하나로 풉니다.
+`*.utilark.app/*`는 이미 Custom Domain인 `admin.utilark.app`을 포함합니다. Cloudflare가 이 겹침을 거부하는지는 실제 배포로만 확인할 수 있었는데, **거부하지 않았습니다.**
 
-- `admin.utilark.app` Custom Domain을 지우고 와일드카드에 맡긴다 (관리자 호스트 처리는 `worker/subdomains.js`가 이미 하고 있어 코드 변경 없음)
-- 와일드카드를 포기하고 이름별 Custom Domain으로 되돌린다
+```
+Deployed utilark triggers (1.21 sec)
+  *.utilark.app/* (zone name: utilark.app)
+```
 
-첫 배포 로그에서 라우트 생성이 성공했는지 확인해야 합니다.
+Custom Domain이 자기 호스트에서 우선하고 둘 다 같은 Worker를 가리키므로 동작도 같습니다. admin Custom Domain은 그대로 두면 됩니다.
 
-### 등록 후 확인
+### 확인
 
 ```bash
 curl -sI -H 'Accept-Language: ko-KR,ko;q=0.9' https://mergepdf.utilark.app/ | head -5

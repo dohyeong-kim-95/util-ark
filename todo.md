@@ -6,12 +6,6 @@ AdSense 준비 작업(`6e62b57`)에서 남은 항목입니다. 코드로 끝낼 
 
 ## 사람이 직접 해야 하는 것
 
-- [ ] **서브도메인 와일드카드 DNS 레코드** — Cloudflare DNS에 이름 `*`, 프록시 켬으로 레코드 하나 추가. `wrangler.jsonc`의 `*.utilark.app/*` 라우트는 호스트가 Cloudflare를 통해 조회돼야 걸립니다. 최초 1회이고 이후 서브도메인을 늘려도 다시 할 일이 없습니다. Universal SSL이 한 단계 서브도메인을 덮으므로 인증서 작업은 없습니다.
-
-- [ ] **배포 토큰에 zone 권한 추가** — `CLOUDFLARE_API_TOKEN`에 `Zone → Workers Routes → Edit`와 `Zone → Zone → Read`를 더합니다. 없으면 `wrangler deploy`가 라우트 단계에서 실패합니다. 대시보드 수작업을 없애는 대가로 이전의 "토큰에 zone 권한을 주지 않는다" 방침을 바꿨습니다. (Bubblelab도 라우트를 `wrangler.jsonc`에서 배포합니다.)
-
-- [ ] **첫 배포에서 라우트 생성 확인** — `*.utilark.app/*` 와일드카드가 Custom Domain인 `admin.utilark.app`과 겹칩니다. 같은 Worker라 동작은 같지만 Cloudflare가 겹침을 거부하는지는 실제 배포에서만 드러납니다. 거부되면 admin Custom Domain을 지우고 와일드카드에 맡기면 됩니다(코드 변경 없음). 대응은 `docs/subdomains.md`에 적어 뒀습니다.
-
 - [ ] **AdSense 저장소 변수 등록** — Settings → Secrets and variables → Actions → **Variables** 탭에 `PUBLIC_ADSENSE_CLIENT` 추가. Secrets 탭이 아닙니다. 등록 후 재배포해야 심사용 스크립트와 `/ads.txt`가 살아납니다.
 - [ ] **AdSense 콘솔에서 동의 메시지 게시** — 개인정보 보호 및 메시지에서 GDPR 메시지와 미국 주법 메시지를 게시. Google 인증 동의 메시지는 `adsbygoogle.js`를 통해 전달되므로 저장소에 추가할 스크립트는 없습니다. 이 단계를 건너뛰면 EEA·영국·스위스 게재가 규정 위반입니다.
 - [ ] **승인 후 `PUBLIC_ADSENSE_SLOT` 등록** — 도구 페이지에 실제 광고 단위가 렌더됩니다.
@@ -28,6 +22,17 @@ AdSense 준비 작업(`6e62b57`)에서 남은 항목입니다. 코드로 끝낼 
   ```
 
   루트가 여전히 언어 선택 HTML을 반환하면 `wrangler.jsonc`의 assets 라우팅을 다시 봐야 합니다.
+
+- [ ] **라이브 서브도메인 리다이렉트 확인** — 같은 egress 차단으로 확인하지 못했습니다. DNS는 세션에서 조회해 확인했고(`mergepdf`·`png2jpg`·`pdf2image`가 모두 Cloudflare로 해석), 라우트는 배포 로그에 찍혔습니다(`*.utilark.app/* (zone name: utilark.app)`). 남은 건 실제 응답입니다.
+
+  ```bash
+  curl -sI -H 'Accept-Language: ko-KR,ko;q=0.9' https://mergepdf.utilark.app/ | head -5  # 302 → utilark.app/ko/tools/merge-pdf/
+  curl -sI -H 'Accept-Language: en-US' https://png2jpg.utilark.app/ | head -5            # 302 → utilark.app/en/tools/image-converter/
+  curl -sI https://mergepdf.utilark.app/ko/privacy/ | head -5                            # 301 → utilark.app/ko/privacy/
+  curl -sI https://www.utilark.app/ | head -5                                            # 301 → utilark.app/
+  ```
+
+  `1001`·`1016` 오류가 나오면 와일드카드 DNS 레코드가 프록시(주황 구름)가 아닌 DNS only(회색)인지 확인해야 합니다. 회색이면 라우트가 걸리지 않습니다.
 
 - [ ] **사다리타기 실기기 확인** — 빌드와 타입 검사만 통과한 상태입니다. 모바일에서 사다리 SVG의 세로줄이 위아래 이름칸 가운데와 정확히 맞는지, 화면을 회전했을 때 좌표가 다시 잡히는지 확인이 필요합니다.
 
@@ -51,5 +56,7 @@ AdSense 준비 작업(`6e62b57`)에서 남은 항목입니다. 코드로 끝낼 
 
 ## 정리된 것
 
+- **서브도메인 배포 (2026-08-13)** — `*.utilark.app/*` 와일드카드 라우트가 배포됐습니다. 준비 두 가지(와일드카드 CNAME 프록시 레코드, 배포 토큰의 `Zone → Workers Routes → Edit`)는 끝났고 최초 1회로 종료입니다. 앞으로 도구를 추가할 때 대시보드 작업이 없습니다. 미지수였던 `admin.utilark.app` Custom Domain과의 겹침은 **문제 없었습니다** — Cloudflare가 와일드카드 라우트를 받아들였고, Custom Domain이 자기 호스트에서 우선합니다. 정책과 매핑은 `docs/subdomains.md`에 있습니다.
+- **도메인 메일 스푸핑 방지 (2026-08-13)** — `@utilark.app`으로 메일을 보내지도 받지도 않으므로 SPF(`v=spf1 -all`), DMARC(`p=reject`), 빈 DKIM TXT 레코드를 넣어 도용을 차단했습니다. MX는 받을 메일이 없어 넣지 않았습니다. 나중에 이 도메인으로 메일을 보낼 일이 생기면 SPF의 `-all`을 먼저 고쳐야 하며, 안 고치면 발송분이 전부 거부됩니다.
 - **운영자 표기** — 운영자가 사업자가 아님을 확인했습니다. 개인정보 처리방침과 소개 페이지는 "회사가 아니라 한 명의 독립 개발자가 운영"으로 표기하며, 사업자등록번호·통신판매업 신고번호를 추가하라는 이전 권고는 철회합니다. 광고 수익이 발생하더라도 개인 운영 사이트로서 현재 표기가 맞습니다.
 - **로또 번호 생성기** — 마이그레이션 후보에서 제외했습니다. AdSense는 도박 및 관련 콘텐츠를 제한하므로, 승인 심사를 앞둔 시점에 굳이 위험을 만들 이유가 없습니다.
