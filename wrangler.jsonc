@@ -6,6 +6,16 @@
   "workers_dev": false,
   "preview_urls": false,
   "keep_vars": true,
+  // One wildcard route covers every tool subdomain, so adding a tool never needs
+  // a dashboard step. `worker/subdomains.js` decides what each name means, and
+  // any name that is not in that map is redirected to the apex.
+  //
+  // The apex and admin.utilark.app stay dashboard-managed custom domains: this
+  // pattern does not match the apex, and a custom domain takes precedence over a
+  // wildcard route for its own hostname.
+  "routes": [
+    { "pattern": "*.utilark.app/*", "zone_name": "utilark.app" }
+  ],
   "vars": {
     "ADMIN_ID": "admin"
   },

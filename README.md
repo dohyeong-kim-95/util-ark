@@ -72,9 +72,11 @@ Production uses an independent Cloudflare Worker named `utilark`. Pushes to `mai
 Add these repository secrets under **Settings → Secrets and variables → Actions**:
 
 - `CLOUDFLARE_ACCOUNT_ID`
-- `CLOUDFLARE_API_TOKEN` — use a Utilark-specific token with Workers Scripts edit access
+- `CLOUDFLARE_API_TOKEN` — use a Utilark-specific token with Workers Scripts edit access, plus `Zone → Workers Routes → Edit` and `Zone → Zone → Read` on the `utilark.app` zone so the wildcard subdomain route deploys from configuration
 
-The workflow creates or updates the Worker through Wrangler. Custom domains are managed in the Cloudflare dashboard so code deployments do not require zone route permissions or overwrite domain settings. Attach them under the Worker's **Domains → Add → Custom Domain** menu.
+The workflow creates or updates the Worker through Wrangler.
+
+The apex and the admin hostname are dashboard-managed custom domains, attached under the Worker's **Domains → Add → Custom Domain** menu, so a deployment never overwrites them. Tool subdomains are not: `wrangler.jsonc` carries one `*.utilark.app/*` route, which is why adding a tool needs no dashboard step. That route requires a proxied `*` DNS record on the zone and the zone permissions listed above; `docs/subdomains.md` has both.
 
 The production custom domains are:
 

@@ -6,7 +6,11 @@ AdSense 준비 작업(`6e62b57`)에서 남은 항목입니다. 코드로 끝낼 
 
 ## 사람이 직접 해야 하는 것
 
-- [ ] **서브도메인 Custom Domain 등록** — Workers & Pages → utilark → Domains → Add → Custom Domain 에서 11개를 한 줄씩 추가. 목록과 확인용 `curl`은 `docs/subdomains.md`에 있습니다. 와일드카드를 지원하지 않아 개별 등록이 필요하고, 등록 전까지는 서브도메인이 조회되지 않습니다. 코드는 이미 배포돼 있어도 됩니다.
+- [ ] **서브도메인 와일드카드 DNS 레코드** — Cloudflare DNS에 이름 `*`, 프록시 켬으로 레코드 하나 추가. `wrangler.jsonc`의 `*.utilark.app/*` 라우트는 호스트가 Cloudflare를 통해 조회돼야 걸립니다. 최초 1회이고 이후 서브도메인을 늘려도 다시 할 일이 없습니다. Universal SSL이 한 단계 서브도메인을 덮으므로 인증서 작업은 없습니다.
+
+- [ ] **배포 토큰에 zone 권한 추가** — `CLOUDFLARE_API_TOKEN`에 `Zone → Workers Routes → Edit`와 `Zone → Zone → Read`를 더합니다. 없으면 `wrangler deploy`가 라우트 단계에서 실패합니다. 대시보드 수작업을 없애는 대가로 이전의 "토큰에 zone 권한을 주지 않는다" 방침을 바꿨습니다. (Bubblelab도 라우트를 `wrangler.jsonc`에서 배포합니다.)
+
+- [ ] **첫 배포에서 라우트 생성 확인** — `*.utilark.app/*` 와일드카드가 Custom Domain인 `admin.utilark.app`과 겹칩니다. 같은 Worker라 동작은 같지만 Cloudflare가 겹침을 거부하는지는 실제 배포에서만 드러납니다. 거부되면 admin Custom Domain을 지우고 와일드카드에 맡기면 됩니다(코드 변경 없음). 대응은 `docs/subdomains.md`에 적어 뒀습니다.
 
 - [ ] **AdSense 저장소 변수 등록** — Settings → Secrets and variables → Actions → **Variables** 탭에 `PUBLIC_ADSENSE_CLIENT` 추가. Secrets 탭이 아닙니다. 등록 후 재배포해야 심사용 스크립트와 `/ads.txt`가 살아납니다.
 - [ ] **AdSense 콘솔에서 동의 메시지 게시** — 개인정보 보호 및 메시지에서 GDPR 메시지와 미국 주법 메시지를 게시. Google 인증 동의 메시지는 `adsbygoogle.js`를 통해 전달되므로 저장소에 추가할 스크립트는 없습니다. 이 단계를 건너뛰면 EEA·영국·스위스 게재가 규정 위반입니다.
