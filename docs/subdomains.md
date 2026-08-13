@@ -4,7 +4,7 @@
 
 ## 결론부터
 
-서브도메인은 **색인의 주소가 아니라 진입점**입니다. `mergepdf.utilark.app`은 자기 콘텐츠를 서빙하지 않고 `utilark.app/{언어}/tools/merge-pdf/`로 보냅니다. 색인, 링크 신호, 사이트맵, AdSense 사이트 등록은 전부 `utilark.app` 한 곳에 남습니다.
+서브도메인은 **색인의 주소가 아니라 진입점**입니다. `mergepdf.utilark.app`은 자기 콘텐츠를 서빙하지 않고 `utilark.app/{언어}/merge-pdf/`로 보냅니다. 색인, 링크 신호, 사이트맵, AdSense 사이트 등록은 전부 `utilark.app` 한 곳에 남습니다.
 
 ### 왜 서브도메인이 자체 콘텐츠를 갖지 않는가
 
@@ -31,10 +31,10 @@
 
 | 서브도메인 | 도착지 |
 |---|---|
-| `imageconvert.utilark.app` | `/{언어}/tools/image-converter/` |
-| `mergepdf.utilark.app` | `/{언어}/tools/merge-pdf/` |
-| `wordcount.utilark.app` | `/{언어}/tools/word-counter/` |
-| `ladder.utilark.app` | `/{언어}/tools/ladder/` |
+| `imageconvert.utilark.app` | `/{언어}/image-converter/` |
+| `mergepdf.utilark.app` | `/{언어}/merge-pdf/` |
+| `wordcount.utilark.app` | `/{언어}/word-counter/` |
+| `ladder.utilark.app` | `/{언어}/ladder/` |
 
 ### 예약된 주소
 
@@ -42,9 +42,9 @@
 
 | 서브도메인 | 현재 도착지 | 비고 |
 |---|---|---|
-| `jpg2png` · `png2jpg` | `/{언어}/tools/image-converter/` | 쌍별 페이지 분리 대기 |
-| `jpg2webp` · `webp2jpg` | `/{언어}/tools/image-converter/` | 쌍별 페이지 분리 대기 |
-| `png2webp` · `webp2png` | `/{언어}/tools/image-converter/` | 쌍별 페이지 분리 대기 |
+| `jpg2png` · `png2jpg` | `/{언어}/image-converter/` | 쌍별 페이지 분리 대기 |
+| `jpg2webp` · `webp2jpg` | `/{언어}/image-converter/` | 쌍별 페이지 분리 대기 |
+| `png2webp` · `webp2png` | `/{언어}/image-converter/` | 쌍별 페이지 분리 대기 |
 | `pdf2image` | `/{언어}/` | 해당 도구 자체가 없음 |
 
 ## 동작 규칙
@@ -112,10 +112,10 @@ Custom Domain이 자기 호스트에서 우선하고 둘 다 같은 Worker를 �
 
 ```bash
 curl -sI -H 'Accept-Language: ko-KR,ko;q=0.9' https://mergepdf.utilark.app/ | head -5
-# 302 · Location: https://utilark.app/ko/tools/merge-pdf/
+# 302 · Location: https://utilark.app/ko/merge-pdf/
 
 curl -sI -H 'Accept-Language: en-US' https://png2jpg.utilark.app/ | head -5
-# 302 · Location: https://utilark.app/en/tools/image-converter/
+# 302 · Location: https://utilark.app/en/image-converter/
 
 curl -sI https://mergepdf.utilark.app/ko/privacy/ | head -5
 # 301 · Location: https://utilark.app/ko/privacy/
@@ -129,10 +129,21 @@ curl -sI -H 'Host: mergepdf.utilark.app' http://127.0.0.1:8787/ | head -5
 
 ## 도구를 추가할 때
 
-`npm test`가 `worker/subdomains.js`와 실제 빌드된 도구 페이지를 대조합니다. 도구를 새로 만들고 서브도메인을 안 정하면 빌드가 실패하고, 서브도메인이 없는 페이지를 가리켜도 실패합니다. 순서는 이렇습니다.
+`npm test`가 `worker/subdomains.js`와 `src/data/tools.ts`의 슬러그 목록을 대조합니다. 도구를 새로 만들고 서브도메인을 안 정하면 실패하고, 존재하지 않는 도구를 가리켜도 실패합니다. 순서는 이렇습니다.
 
 1. `src/data/tools.ts`에 도구를 추가한다
 2. `worker/subdomains.js`에 라벨 한 줄을 추가한다
 3. `npm test`
 
 배포하면 끝입니다. 와일드카드 라우트가 이미 모든 이름을 받고 있어서 대시보드 작업이 없습니다.
+
+## 도구 URL이 한 단계 얕아졌다 (2026-08-13)
+
+`/{언어}/tools/{슬러그}/` → `/{언어}/{슬러그}/`. 이유가 둘입니다.
+
+1. `docs/seo-research.md`의 7번 발견 — 상위 URL은 전부 1~2 세그먼트이고 `tools/`는 하는 일이 없습니다. 색인이 쌓이기 전이 바꾸기 가장 싼 시점이라 적혀 있었습니다.
+2. 같은 이름의 `utilark.com`이 `/en/tools/typing-test` 형태를 씁니다. 구조까지 같으면 이틀 된 이쪽이 모방으로 읽힙니다.
+
+옛 경로는 하루 동안 살아 있었으므로 `worker/index.js`가 **301**로 보냅니다(`legacyToolPath`). 도착지가 요청과 무관하므로 영구 리다이렉트가 맞습니다. `/fr/tools/...`처럼 지원하지 않는 로케일이나 세그먼트가 더 붙은 경로는 건드리지 않습니다.
+
+서브도메인 도착지도 함께 얕아졌습니다 — `mergepdf.utilark.app` → `utilark.app/{언어}/merge-pdf/`.

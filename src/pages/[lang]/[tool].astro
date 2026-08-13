@@ -1,8 +1,8 @@
 ---
-import ToolPage from '../../../components/ToolPage.astro';
-import { tools, type ToolDefinition } from '../../../data/tools';
-import { locales, type Locale } from '../../../i18n/ui';
-import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ToolPage from '../../components/ToolPage.astro';
+import { tools, type ToolDefinition } from '../../data/tools';
+import { locales, type Locale } from '../../i18n/ui';
+import BaseLayout from '../../layouts/BaseLayout.astro';
 
 export function getStaticPaths() {
   return locales.flatMap((lang) => tools.map((tool) => ({
@@ -18,7 +18,7 @@ interface Props {
 
 const { locale, tool } = Astro.props;
 const copy = tool.copy[locale];
-const url = `https://utilark.app/${locale}/tools/${tool.slug}/`;
+const url = `https://utilark.app/${locale}/${tool.slug}/`;
 const schema = [
   {
     '@context': 'https://schema.org',

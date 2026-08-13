@@ -2,7 +2,7 @@ import { dashboardPage, loginPage, unavailablePage } from './admin-page.js';
 import { analyticsDay, dailyVisitorKey, likelyBot, trackablePageView } from './analytics.js';
 import { ContactStore } from './contact-store.js';
 import { preferredLocale } from './locale.js';
-import { resolveHost, subdomainRedirect } from './subdomains.js';
+import { legacyToolPath, resolveHost, subdomainRedirect } from './subdomains.js';
 import {
   anonymousVisitorKey,
   declaredBodyFits,
@@ -206,6 +206,14 @@ export default {
 
     if (host.kind === 'tool' || host.kind === 'unknown') {
       return withSecurityHeaders(subdomainRedirect(url, host, preferredLocale(request)));
+    }
+
+    const movedTool = legacyToolPath(url.pathname);
+    if (movedTool) {
+      return withSecurityHeaders(new Response(null, {
+        status: 301,
+        headers: { Location: `${movedTool}${url.search}` },
+      }));
     }
 
     let response;

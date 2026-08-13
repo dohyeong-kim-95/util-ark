@@ -23,10 +23,10 @@ test('hostnames are classified before any routing decision', () => {
 test('a tool subdomain root sends visitors to the localized tool page', async () => {
   const english = await visit('https://mergepdf.utilark.app/', { 'Accept-Language': 'en-US,en;q=0.9' });
   assert.equal(english.status, 302);
-  assert.equal(english.headers.get('Location'), 'https://utilark.app/en/tools/merge-pdf/');
+  assert.equal(english.headers.get('Location'), 'https://utilark.app/en/merge-pdf/');
 
   const korean = await visit('https://mergepdf.utilark.app/', { 'Accept-Language': 'ko-KR,ko;q=0.9' });
-  assert.equal(korean.headers.get('Location'), 'https://utilark.app/ko/tools/merge-pdf/');
+  assert.equal(korean.headers.get('Location'), 'https://utilark.app/ko/merge-pdf/');
 
   // The destination varies per request, so it must not be cached or made permanent.
   assert.equal(korean.headers.get('Cache-Control'), 'no-store');
@@ -38,13 +38,13 @@ test('an explicit language choice outranks the browser header', async () => {
     'Accept-Language': 'en-US,en;q=0.9',
     Cookie: 'utilark_lang=ko',
   });
-  assert.equal(response.headers.get('Location'), 'https://utilark.app/ko/tools/word-counter/');
+  assert.equal(response.headers.get('Location'), 'https://utilark.app/ko/word-counter/');
 });
 
 test('a reserved conversion name lands on the tool that already does the job', async () => {
   const response = await visit('https://png2jpg.utilark.app/', { 'Accept-Language': 'en' });
   assert.equal(response.status, 302);
-  assert.equal(response.headers.get('Location'), 'https://utilark.app/en/tools/image-converter/');
+  assert.equal(response.headers.get('Location'), 'https://utilark.app/en/image-converter/');
 });
 
 test('a reserved name with no tool yet lands on the localized home', async () => {
@@ -64,9 +64,9 @@ test('a subdomain owns only its root, so every other path is normalized to the a
 });
 
 test('an unrecognized subdomain cannot serve a second copy of the site', async () => {
-  const response = await visit('https://staging.utilark.app/ko/tools/ladder/');
+  const response = await visit('https://staging.utilark.app/ko/ladder/');
   assert.equal(response.status, 301);
-  assert.equal(response.headers.get('Location'), 'https://utilark.app/ko/tools/ladder/');
+  assert.equal(response.headers.get('Location'), 'https://utilark.app/ko/ladder/');
 });
 
 test('subdomain redirects are not counted as page views', async () => {
@@ -93,12 +93,36 @@ test('subdomain redirects are not counted as page views', async () => {
   assert.equal(recorded, false);
 });
 
+test('the old /tools/ paths are redirected to where the pages moved', async () => {
+  for (const [from, to] of [
+    ['https://utilark.app/ko/tools/merge-pdf/', '/ko/merge-pdf/'],
+    ['https://utilark.app/en/tools/image-converter/', '/en/image-converter/'],
+    ['https://utilark.app/en/tools/ladder', '/en/ladder/'],
+  ]) {
+    const response = await visit(from);
+    assert.equal(response.status, 301, from);
+    assert.equal(response.headers.get('Location'), to);
+  }
+
+  const query = await visit('https://utilark.app/ko/tools/ladder/?from=share');
+  assert.equal(query.headers.get('Location'), '/ko/ladder/?from=share');
+
+  // The redirect must not swallow anything that merely looks like a tool path.
+  for (const untouched of [
+    'https://utilark.app/ko/privacy/',
+    'https://utilark.app/fr/tools/merge-pdf/',
+    'https://utilark.app/ko/tools/merge-pdf/extra/',
+  ]) {
+    assert.equal((await visit(untouched)).status, 200, untouched);
+  }
+});
+
 test('the apex and the admin host are untouched by subdomain handling', async () => {
   const root = await visit('https://utilark.app/', { 'Accept-Language': 'ko' });
   assert.equal(root.status, 302);
   assert.equal(root.headers.get('Location'), '/ko/');
 
-  const page = await visit('https://utilark.app/ko/tools/merge-pdf/');
+  const page = await visit('https://utilark.app/ko/merge-pdf/');
   assert.equal(page.status, 200);
 
   const admin = await visit('https://admin.utilark.app/');

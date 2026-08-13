@@ -12,14 +12,14 @@ const requiredPages = [
   'ko/privacy/index.html',
   'en/contact/index.html',
   'ko/contact/index.html',
-  'en/tools/image-converter/index.html',
-  'ko/tools/image-converter/index.html',
-  'en/tools/word-counter/index.html',
-  'ko/tools/word-counter/index.html',
-  'en/tools/merge-pdf/index.html',
-  'ko/tools/merge-pdf/index.html',
-  'en/tools/ladder/index.html',
-  'ko/tools/ladder/index.html',
+  'en/image-converter/index.html',
+  'ko/image-converter/index.html',
+  'en/word-counter/index.html',
+  'ko/word-counter/index.html',
+  'en/merge-pdf/index.html',
+  'ko/merge-pdf/index.html',
+  'en/ladder/index.html',
+  'ko/ladder/index.html',
 ];
 
 const checks = [
@@ -39,12 +39,21 @@ for (const page of requiredPages) {
   }
 }
 
+// Tool pages sit at /{locale}/{slug}/ next to about, privacy, and the rest, so
+// the built directory no longer tells us which of them are tools. Take the list
+// from the slug union in the source instead, which is what the pages are
+// generated from.
+const toolSource = await readFile(new URL('../src/data/tools.ts', import.meta.url), 'utf8');
+const slugUnion = toolSource.match(/slug:\s*((?:'[a-z0-9-]+'\s*\|\s*)*'[a-z0-9-]+');/u)?.[1];
+if (!slugUnion) throw new Error('src/data/tools.ts: could not read the tool slug union');
+const allTools = [...slugUnion.matchAll(/'([a-z0-9-]+)'/gu)].map((match) => match[1]);
+
 // Tool pages target search queries, so their titles carry the keyword plus a
 // synonym and "free"/"online" instead of the plain `${name} · Utilark` form.
 // Google truncates past roughly 60 characters.
 for (const [page, freeWord] of [['en', 'Free'], ['ko', '무료']]) {
-  for (const tool of ['image-converter', 'word-counter', 'merge-pdf', 'ladder']) {
-    const file = `${page}/tools/${tool}/index.html`;
+  for (const tool of allTools) {
+    const file = `${page}/${tool}/index.html`;
     const html = await readFile(new URL(file, dist), 'utf8');
     // Measure what the search result shows, not the escaped source: `&amp;`
     // is one character on the page and five in the markup.
@@ -65,13 +74,12 @@ for (const [page, freeWord] of [['en', 'Free'], ['ko', '무료']]) {
 // A tool page must link to every other tool. Ranking competitors carry the whole
 // tool list on each tool page; without it these pages never pass signal to each
 // other and the only way out is the breadcrumb.
-const allTools = ['image-converter', 'word-counter', 'merge-pdf', 'ladder'];
 for (const locale of ['en', 'ko']) {
   for (const tool of allTools) {
-    const file = `${locale}/tools/${tool}/index.html`;
+    const file = `${locale}/${tool}/index.html`;
     const html = await readFile(new URL(file, dist), 'utf8');
     for (const other of allTools.filter((entry) => entry !== tool)) {
-      if (!html.includes(`href="/${locale}/tools/${other}/"`)) {
+      if (!html.includes(`href="/${locale}/${other}/"`)) {
         throw new Error(`${file}: does not link to the ${other} tool`);
       }
     }
@@ -80,15 +88,14 @@ for (const locale of ['en', 'ko']) {
 
 // Every subdomain in worker/subdomains.js has to point at a page that was built,
 // and every built tool has to be reachable from one of them.
-const builtTools = await readdir(new URL('en/tools/', dist));
 const liveSubdomainTools = new Set();
 for (const [label, entry] of Object.entries(TOOL_SUBDOMAINS)) {
-  if (entry.tool && !builtTools.includes(entry.tool)) {
-    throw new Error(`${label}.utilark.app points at /tools/${entry.tool}/, which was not built`);
+  if (entry.tool && !allTools.includes(entry.tool)) {
+    throw new Error(`${label}.utilark.app points at /${entry.tool}/, which is not a tool`);
   }
   if (!entry.pending) liveSubdomainTools.add(entry.tool);
 }
-for (const tool of builtTools) {
+for (const tool of allTools) {
   if (!liveSubdomainTools.has(tool)) {
     throw new Error(`the ${tool} tool has no subdomain in worker/subdomains.js`);
   }

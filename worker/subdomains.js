@@ -10,7 +10,7 @@ export const ADMIN_HOST = `admin.${APEX_HOST}`;
  * - a conversion is `{from}2{to}`, matching how these keywords are searched
  * - every other tool gets one plain label
  *
- * `tool` is the slug under `/{locale}/tools/`. `pending` marks a name reserved
+ * `tool` is the slug under `/{locale}/`. `pending` marks a name reserved
  * for a page that does not exist yet, so it lands on the closest tool that
  * already does the job, or on the localized home when there is none. Turning a
  * reserved name into a real destination is a one-line change here.
@@ -32,6 +32,19 @@ export const TOOL_SUBDOMAINS = {
   // Reserved for a tool that does not exist yet.
   pdf2image: { tool: null, pending: true },
 };
+
+/**
+ * Tool pages moved from `/{locale}/tools/{slug}/` up to `/{locale}/{slug}/`.
+ * The old paths were live, so they are redirected rather than dropped. This is
+ * permanent — unlike the language-negotiated subdomain entry points, the
+ * destination here does not depend on the request.
+ *
+ * Returns the new path, or null when the URL is not an old tool page.
+ */
+export function legacyToolPath(pathname) {
+  const match = /^\/(en|ko)\/tools\/([a-z0-9-]+)\/?$/u.exec(pathname);
+  return match ? `/${match[1]}/${match[2]}/` : null;
+}
 
 /**
  * Classifies an incoming hostname. Anything outside utilark.app — localhost,
@@ -69,7 +82,7 @@ export function subdomainRedirect(url, host, locale) {
     return new Response(null, { status: 301, headers: { Location: target.href } });
   }
 
-  target.pathname = host.tool ? `/${locale}/tools/${host.tool}/` : `/${locale}/`;
+  target.pathname = host.tool ? `/${locale}/${host.tool}/` : `/${locale}/`;
   return new Response(null, {
     status: 302,
     headers: {
