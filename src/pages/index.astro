@@ -1,5 +1,7 @@
 ---
 import '../styles/global.css';
+
+const naverVerification = import.meta.env.PUBLIC_NAVER_SITE_VERIFICATION?.trim();
 ---
 
 <!doctype html>
@@ -15,6 +17,7 @@ import '../styles/global.css';
     <link rel="alternate" hreflang="en" href="https://utilark.app/en/" />
     <link rel="alternate" hreflang="ko" href="https://utilark.app/ko/" />
     <link rel="alternate" hreflang="x-default" href="https://utilark.app/" />
+    {naverVerification && <meta name="naver-site-verification" content={naverVerification} />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body class="language-gate">

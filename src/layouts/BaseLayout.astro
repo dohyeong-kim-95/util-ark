@@ -23,6 +23,10 @@ const englishPath = locale === 'en' ? Astro.url.pathname : alternatePath;
 const xDefaultUrl = new URL(englishPath, site);
 const fullTitle = titleTag ?? (title === 'Utilark' ? title : `${title} · Utilark`);
 const adsenseClient = import.meta.env.PUBLIC_ADSENSE_CLIENT?.trim();
+// Naver verifies ownership by looking for this tag. It goes on every page
+// because the site root answers with a redirect, so the verifier may well be
+// reading a localized page instead of `/`.
+const naverVerification = import.meta.env.PUBLIC_NAVER_SITE_VERIFICATION?.trim();
 const showVisitorStats = Astro.url.pathname === `/${locale}/`;
 
 const schemas = [
@@ -57,6 +61,7 @@ const schemas = [
     <link rel="alternate" hreflang={locale} href={canonicalUrl.href} />
     <link rel="alternate" hreflang={alternateLocale} href={alternateUrl.href} />
     <link rel="alternate" hreflang="x-default" href={xDefaultUrl.href} />
+    {naverVerification && <meta name="naver-site-verification" content={naverVerification} />}
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 

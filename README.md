@@ -48,6 +48,16 @@ Both are read at build time, so production values live in **Settings → Secrets
 
 `/ads.txt` is generated from `PUBLIC_ADSENSE_CLIENT` during the build. Without the variable it stays a comment-only file that authorizes nobody, and `npm test` enforces both states.
 
+### Naver site verification
+
+`PUBLIC_NAVER_SITE_VERIFICATION` holds the value Naver Webmaster Tools issues for the meta-tag method. Set it as a repository variable like the AdSense ones — it is a public identifier that ships in the HTML, not a credential, but it stays out of the source so it can be changed or removed without a commit. With no variable set, no verification tag is rendered at all, and `npm test` enforces both states.
+
+The tag is emitted on every page rather than only on the language gate, because the site root answers with a redirect.
+
+Expect the meta-tag method to be unreliable here. Naver states that it guarantees ownership checks only across a `301`, and that a JavaScript redirect cannot be verified at all; this site answers `/` with a `302` because the destination depends on the visitor's language, and the language gate redirects with JavaScript. Neither can change without pinning visitors to whichever language they first arrived in.
+
+The HTML-file method avoids the root entirely and is the reliable option: commit the `naverXXXX.html` file Naver issues to `public/`. The Worker serves that filename at its exact URL, resolving the trailing-slash redirect that asset routing would otherwise return, since Naver would have to follow that redirect to find the file.
+
 ### AdSense review checklist
 
 1. Set the `PUBLIC_ADSENSE_CLIENT` repository variable and deploy, so the review script and `/ads.txt` are live.

@@ -101,6 +101,21 @@ for (const tool of allTools) {
   }
 }
 
+// Naver's ownership check reads a meta tag. The site root answers with a
+// redirect, so the tag has to be on the localized pages the verifier lands on,
+// not only on the language gate.
+const naverVerification = process.env.PUBLIC_NAVER_SITE_VERIFICATION?.trim();
+for (const page of ['index.html', 'en/index.html', 'ko/index.html', 'en/merge-pdf/index.html']) {
+  const html = await readFile(new URL(page, dist), 'utf8');
+  const present = html.includes('name="naver-site-verification"');
+  if (naverVerification && !html.includes(`content="${naverVerification}"`)) {
+    throw new Error(`${page}: missing the configured Naver verification tag`);
+  }
+  if (!naverVerification && present) {
+    throw new Error(`${page}: has a Naver verification tag with no variable configured`);
+  }
+}
+
 const sitemapFiles = await readdir(new URL('.', dist));
 if (!sitemapFiles.includes('sitemap-index.xml')) throw new Error('missing sitemap-index.xml');
 

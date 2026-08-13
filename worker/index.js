@@ -20,6 +20,7 @@ export { ContactStore };
 const ADMIN_COOKIE = 'utilark_admin';
 const ANALYTICS_EXCLUSION_COOKIE = 'utilark_notrack';
 const CONTACT_MAX_BYTES = 8 * 1024;
+const NAVER_VERIFICATION_FILE = /^\/naver[0-9a-z]+\.html$/u;
 const categories = new Set(['bug', 'tool', 'feedback', 'other']);
 
 const contactStub = (env) => env.CONTACTS.get(env.CONTACTS.idFromName('global'));
@@ -206,6 +207,19 @@ export default {
 
     if (host.kind === 'tool' || host.kind === 'unknown') {
       return withSecurityHeaders(subdomainRedirect(url, host, preferredLocale(request)));
+    }
+
+    // Naver reads its ownership file at the exact URL it issued. Asset routing
+    // answers a `.html` path with a trailing-slash redirect, and Naver's own
+    // guidance is that it only guarantees ownership checks across a 301, so
+    // resolve the redirect here and answer with the file itself.
+    if (NAVER_VERIFICATION_FILE.test(url.pathname) && ['GET', 'HEAD'].includes(request.method)) {
+      let asset = await env.ASSETS.fetch(request);
+      if ([301, 302, 307, 308].includes(asset.status)) {
+        const location = asset.headers.get('Location');
+        if (location) asset = await env.ASSETS.fetch(new Request(new URL(location, url), request));
+      }
+      return withSecurityHeaders(asset);
     }
 
     const movedTool = legacyToolPath(url.pathname);

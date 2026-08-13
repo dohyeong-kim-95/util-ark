@@ -117,6 +117,30 @@ test('the old /tools/ paths are redirected to where the pages moved', async () =
   }
 });
 
+test("Naver's ownership file is served even when asset routing would redirect it", async () => {
+  const redirectingAssets = {
+    fetch: (request) => {
+      const path = new URL(request.url).pathname;
+      return path.endsWith('.html')
+        ? new Response(null, { status: 301, headers: { Location: path.replace(/\.html$/u, '/') } })
+        : new Response('naver-site-verification', {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        });
+    },
+  };
+
+  const response = await worker.fetch(
+    new Request('https://utilark.app/naver1a2b3c4d.html'),
+    { ASSETS: redirectingAssets },
+  );
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), 'naver-site-verification');
+
+  // Only the verification filename is special-cased.
+  const other = await worker.fetch(new Request('https://utilark.app/about.html'), { ASSETS: redirectingAssets });
+  assert.equal(other.status, 301);
+});
+
 test('the apex and the admin host are untouched by subdomain handling', async () => {
   const root = await visit('https://utilark.app/', { 'Accept-Language': 'ko' });
   assert.equal(root.status, 302);

@@ -17,7 +17,27 @@ AdSense 준비 작업(`6e62b57`)에서 남은 항목입니다. 코드로 끝낼 
 
   제출해도 즉시 나오지는 않습니다. 원문이 "크롤링·색인·게재를 보장하지 않는다"고 못 박고 있고, 보통 며칠에서 몇 주가 걸립니다(`docs/how-search-works.md`).
 
-- [ ] **네이버 서치어드바이저 등록** — 한국어 시장에 집중하기로 했으므로(위 "이름 유지 결정") 네이버는 구글과 별개로 필요합니다. 네이버는 자체 색인을 쓰기 때문에 Search Console 등록이 네이버 노출에 아무 영향을 주지 않습니다. [searchadvisor.naver.com](https://searchadvisor.naver.com)에서 사이트 등록 후 `robots.txt`와 `sitemap-index.xml`을 제출하면 됩니다. `글자수 세기`·`PDF 합치기`·`사다리타기` 같은 조사한 키워드는 국내 검색 비중이 큽니다.
+- [ ] **네이버 서치어드바이저 등록** — 한국어 시장에 집중하기로 했으므로(아래 "이름 유지 결정") 네이버는 구글과 별개로 필요합니다. 네이버는 자체 색인을 쓰기 때문에 Search Console 등록이 네이버 노출에 아무 영향을 주지 않습니다. `글자수 세기`·`PDF 합치기`·`사다리타기` 같은 조사한 키워드는 국내 검색 비중이 큽니다.
+
+  **메타태그 삽입은 코드에 끝나 있습니다.** 값만 넣으면 됩니다.
+
+  1. [searchadvisor.naver.com](https://searchadvisor.naver.com) → 사이트 추가 `https://utilark.app` → 소유확인 **HTML 태그** 선택 → `content="..."` 안의 값만 복사(태그 전체 아님).
+  2. Settings → Secrets and variables → Actions → **Variables** 탭에 `PUBLIC_NAVER_SITE_VERIFICATION` 추가. Secrets 탭이 아닙니다.
+  3. 재배포(빌드 시점에 읽습니다) 후 네이버에서 **소유확인**.
+  4. 확인되면 **요청 → 사이트맵 제출**에 `sitemap-index.xml`.
+
+  **메타태그가 실패할 가능성이 높습니다. 그러면 HTML 파일 방식으로 가세요.**
+
+  네이버 공식 블로그의 "소유확인이 안돼요 - 사이트 리디렉션"이 못 박은 조건입니다.
+
+  > html 내 meta refresh를 사용하거나, 자바스크립트로 redirect 처리하는 경우 소유확인 할 수 없습니다.
+  > 웹 프로토콜 표준인 **301 redirect 일 경우에만 소유확인을 보장**합니다.
+
+  이 사이트는 루트 `/`가 **302**이고(언어 협상), 언어 게이트는 **JS 리다이렉트**입니다. 즉 보장 조건 밖입니다. 302를 301로 바꾸는 선택지는 없습니다 — 도착지가 언어에 따라 달라지므로 301이면 방문자가 처음 들어온 언어에 영구히 고정됩니다. 태그를 모든 페이지에 넣어 뒀으니 네이버가 302를 따라가면 걸리지만, 보장되지는 않습니다.
+
+  **HTML 파일 방식은 루트를 거치지 않아 이 문제가 없습니다.** 네이버가 주는 `naverXXXX.html`을 `public/`에 넣고 커밋·배포하면 끝입니다. 파일을 주시면 제가 넣어드리겠습니다.
+
+  Worker 쪽 준비는 끝났습니다 — assets 라우팅의 `force-trailing-slash`가 `.html` 경로를 리다이렉트로 바꿔버리는 것을 막아, `naverXXXX.html`을 원래 주소 그대로 200으로 응답합니다(`worker/index.js`, 테스트 포함).
 
 - [ ] **AdSense 저장소 변수 등록** — Settings → Secrets and variables → Actions → **Variables** 탭에 `PUBLIC_ADSENSE_CLIENT` 추가. Secrets 탭이 아닙니다. 등록 후 재배포해야 심사용 스크립트와 `/ads.txt`가 살아납니다.
 - [ ] **AdSense 콘솔에서 동의 메시지 게시** — 개인정보 보호 및 메시지에서 GDPR 메시지와 미국 주법 메시지를 게시. Google 인증 동의 메시지는 `adsbygoogle.js`를 통해 전달되므로 저장소에 추가할 스크립트는 없습니다. 이 단계를 건너뛰면 EEA·영국·스위스 게재가 규정 위반입니다.
