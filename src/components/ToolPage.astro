@@ -5,6 +5,7 @@ import { tools, type ToolDefinition } from '../data/tools';
 import type { Locale } from '../i18n/ui';
 import { ui } from '../i18n/ui';
 import AdSlot from './AdSlot.astro';
+import InlineText from './InlineText.astro';
 import ToolCard from './ToolCard.astro';
 import ImageConverter from './tools/ImageConverter.astro';
 import ImageCrop from './tools/ImageCrop.astro';
@@ -56,7 +57,7 @@ const pairPages = tool.slug === 'image-converter' ? conversions : [];
   <header class="tool-hero" style={`--tool-accent:${tool.accent}`}>
     <span class="privacy-pill"><span aria-hidden="true">●</span>{ui[locale].common.localBadge}</span>
     <h1>{copy.name}</h1>
-    <p>{copy.short}</p>
+    <p><InlineText text={copy.short} /></p>
   </header>
 
   <section class="interactive-panel" aria-label={copy.name}>
@@ -67,19 +68,19 @@ const pairPages = tool.slug === 'image-converter' ? conversions : [];
 
   <div class="content-grid">
     <article class="prose">
-      {copy.intro.map((paragraph) => <p>{paragraph}</p>)}
+      {copy.intro.map((paragraph) => <p><InlineText text={paragraph} /></p>)}
 
       <h2>{ui[locale].common.howItWorks}</h2>
       <ol>
-        {copy.steps.map((step) => <li>{step}</li>)}
+        {copy.steps.map((step) => <li><InlineText text={step} /></li>)}
       </ol>
 
       <h2>{ui[locale].common.faq}</h2>
       <div class="faq-list">
         {copy.faq.map((item) => (
           <details>
-            <summary>{item.question}</summary>
-            <p>{item.answer}</p>
+            <summary><InlineText text={item.question} /></summary>
+            <p><InlineText text={item.answer} /></p>
           </details>
         ))}
       </div>

@@ -2,6 +2,7 @@
 import type { GuideDefinition } from '../data/guides';
 import { getTool } from '../data/tools';
 import { ui, type Locale } from '../i18n/ui';
+import InlineText from './InlineText.astro';
 import ToolCard from './ToolCard.astro';
 
 interface Props {
@@ -26,7 +27,7 @@ const tool = getTool(guide.tool);
 
   <header class="guide-hero">
     <h1>{copy.title}</h1>
-    {copy.intro.map((paragraph) => <p class="guide-intro">{paragraph}</p>)}
+    {copy.intro.map((paragraph) => <p class="guide-intro"><InlineText text={paragraph} /></p>)}
     <p class="guide-meta">{t.common.lastUpdated} <time datetime={guide.updated}>{guide.updated}</time></p>
   </header>
 
@@ -34,10 +35,10 @@ const tool = getTool(guide.tool);
     {copy.sections.map((section) => (
       <section>
         <h2>{section.heading}</h2>
-        {section.paragraphs?.map((paragraph) => <p set:html={paragraph.replace(/\*\*(.+?)\*\*/gu, '<strong>$1</strong>')} />)}
+        {section.paragraphs?.map((paragraph) => <p><InlineText text={paragraph} /></p>)}
         {section.list && (
           <ul>
-            {section.list.map((item) => <li>{item}</li>)}
+            {section.list.map((item) => <li><InlineText text={item} /></li>)}
           </ul>
         )}
       </section>
@@ -47,7 +48,7 @@ const tool = getTool(guide.tool);
   {tool && (
     <section class="guide-tool" aria-labelledby="guide-tool-heading">
       <h2 id="guide-tool-heading">{tool.copy[locale].name}</h2>
-      <p>{copy.toolCta}</p>
+      <p><InlineText text={copy.toolCta} /></p>
       <div class="tool-grid tool-grid-single">
         <ToolCard tool={tool} locale={locale} />
       </div>

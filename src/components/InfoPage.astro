@@ -2,6 +2,7 @@
 import { infoPages, type InfoPageKind } from '../data/info';
 import { ui, type Locale } from '../i18n/ui';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import InlineText from './InlineText.astro';
 
 interface Props {
   locale: Locale;
@@ -29,19 +30,25 @@ const linkify = (text: string) => {
     <header class="page-hero">
       <p class="eyebrow">UTILARK</p>
       <h1>{copy.title}</h1>
-      <p>{copy.lead}</p>
+      <p><InlineText text={copy.lead} /></p>
     </header>
     <article class="prose">
-      {copy.notice && <aside class="notice-box">{copy.notice}</aside>}
+      {copy.notice && <aside class="notice-box"><InlineText text={copy.notice} /></aside>}
       {copy.sections.map((section) => (
         <section>
           <h2>{section.heading}</h2>
-          {section.paragraphs?.map((paragraph) => <p>{paragraph}</p>)}
+          {section.paragraphs?.map((paragraph) => <p><InlineText text={paragraph} /></p>)}
           {section.items && (
             <ul>
               {section.items.map((item) => {
                 const link = linkify(item);
-                return <li>{link ? <a href={link.href} rel="noopener noreferrer">{link.label}</a> : item}</li>;
+                return (
+                  <li>
+                    {link
+                      ? <a href={link.href} rel="noopener noreferrer"><InlineText text={link.label} /></a>
+                      : <InlineText text={item} />}
+                  </li>
+                );
               })}
             </ul>
           )}
