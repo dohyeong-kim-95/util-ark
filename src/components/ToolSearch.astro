@@ -48,8 +48,14 @@ const indexJson = JSON.stringify(entries).replace(/</gu, '\\u003c');
   if (box && input && clear && status && results && indexNode && grid) {
     const locale = document.documentElement.lang === 'ko' ? 'ko' : 'en';
     const copy = locale === 'ko'
-      ? { hint: 'Enter를 누르면 첫 결과로 이동합니다', empty: '찾는 게 없어요. 초성(ㅅㄷㄹ)·영문 주소·한영 오타도 됩니다.', count: (n: number) => `${n}개` }
-      : { hint: 'press Enter for the first result', empty: 'Nothing matched. Try the format name, the slug, or a Korean word.', count: (n: number) => `${n} result${n === 1 ? '' : 's'}` };
+      ? {
+          empty: '검색 결과가 없습니다. 도구 이름 말고 영문 주소(png-to-jpg)나 초성(ㅅㄷㄹ)으로도 찾을 수 있습니다.',
+          count: (n: number) => `${n}개를 찾았습니다. Enter를 누르면 첫 번째가 열립니다.`,
+        }
+      : {
+          empty: 'Nothing matched. Besides the tool name, the address (png-to-jpg) and Korean initials both work.',
+          count: (n: number) => `${n} result${n === 1 ? '' : 's'}. Press Enter to open the first.`,
+        };
 
     const entries: SearchEntry[] = JSON.parse(indexNode.textContent || '[]');
     // Only rules that would otherwise look arbitrary explain themselves. Nobody
@@ -87,10 +93,10 @@ const indexJson = JSON.stringify(entries).replace(/</gu, '\\u003c');
           return `<li><a class="hit" style="--tool-accent:${escAttr(entry.accent)}" href="${escAttr(entry.url)}">` +
             `<span class="hit-icon" aria-hidden="true">${esc(entry.icon)}</span>` +
             `<span class="hit-body"><strong>${esc(entry.title)}</strong>` +
-            `<small>${esc(entry.kind)}${why}</small></span></a></li>`;
+            `<small><span class="hit-kind">${esc(entry.kind)}</span>${why}</small></span></a></li>`;
         })
         .join('');
-      status.textContent = found.length ? `${copy.count(found.length)} — ${copy.hint}` : copy.empty;
+      status.textContent = found.length ? copy.count(found.length) : copy.empty;
     };
 
     input.addEventListener('input', render);

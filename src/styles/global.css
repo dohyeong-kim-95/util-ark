@@ -470,20 +470,20 @@ button:disabled {
 }
 
 .hit-body small {
-  display: flex;
-  gap: 0.35rem;
-  align-items: center;
-  flex-wrap: wrap;
   margin-top: 0.15rem;
   color: var(--muted);
   font-size: 0.75rem;
+  line-height: 1.45;
 }
 
-.hit-why {
-  padding: 0.05rem 0.35rem;
-  border: 1px solid var(--line);
-  border-radius: 0.3rem;
-  font-size: 0.68rem;
+/* Why a hit surfaced, when the reason is not self-evident. Set inline with the
+   category rather than as a badge — it reads as part of the sentence. */
+.hit-why::before {
+  content: ' · ';
+}
+
+.hit-kind {
+  font-weight: 600;
 }
 
 .tool-grid[hidden] {

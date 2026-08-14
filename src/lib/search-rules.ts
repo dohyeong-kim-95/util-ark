@@ -44,14 +44,19 @@ export type SearchHit = {
 
 export type RuleId = 'exact' | 'prefix' | 'part' | 'chosung' | 'jamo' | 'layout' | 'synonym';
 
+/**
+ * The label is read by a visitor, not by a developer, so it says what the search
+ * did — "초성으로 찾음", not the category name "초성 일치". Kept to a few
+ * characters because it sits on a card that is 180px wide on a phone.
+ */
 export const RULES: Array<{ id: RuleId; ko: string; en: string; score: number }> = [
-  { id: 'exact', ko: '정확 일치', en: 'exact match', score: 100 },
-  { id: 'prefix', ko: '앞부분 일치', en: 'starts with', score: 76 },
-  { id: 'part', ko: '부분 일치', en: 'contains', score: 58 },
-  { id: 'chosung', ko: '초성 일치', en: 'initials', score: 46 },
-  { id: 'jamo', ko: '자모 일치', en: 'partial jamo', score: 40 },
-  { id: 'layout', ko: '오타 교정', en: 'keyboard layout', score: 34 },
-  { id: 'synonym', ko: '비슷한 말', en: 'related word', score: 30 },
+  { id: 'exact', ko: '이름이 같음', en: 'by exact name', score: 100 },
+  { id: 'prefix', ko: '이름 앞부분', en: 'by name start', score: 76 },
+  { id: 'part', ko: '이름 속 단어', en: 'by name', score: 58 },
+  { id: 'chosung', ko: '초성으로 찾음', en: 'by initials', score: 46 },
+  { id: 'jamo', ko: '자모로 찾음', en: 'by partial jamo', score: 40 },
+  { id: 'layout', ko: '한영 오타로 찾음', en: 'by layout typo', score: 34 },
+  { id: 'synonym', ko: '비슷한 뜻으로 찾음', en: 'by meaning', score: 30 },
 ];
 const ruleOf = (id: RuleId) => RULES.find((rule) => rule.id === id)!;
 const scoreOf = (id: RuleId) => ruleOf(id).score;

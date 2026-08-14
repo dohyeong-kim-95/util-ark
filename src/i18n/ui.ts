@@ -34,10 +34,11 @@ export const ui = {
       toolsTitle: 'Available now',
       toolsDescription: 'Focused tools that do one job well, on desktop and mobile.',
       searchLabel: 'Search tools and guides',
-      searchPlaceholder: 'Search — crop · png to jpg · 사다리',
+      // Measured to fit a 360px phone without truncating, in both languages.
+      searchPlaceholder: 'What do you need? e.g. merge PDF',
       searchClear: 'Clear the search',
-      searchHint: 'press Enter for the first result',
-      searchEmpty: 'Nothing matched. Try the format name, the slug, or a Korean word.',
+      searchEmpty:
+        'Nothing matched. Besides the tool name, the address (png-to-jpg) and Korean initials both work.',
     },
     common: {
       openTool: 'Open tool',
@@ -85,10 +86,10 @@ export const ui = {
       toolsTitle: '지금 사용할 수 있어요',
       toolsDescription: '데스크톱과 모바일에서 한 가지 일을 확실히 처리하는 도구들입니다.',
       searchLabel: '도구·가이드 검색',
-      searchPlaceholder: '검색 — 자르기 · ㅅㄷㄹ · png to jpg',
+      searchPlaceholder: '무엇이 필요하세요? 예: PDF 합치기',
       searchClear: '검색어 지우기',
-      searchHint: 'Enter를 누르면 첫 결과로 이동합니다',
-      searchEmpty: '찾는 게 없어요. 초성(ㅅㄷㄹ)·영문 주소·한영 오타도 됩니다.',
+      searchEmpty:
+        '검색 결과가 없습니다. 도구 이름 말고 영문 주소(png-to-jpg)나 초성(ㅅㄷㄹ)으로도 찾을 수 있습니다.',
     },
     common: {
       openTool: '도구 열기',
