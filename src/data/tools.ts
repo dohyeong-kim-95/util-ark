@@ -130,11 +130,11 @@ export const tools: ToolDefinition[] = [
           },
           {
             question: 'Why does the selection jump to a neat shape?',
-            answer: 'On the free setting, a selection that comes within a couple of percent of a ratio that matters — square, 4:3, 16:9, A4, an ID photo, or the picture\'s own shape — is snapped onto it exactly, and the readout names it. A selection that looks square should be square. Pick a ratio from the menu to hold one deliberately.',
+            answer: 'On the free setting, a selection that comes within a couple of percent of a ratio that matters — square, 4:3, 16:9, an ID photo, or the picture\'s own shape — is snapped onto it exactly, and the label at the top of the selection names it. A selection that looks square should be square. A4 only joins that list once the selection is at least 1240 pixels on its short edge, because below that the crop is too small to print at A4 and the snap would only get in the way. Pick a ratio from the menu to hold one deliberately, or switch the label off with the checkbox.',
           },
           {
-            question: 'Why is the ID photo ratio 3.5:4.5?',
-            answer: 'That is the 35 by 45 millimetre shape used for Korean ID and passport photographs. The ratio is what the tool fixes; printing at the right size is a separate step.',
+            question: 'Which ID photo ratio do I need, 3:4 or 3.5:4.5?',
+            answer: '3:4 is the 30 by 40 millimetre print used on Korean resumes and school records. 3.5:4.5 is the 35 by 45 millimetre print that passports and national ID cards ask for, and it is also the common size across the EU, the UK, and Japan. The tool fixes the ratio; printing at the right physical size is a separate step, and a passport office may have its own rules about the head position within the frame.',
           },
           {
             question: 'Does the picture lose quality?',
@@ -169,11 +169,11 @@ export const tools: ToolDefinition[] = [
           },
           {
             question: '선택 영역이 왜 저절로 딱 맞춰지나요?',
-            answer: '자유 설정에서 선택 영역이 중요한 비율에 2~3% 안으로 가까워지면 정확히 그 비율로 맞춰집니다 — 정사각, 4:3, 16:9, A4, 증명사진, 그리고 원본 사진의 비율입니다. 어떤 비율에 맞춰졌는지는 크기 표시에 함께 나옵니다. 정사각처럼 보이는 선택은 정사각이어야 하기 때문입니다. 비율을 고정하고 싶으면 목록에서 직접 고르세요.',
+            answer: '자유 설정에서 선택 영역이 중요한 비율에 2~3% 안으로 가까워지면 정확히 그 비율로 맞춰집니다 — 정사각, 4:3, 16:9, 증명사진, 그리고 원본 사진의 비율입니다. 어떤 비율에 맞춰졌는지는 선택 영역 위쪽 표시에 함께 나옵니다. 정사각처럼 보이는 선택은 정사각이어야 하기 때문입니다. A4는 선택 영역의 짧은 변이 1240픽셀 이상일 때만 후보에 들어갑니다 — 그보다 작으면 A4로 인쇄할 해상도가 안 되기 때문에 맞춰줘도 방해만 됩니다. 비율을 고정하고 싶으면 목록에서 직접 고르고, 표시가 거슬리면 체크박스로 끄세요.',
           },
           {
-            question: '증명사진 비율이 왜 3.5:4.5인가요?',
-            answer: '국내 증명사진·여권사진에 쓰는 35×45mm 규격의 비율입니다. 이 도구가 맞춰주는 것은 비율이고, 실제 크기로 인쇄하는 것은 별도 작업입니다.',
+            question: '증명사진은 3:4인가요 3.5:4.5인가요?',
+            answer: '3:4는 30×40mm로 이력서·학생증에 붙이는 크기이고, 3.5:4.5는 35×45mm로 여권과 주민등록증에 요구하는 크기입니다. 여권 규격인 35×45mm는 EU·영국·일본에서도 같이 쓰입니다. 이 도구가 맞춰주는 것은 비율이고, 실제 크기로 인쇄하는 것과 얼굴 위치 규정은 별도로 확인하세요.',
           },
           {
             question: '화질이 떨어지나요?',

@@ -2126,3 +2126,49 @@ button:disabled {
   border-color: var(--yellow);
   box-shadow: 0 0 0 1px var(--yellow-deep);
 }
+
+/* The measurements ride on the selection because that is where the eye is;
+   a readout under the picture goes unread. */
+.crop-note {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.4rem;
+  background: rgba(17, 19, 25, 0.78);
+  color: #fff;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* A short or narrow selection has no room inside, so the label steps above it. */
+.crop-note.is-outside {
+  top: auto;
+  bottom: calc(100% + 0.35rem);
+  right: 0;
+}
+
+.crop-box.is-snapped .crop-note {
+  background: var(--yellow-deep);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.crop-tool.hide-note .crop-note {
+  display: none;
+}
+
+.option-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.option-check input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--ink);
+}

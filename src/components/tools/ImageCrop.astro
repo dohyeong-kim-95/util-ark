@@ -16,7 +16,9 @@ const labels = locale === 'ko'
       photo: '사진 4:3',
       wide: '와이드 16:9',
       a4: 'A4 문서',
-      idPhoto: '증명사진 3.5:4.5',
+      idPhoto: '증명사진 3:4 (30×40mm)',
+      passport: '여권·신분증 3.5:4.5 (35×45mm)',
+      annotate: '선택 영역에 치수 표시',
       crop: '잘라서 내려받기',
       reset: '선택 영역 초기화',
       empty: '먼저 이미지를 선택해주세요.',
@@ -37,7 +39,9 @@ const labels = locale === 'ko'
       photo: 'Photo 4:3',
       wide: 'Wide 16:9',
       a4: 'A4 document',
-      idPhoto: 'ID photo 3.5:4.5',
+      idPhoto: 'ID photo 3:4 (30×40mm)',
+      passport: 'Passport 3.5:4.5 (35×45mm)',
+      annotate: 'Show size on the selection',
       crop: 'Crop & download',
       reset: 'Reset selection',
       empty: 'Choose an image first.',
@@ -72,6 +76,7 @@ const labels = locale === 'ko'
         <span data-shade="right"></span>
       </div>
       <div class="crop-box" tabindex="0" role="group" aria-label={labels.moveHandle}>
+        <output class="crop-note" aria-live="polite"></output>
         <span class="crop-handle" data-handle="nw"></span>
         <span class="crop-handle" data-handle="ne"></span>
         <span class="crop-handle" data-handle="sw"></span>
@@ -79,8 +84,6 @@ const labels = locale === 'ko'
       </div>
     </div>
   </div>
-
-  <p class="crop-size" hidden><span>{labels.size}</span> <output>—</output></p>
 
   <!-- After the stage in the source, so an empty tool leads with the picker
        and a loaded one leads with the picture. -->
@@ -92,6 +95,10 @@ const labels = locale === 'ko'
   </label>
 
   <div class="option-grid">
+    <label class="option-check">
+      <input type="checkbox" data-option="annotate" checked />
+      <span>{labels.annotate}</span>
+    </label>
     <label>
       <span>{labels.ratio}</span>
       <select data-option="ratio">
@@ -100,7 +107,8 @@ const labels = locale === 'ko'
         <option value="4:3">{labels.photo}</option>
         <option value="16:9">{labels.wide}</option>
         <option value="210:297">{labels.a4}</option>
-        <option value="35:45">{labels.idPhoto}</option>
+        <option value="30:40">{labels.idPhoto}</option>
+        <option value="35:45">{labels.passport}</option>
       </select>
     </label>
   </div>
@@ -121,8 +129,8 @@ const labels = locale === 'ko'
     const preview = root.querySelector<HTMLImageElement>('.crop-frame img');
     const box = root.querySelector<HTMLElement>('.crop-box');
     const ratioSelect = root.querySelector<HTMLSelectElement>('[data-option="ratio"]');
-    const sizeOutput = root.querySelector<HTMLOutputElement>('.crop-size output');
-    const sizeRow = root.querySelector<HTMLElement>('.crop-size');
+    const note = root.querySelector<HTMLOutputElement>('.crop-note');
+    const annotateToggle = root.querySelector<HTMLInputElement>('[data-option="annotate"]');
     const shades = {
       top: root.querySelector<HTMLElement>('[data-shade="top"]'),
       bottom: root.querySelector<HTMLElement>('[data-shade="bottom"]'),
@@ -157,6 +165,7 @@ const labels = locale === 'ko'
      * tolerance stays tight so the drag never feels like it is fighting back.
      */
     const SNAP_TOLERANCE = 0.025;
+    const A4_MIN_SHORT_EDGE = 1240;
     const snapTargets = () => {
       const { w: iw, h: ih } = naturalSize();
       const targets = [
@@ -165,10 +174,15 @@ const labels = locale === 'ko'
         { ratio: 3 / 4, name: '3:4' },
         { ratio: 16 / 9, name: '16:9' },
         { ratio: 9 / 16, name: '9:16' },
-        { ratio: 210 / 297, name: 'A4' },
-        { ratio: 297 / 210, name: 'A4' },
         { ratio: 35 / 45, name: '3.5:4.5' },
       ];
+      // A4 is a page, not just a shape. Snapping a small selection to it
+      // promises a printable page that the pixels cannot deliver, so the
+      // target only appears once the short edge could hold A4's 210mm at
+      // 150dpi. Below that the crop is a rectangle that happens to be 1:1.41.
+      if (Math.min(sel.w, sel.h) >= A4_MIN_SHORT_EDGE) {
+        targets.push({ ratio: 210 / 297, name: 'A4' }, { ratio: 297 / 210, name: 'A4' });
+      }
       // The picture's own shape is worth hitting exactly too — it is how you
       // trim edges without changing the proportions.
       if (iw && ih) targets.push({ ratio: iw / ih, name: root.dataset.original ?? 'original' });
@@ -240,11 +254,14 @@ const labels = locale === 'ko'
         shades.right.style.cssText =
           `left:${left + width}px;top:${top}px;width:${Math.max(0, rect.width - left - width)}px;height:${height}px`;
       }
-      if (sizeOutput) {
-        const suffix = snappedName ? ` · ${snappedName} ${root.dataset.snapped ?? ''}`.trimEnd() : '';
-        sizeOutput.value = `${Math.round(sel.w)} × ${Math.round(sel.h)} px${suffix}`;
-      }
       box.classList.toggle('is-snapped', Boolean(snappedName));
+      if (note) {
+        const dimensions = `${Math.round(sel.w)} × ${Math.round(sel.h)}`;
+        note.value = snappedName ? `${snappedName} (${dimensions})` : dimensions;
+        // Sit inside the selection, top right — the numbers belong where the
+        // eye already is. A short box has no room, so the label steps outside.
+        note.classList.toggle('is-outside', height < 44 || width < 130);
+      }
     };
     const resetSelection = () => {
       snappedName = '';
@@ -291,7 +308,6 @@ const labels = locale === 'ko'
         if (!previewBlob) throw new Error('preview');
         objectUrl = URL.createObjectURL(previewBlob);
         if (stage) stage.hidden = false;
-        if (sizeRow) sizeRow.hidden = false;
         root.classList.add('has-image');
         root.querySelector<HTMLElement>('[data-pick]')?.setAttribute('hidden', '');
         root.querySelector<HTMLElement>('[data-change]')?.removeAttribute('hidden');
@@ -309,6 +325,9 @@ const labels = locale === 'ko'
     });
 
     ratioSelect?.addEventListener('change', () => { applyRatio(); paint(); });
+    const applyAnnotate = () => root.classList.toggle('hide-note', annotateToggle?.checked === false);
+    annotateToggle?.addEventListener('change', applyAnnotate);
+    applyAnnotate();
     root.querySelector('[data-action="reset"]')?.addEventListener('click', resetSelection);
     window.addEventListener('resize', paint);
 
