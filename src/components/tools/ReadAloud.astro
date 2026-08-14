@@ -27,6 +27,9 @@ const labels = locale === 'ko'
       networkWarning:
         '고른 목소리가 네트워크 음성입니다. 읽는 글이 브라우저 제조사 서버로 전송됩니다. 기기 내장 목소리를 고르면 글이 기기 밖으로 나가지 않습니다.',
       progress: '진행',
+      previous: '이전 문장',
+      next: '다음 문장',
+      transcript: '문장 목록 · 눌러서 그 문장부터 듣기',
     }
   : {
       label: 'Text to read',
@@ -48,6 +51,9 @@ const labels = locale === 'ko'
       networkWarning:
         'The selected voice is a network voice, so the text is sent to your browser vendor to be spoken. Choosing an on-device voice keeps the text on your device.',
       progress: 'Progress',
+      previous: 'Previous sentence',
+      next: 'Next sentence',
+      transcript: 'Sentences · tap one to start there',
     };
 ---
 
@@ -89,11 +95,21 @@ const labels = locale === 'ko'
 
   <p class="speech-warning" role="status" hidden></p>
 
-  <div class="tool-actions">
-    <button type="button" class="primary" data-action="speak">{labels.speak}</button>
-    <button type="button" data-action="pause" disabled>{labels.pause}</button>
-    <span class="action-status" role="status"></span>
+  <div class="speech-player">
+    <div class="speech-progress" role="presentation"><span></span></div>
+    <div class="speech-transport">
+      <button type="button" data-action="prev" aria-label={labels.previous} disabled>◀◀</button>
+      <button type="button" class="primary" data-action="speak">{labels.speak}</button>
+      <button type="button" data-action="pause" disabled>{labels.pause}</button>
+      <button type="button" data-action="next" aria-label={labels.next} disabled>▶▶</button>
+      <span class="action-status" role="status"></span>
+    </div>
   </div>
+
+  <details class="speech-transcript">
+    <summary>{labels.transcript}</summary>
+    <ol></ol>
+  </details>
 </div>
 
 <script>
@@ -119,6 +135,10 @@ const labels = locale === 'ko'
     const pasteButton = root.querySelector<HTMLButtonElement>('[data-action="paste"]');
     const warning = root.querySelector<HTMLElement>('.speech-warning');
     const status = root.querySelector<HTMLElement>('.action-status');
+    const prevButton = root.querySelector<HTMLButtonElement>('[data-action="prev"]');
+    const nextButton = root.querySelector<HTMLButtonElement>('[data-action="next"]');
+    const progressBar = root.querySelector<HTMLElement>('.speech-progress span');
+    const transcript = root.querySelector<HTMLOListElement>('.speech-transcript ol');
     const pageLang = root.dataset.lang ?? 'en-US';
 
     let voices: SpeechSynthesisVoice[] = [];
@@ -154,6 +174,43 @@ const labels = locale === 'ko'
         }
       }
       return out;
+    };
+
+    /**
+     * A podcast player seeks by time, which speech synthesis cannot offer — it
+     * reports no duration and no position. The sentence queue is the honest
+     * equivalent: the transcript is the timeline, and tapping a line starts
+     * there. That also reads better than a scrubber for text, since you can see
+     * where you are going rather than guessing at a bar.
+     */
+    const renderTranscript = () => {
+      if (!transcript) return;
+      transcript.replaceChildren();
+      queue.forEach((sentence, position) => {
+        const item = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = sentence;
+        button.addEventListener('click', () => jumpTo(position));
+        item.append(button);
+        transcript.append(item);
+      });
+      paintPosition();
+    };
+
+    const paintPosition = () => {
+      const total = queue.length;
+      if (progressBar) progressBar.style.width = total ? `${(index / total) * 100}%` : '0%';
+      if (status) status.textContent = total && speaking ? `${index + 1} / ${total}` : '';
+      transcript?.querySelectorAll('li').forEach((item, position) => {
+        item.classList.toggle('is-current', speaking && position === index);
+      });
+      if (prevButton) prevButton.disabled = !speaking || index === 0;
+      if (nextButton) nextButton.disabled = !speaking || index >= total - 1;
+      if (speaking) {
+        transcript?.querySelector('li.is-current')
+          ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
     };
 
     const selectedVoice = () => voices[Number(voiceSelect?.value ?? -1)] ?? null;
@@ -212,15 +269,17 @@ const labels = locale === 'ko'
     const stopPing = () => { window.clearInterval(ping); ping = 0; };
     const finish = () => {
       stopPing();
-      queue = [];
       index = 0;
       setSpeakingUi(false);
+      // The queue is kept so the transcript stays on screen after playback —
+      // clearing it would empty the list the moment the last sentence ended.
+      paintPosition();
     };
 
     const speakNext = () => {
       if (!speaking) return;
       if (index >= queue.length) { finish(); return; }
-      if (status) status.textContent = `${index + 1} / ${queue.length}`;
+      paintPosition();
       const utterance = new Utterance(queue[index]);
       const voice = selectedVoice();
       if (voice) {
@@ -238,31 +297,59 @@ const labels = locale === 'ko'
       try { synth.speak(utterance); } catch { finish(); }
     };
 
-    speakButton?.addEventListener('click', () => {
-      if (speaking) {
-        finish();
-        try { synth.cancel(); } catch { /* nothing left to cancel */ }
-        return;
+    // Jumping cancels what is queued and restarts at the chosen sentence. This
+    // runs inside a click, which is what iOS needs for the first play.
+    const jumpTo = (position: number) => {
+      if (queue.length === 0) return;
+      try { synth.cancel(); } catch { /* nothing left to cancel */ }
+      index = Math.min(Math.max(0, position), queue.length - 1);
+      if (!speaking) startPlayback(false);
+      else speakNext();
+    };
+
+    // An arrow rather than a declaration: a hoisted function loses the narrowing
+    // that proved `root` is not null.
+    const startPlayback = (rebuild = true) => {
+      if (rebuild) {
+        queue = chunk(textarea?.value ?? '');
+        index = 0;
+        renderTranscript();
       }
-      const text = textarea?.value ?? '';
-      queue = chunk(text);
       if (queue.length === 0) {
         if (status) status.textContent = root.dataset.empty ?? '';
         return;
       }
       // A leftover utterance stops the next speak() from doing anything.
       try { synth.cancel(); } catch { /* nothing left to cancel */ }
-      index = 0;
       setSpeakingUi(true);
       // Chrome's queue stalls on long playback unless it is nudged.
+      stopPing();
       ping = window.setInterval(() => {
         if (!speaking) { stopPing(); return; }
         if (synth.paused) return;
         try { synth.resume(); } catch { /* nothing to resume */ }
       }, 8000);
+      speakNext();
+    };
+
+    prevButton?.addEventListener('click', () => jumpTo(index - 1));
+    nextButton?.addEventListener('click', () => jumpTo(index + 1));
+    textarea?.addEventListener('input', () => {
+      if (speaking) return;
+      queue = chunk(textarea.value);
+      index = 0;
+      renderTranscript();
+    });
+
+    speakButton?.addEventListener('click', () => {
+      if (speaking) {
+        finish();
+        try { synth.cancel(); } catch { /* nothing left to cancel */ }
+        return;
+      }
       // iOS only allows a first play inside the gesture, so nothing is awaited
       // between the click and speak().
-      speakNext();
+      startPlayback();
     });
 
     pauseButton?.addEventListener('click', () => {
@@ -300,14 +387,19 @@ const labels = locale === 'ko'
       });
     }
 
-    // Audio outliving the page is the one failure a visitor cannot undo.
-    const silence = () => {
+    // A browser can restore the textarea's contents on reload, so build the
+    // transcript from whatever is already there rather than waiting for a keystroke.
+    queue = chunk(textarea?.value ?? '');
+    renderTranscript();
+
+    // Audio outliving the page is the one failure a visitor cannot undo, so
+    // leaving the page always stops it. Switching tabs does not: listening
+    // while doing something else is the reason to press play at all.
+    window.addEventListener('pagehide', () => {
       if (!speaking) return;
       finish();
       try { synth.cancel(); } catch { /* nothing left to cancel */ }
-    };
-    window.addEventListener('pagehide', silence);
-    document.addEventListener('visibilitychange', () => { if (document.hidden) silence(); });
+    });
   } else if (root) {
     const status = root.querySelector<HTMLElement>('.action-status');
     if (status) status.textContent = root.dataset.unsupported ?? '';

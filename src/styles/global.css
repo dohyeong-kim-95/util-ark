@@ -1756,3 +1756,91 @@ button:disabled {
 .speech-warning[hidden] {
   display: none;
 }
+
+.speech-player {
+  margin-top: 1.4rem;
+}
+
+.speech-progress {
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.speech-progress span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ink);
+  transition: width 200ms ease;
+}
+
+.speech-transport {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.speech-transport button {
+  min-height: 2.9rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.speech-transport button.primary {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: white;
+}
+
+.speech-transcript {
+  margin-top: 1.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.speech-transcript summary {
+  padding: 0.9rem 1.1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.speech-transcript ol {
+  max-height: 18rem;
+  margin: 0;
+  padding: 0 0.6rem 0.6rem 0;
+  overflow-y: auto;
+}
+
+.speech-transcript li {
+  list-style-position: outside;
+  margin-left: 2.2rem;
+  color: var(--muted);
+}
+
+.speech-transcript li button {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  text-align: left;
+  line-height: 1.6;
+}
+
+.speech-transcript li.is-current {
+  color: var(--ink);
+}
+
+.speech-transcript li.is-current button {
+  background: rgba(246, 211, 101, 0.3);
+  font-weight: 600;
+}

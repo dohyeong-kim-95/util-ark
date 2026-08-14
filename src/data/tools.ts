@@ -287,8 +287,8 @@ export const tools: ToolDefinition[] = [
             answer: 'Browsers cut off a single long passage partway through, so the text is split at sentence boundaries and played as a queue. It also means stopping takes effect immediately.',
           },
           {
-            question: 'Does it keep reading if I leave the page?',
-            answer: 'No. Speech stops when the page is hidden or closed, which is the one thing you cannot easily undo once it starts.',
+            question: 'Does it keep reading if I switch tabs?',
+            answer: 'Yes, so you can listen while doing something else. Leaving or closing the page stops it, because audio you can hear but cannot find is the one thing you cannot easily undo.',
           },
         ],
       },
@@ -322,8 +322,8 @@ export const tools: ToolDefinition[] = [
             answer: '브라우저가 한 번에 들어온 긴 발화를 도중에 끊어버리기 때문에, 문장 경계에서 나눠 차례로 읽습니다. 덕분에 멈추기도 즉시 반영됩니다.',
           },
           {
-            question: '페이지를 벗어나도 계속 읽나요?',
-            answer: '아니요. 페이지를 가리거나 닫으면 멈춥니다. 한 번 시작되면 되돌리기 어려운 유일한 동작이라 그렇게 해 두었습니다.',
+            question: '다른 탭으로 옮겨도 계속 읽나요?',
+            answer: '계속 읽습니다. 다른 일을 하면서 들으라고 만든 기능입니다. 다만 페이지를 벗어나거나 닫으면 멈춥니다 — 소리는 들리는데 어디서 나는지 못 찾는 상황이 되돌리기 가장 어렵기 때문입니다.',
           },
         ],
       },
