@@ -129,6 +129,10 @@ export const tools: ToolDefinition[] = [
             answer: 'Yes. The result is drawn fresh, so EXIF metadata including GPS coordinates and the camera model does not carry over.',
           },
           {
+            question: 'Why does the selection jump to a neat shape?',
+            answer: 'On the free setting, a selection that comes within a couple of percent of a ratio that matters — square, 4:3, 16:9, A4, an ID photo, or the picture\'s own shape — is snapped onto it exactly, and the readout names it. A selection that looks square should be square. Pick a ratio from the menu to hold one deliberately.',
+          },
+          {
             question: 'Why is the ID photo ratio 3.5:4.5?',
             answer: 'That is the 35 by 45 millimetre shape used for Korean ID and passport photographs. The ratio is what the tool fixes; printing at the right size is a separate step.',
           },
@@ -162,6 +166,10 @@ export const tools: ToolDefinition[] = [
           {
             question: '자르면 위치정보도 지워지나요?',
             answer: '지워집니다. 결과물을 새로 그리기 때문에 GPS 좌표와 카메라 기종을 포함한 EXIF 메타데이터가 넘어가지 않습니다.',
+          },
+          {
+            question: '선택 영역이 왜 저절로 딱 맞춰지나요?',
+            answer: '자유 설정에서 선택 영역이 중요한 비율에 2~3% 안으로 가까워지면 정확히 그 비율로 맞춰집니다 — 정사각, 4:3, 16:9, A4, 증명사진, 그리고 원본 사진의 비율입니다. 어떤 비율에 맞춰졌는지는 크기 표시에 함께 나옵니다. 정사각처럼 보이는 선택은 정사각이어야 하기 때문입니다. 비율을 고정하고 싶으면 목록에서 직접 고르세요.',
           },
           {
             question: '증명사진 비율이 왜 3.5:4.5인가요?',

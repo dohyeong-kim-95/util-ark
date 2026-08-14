@@ -25,6 +25,8 @@ const labels = locale === 'ko'
       size: '선택 영역',
       moveHandle: '선택 영역 조절',
       change: '다른 이미지 선택',
+      original: '원본 비율',
+      snapped: '맞춤',
     }
   : {
       pick: 'Choose an image',
@@ -44,6 +46,8 @@ const labels = locale === 'ko'
       size: 'Selection',
       moveHandle: 'Adjust selection',
       change: 'Choose a different image',
+      original: 'original',
+      snapped: 'snapped',
     };
 ---
 
@@ -52,6 +56,8 @@ const labels = locale === 'ko'
   data-empty={labels.empty}
   data-done={labels.done}
   data-failed={labels.failed}
+  data-original={labels.original}
+  data-snapped={labels.snapped}
 >
   <div class="crop-stage" hidden>
     <div class="crop-frame">
@@ -143,6 +149,43 @@ const labels = locale === 'ko'
       const [a, b] = value.split(':').map(Number);
       return a / b;
     };
+    /**
+     * Dragging free-hand almost never lands exactly on a ratio anyone wanted.
+     * When the shape comes within a couple of percent of one that matters, it
+     * is snapped to it exactly — a selection that looks square should be
+     * square. Only in free mode: a locked ratio is already fixed, and the
+     * tolerance stays tight so the drag never feels like it is fighting back.
+     */
+    const SNAP_TOLERANCE = 0.025;
+    const snapTargets = () => {
+      const { w: iw, h: ih } = naturalSize();
+      const targets = [
+        { ratio: 1, name: '1:1' },
+        { ratio: 4 / 3, name: '4:3' },
+        { ratio: 3 / 4, name: '3:4' },
+        { ratio: 16 / 9, name: '16:9' },
+        { ratio: 9 / 16, name: '9:16' },
+        { ratio: 210 / 297, name: 'A4' },
+        { ratio: 297 / 210, name: 'A4' },
+        { ratio: 35 / 45, name: '3.5:4.5' },
+      ];
+      // The picture's own shape is worth hitting exactly too — it is how you
+      // trim edges without changing the proportions.
+      if (iw && ih) targets.push({ ratio: iw / ih, name: root.dataset.original ?? 'original' });
+      return targets;
+    };
+    let snappedName = '';
+    const nearestSnap = (current: number) => {
+      let best = null;
+      for (const target of snapTargets()) {
+        const drift = Math.abs(current / target.ratio - 1);
+        if (drift <= SNAP_TOLERANCE && (!best || drift < best.drift)) {
+          best = { ...target, drift };
+        }
+      }
+      return best;
+    };
+
     const clampToImage = () => {
       const { w: iw, h: ih } = naturalSize();
       sel.w = Math.min(sel.w, iw);
@@ -151,6 +194,9 @@ const labels = locale === 'ko'
       sel.y = Math.min(Math.max(0, sel.y), ih - sel.h);
     };
     const applyRatio = () => {
+      // Choosing a preset is not a snap — the badge would be claiming credit
+      // for a shape the visitor picked from the menu.
+      snappedName = '';
       const r = ratio();
       if (!r) return;
       const { w: iw, h: ih } = naturalSize();
@@ -194,9 +240,14 @@ const labels = locale === 'ko'
         shades.right.style.cssText =
           `left:${left + width}px;top:${top}px;width:${Math.max(0, rect.width - left - width)}px;height:${height}px`;
       }
-      if (sizeOutput) sizeOutput.value = `${Math.round(sel.w)} × ${Math.round(sel.h)} px`;
+      if (sizeOutput) {
+        const suffix = snappedName ? ` · ${snappedName} ${root.dataset.snapped ?? ''}`.trimEnd() : '';
+        sizeOutput.value = `${Math.round(sel.w)} × ${Math.round(sel.h)} px${suffix}`;
+      }
+      box.classList.toggle('is-snapped', Boolean(snappedName));
     };
     const resetSelection = () => {
+      snappedName = '';
       const { w: iw, h: ih } = naturalSize();
       sel = { x: 0, y: 0, w: iw, h: ih };
       applyRatio();
@@ -286,6 +337,7 @@ const labels = locale === 'ko'
       const r = ratio();
 
       if (drag.mode === 'move') {
+        snappedName = '';
         sel.x = Math.min(Math.max(0, start.x + dx), iw - start.w);
         sel.y = Math.min(Math.max(0, start.y + dy), ih - start.h);
       } else {
@@ -303,6 +355,24 @@ const labels = locale === 'ko'
         if (r) {
           if (w / r > h) w = h * r;
           else h = w / r;
+        }
+        snappedName = '';
+        if (!r) {
+          // Free mode: nudge onto a ratio that matters if the drag is close.
+          // The anchored corner stays put, so only the dragged corner moves.
+          const snap = nearestSnap(w / h);
+          if (snap) {
+            const byHeight = w / snap.ratio;
+            const byWidth = h * snap.ratio;
+            const fitsHeight = (south ? start.y + byHeight : start.y + start.h - byHeight) >= 0
+              && (south ? start.y + byHeight <= ih : true) && byHeight >= 24;
+            const fitsWidth = (east ? start.x + byWidth : start.x + start.w - byWidth) >= 0
+              && (east ? start.x + byWidth <= iw : true) && byWidth >= 24;
+            // Prefer moving the axis the pointer is not driving hardest, and
+            // give up rather than force a box that would leave the picture.
+            if (fitsHeight) { h = byHeight; snappedName = snap.name; }
+            else if (fitsWidth) { w = byWidth; snappedName = snap.name; }
+          }
         }
         sel = {
           x: east ? start.x : start.x + start.w - w,
