@@ -96,13 +96,24 @@ const labels = locale === 'ko'
   <p class="speech-warning" role="status" hidden></p>
 
   <div class="speech-player">
+    <div class="speech-player-heading">
+      <span>{labels.progress}</span>
+      <span class="action-status" role="status"></span>
+    </div>
     <div class="speech-progress" role="presentation"><span></span></div>
     <div class="speech-transport">
-      <button type="button" data-action="prev" aria-label={labels.previous} disabled>◀◀</button>
+      <button class="speech-skip" type="button" data-action="prev" aria-label={labels.previous} title={labels.previous} disabled>
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M6 5v14M19 6.5 10 12l9 5.5v-11Z"></path>
+        </svg>
+      </button>
       <button type="button" class="primary" data-action="speak">{labels.speak}</button>
       <button type="button" data-action="pause" disabled>{labels.pause}</button>
-      <button type="button" data-action="next" aria-label={labels.next} disabled>▶▶</button>
-      <span class="action-status" role="status"></span>
+      <button class="speech-skip" type="button" data-action="next" aria-label={labels.next} title={labels.next} disabled>
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M18 5v14M5 6.5l9 5.5-9 5.5v-11Z"></path>
+        </svg>
+      </button>
     </div>
   </div>
 
