@@ -18,6 +18,7 @@ export const ADMIN_HOST = `admin.${APEX_HOST}`;
 export const TOOL_SUBDOMAINS = {
   imageconvert: { tool: 'image-converter' },
   imagecrop: { tool: 'image-crop' },
+  img2pdf: { tool: 'image-to-pdf' },
   mergepdf: { tool: 'merge-pdf' },
   wordcount: { tool: 'word-counter' },
   ladder: { tool: 'ladder' },
@@ -32,7 +33,8 @@ export const TOOL_SUBDOMAINS = {
   png2webp: { tool: 'png-to-webp' },
   webp2png: { tool: 'webp-to-png' },
 
-  // Reserved for a tool that does not exist yet.
+  // Reserved for the reverse direction, PDF to images, which does not exist
+  // yet. Not to be confused with img2pdf above.
   pdf2image: { tool: null, pending: true },
 };
 

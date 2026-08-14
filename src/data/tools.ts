@@ -22,7 +22,7 @@ export type ToolCopy = {
 };
 
 export type ToolDefinition = {
-  slug: 'image-converter' | 'image-crop' | 'word-counter' | 'merge-pdf' | 'ladder';
+  slug: 'image-converter' | 'image-crop' | 'image-to-pdf' | 'word-counter' | 'merge-pdf' | 'ladder';
   icon: string;
   accent: string;
   copy: Record<Locale, ToolCopy>;
@@ -170,6 +170,83 @@ export const tools: ToolDefinition[] = [
           {
             question: '화질이 떨어지나요?',
             answer: 'PNG는 무손실로 유지됩니다. JPG와 WebP는 저장할 때 다시 압축되므로, 한 번 자른 파일을 또 자르지 말고 원본에서 자르세요.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    slug: 'image-to-pdf',
+    icon: '⇉',
+    accent: '#ef7fa8',
+    copy: {
+      en: {
+        name: 'Photos to PDF',
+        titleTag: 'Photo to PDF - Free JPG to PDF Converter | Utilark',
+        short: 'Turn photos of documents into one PDF, in order.',
+        description:
+          'Free photo to PDF converter. Shoot or pick images, set the order, and get one PDF — the files are never uploaded anywhere.',
+        keywords: ['photo to PDF', 'JPG to PDF', 'images to PDF', 'scan document with phone'],
+        intro: [
+          'Photograph the pages, put them in order, and get a single PDF. On a phone the file picker offers the camera, so a document you are holding becomes a PDF without an app in between.',
+          'Photos are resized before they go in. A full-resolution phone picture makes a PDF too large to email, and the screen setting is enough to read a document comfortably.',
+        ],
+        steps: [
+          'Choose photos, or take them with the camera.',
+          'Reorder the pages and pick a page size and resolution.',
+          'Create the PDF and download it.',
+        ],
+        faq: [
+          {
+            question: 'Are the photos uploaded?',
+            answer: 'No. They are decoded and written into the PDF inside your browser, which is worth knowing for contracts, bank letters, or an ID document.',
+          },
+          {
+            question: 'Which resolution should I choose?',
+            answer: 'The screen setting suits anything that will be read or emailed. Choose printing if the page will be printed, and full resolution only when detail matters more than file size.',
+          },
+          {
+            question: 'What does the A4 option change?',
+            answer: 'Every photo is centred on an A4 page with a margin instead of the page matching the photo. Use it when the PDF will be printed or submitted to a form expecting A4.',
+          },
+          {
+            question: 'Can I crop the background out of a page?',
+            answer: 'Crop the photos first with the image cropper, then bring the cropped files here. That removes the desk around a document, which is most of what a scanner app does.',
+          },
+        ],
+      },
+      ko: {
+        name: '사진 PDF 만들기',
+        titleTag: '사진 PDF 변환 - 무료 JPG PDF 만들기 | Utilark',
+        short: '문서 사진을 순서대로 묶어 하나의 PDF로 만듭니다.',
+        description:
+          '무료 사진 PDF 변환기입니다. 사진을 찍거나 고르고 순서를 정하면 PDF 한 개가 됩니다. 파일은 어디로도 업로드되지 않습니다.',
+        keywords: ['사진 PDF 변환', 'JPG PDF 변환', '이미지 PDF 만들기', '휴대폰 문서 스캔'],
+        intro: [
+          '페이지를 찍고 순서를 맞추면 PDF 한 개가 나옵니다. 휴대폰에서는 파일 선택이 카메라를 함께 띄우므로, 손에 든 서류를 앱 없이 바로 PDF로 만들 수 있습니다.',
+          '사진은 넣기 전에 크기를 줄입니다. 원본 해상도 그대로 넣으면 메일로 보낼 수 없는 PDF가 되고, 문서를 읽는 데는 화면용 설정으로 충분합니다.',
+        ],
+        steps: [
+          '사진을 고르거나 카메라로 찍습니다.',
+          '페이지 순서를 정하고 페이지 크기와 해상도를 고릅니다.',
+          'PDF를 만들고 내려받습니다.',
+        ],
+        faq: [
+          {
+            question: '사진이 업로드되나요?',
+            answer: '아니요. 브라우저 안에서 해석해 PDF에 써 넣습니다. 계약서, 금융 서류, 신분증 사본을 다룰 때 의미가 있는 차이입니다.',
+          },
+          {
+            question: '해상도는 무엇을 고르면 되나요?',
+            answer: '읽거나 메일로 보낼 문서라면 화면용으로 충분합니다. 인쇄할 예정이면 인쇄용, 세부가 용량보다 중요할 때만 원본 그대로를 고르세요.',
+          },
+          {
+            question: 'A4 선택은 무엇이 달라지나요?',
+            answer: '페이지가 사진 크기를 따라가는 대신, 사진을 A4 용지 가운데에 여백을 두고 배치합니다. 인쇄하거나 A4를 요구하는 양식에 낼 때 쓰세요.',
+          },
+          {
+            question: '문서 주변 배경을 잘라낼 수 있나요?',
+            answer: '사진 자르기로 먼저 자른 뒤 그 파일을 가져오세요. 서류 주변의 책상이 사라지는데, 스캐너 앱이 하는 일의 대부분이 이것입니다.',
           },
         ],
       },
