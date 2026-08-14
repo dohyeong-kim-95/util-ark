@@ -41,6 +41,15 @@ export class ContactStore {
         PRIMARY KEY (day, visitor_key)
       );
       CREATE INDEX IF NOT EXISTS analytics_visitors_day ON analytics_visitors(day);
+      -- Qualified visitors: the subset that stayed visible for a few seconds or
+      -- interacted. A crawler that fetches the HTML lands in analytics_visitors
+      -- but never here, which is what makes the two numbers worth comparing.
+      CREATE TABLE IF NOT EXISTS analytics_qualified (
+        day TEXT NOT NULL,
+        visitor_key TEXT NOT NULL,
+        PRIMARY KEY (day, visitor_key)
+      );
+      CREATE INDEX IF NOT EXISTS analytics_qualified_day ON analytics_qualified(day);
     `);
   }
 
@@ -50,6 +59,7 @@ export class ContactStore {
     const cutoff = new Date(now - ANALYTICS_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     this.sql.exec('DELETE FROM analytics_daily WHERE day < ?', cutoff);
     this.sql.exec('DELETE FROM analytics_visitors WHERE day < ?', cutoff);
+    this.sql.exec('DELETE FROM analytics_qualified WHERE day < ?', cutoff);
   }
 
   consumeRateLimit(scope, visitorKey, limit, windowMs, now) {
@@ -152,17 +162,34 @@ export class ContactStore {
       return json({ ok: true }, { status: 201 });
     }
 
+    if (url.pathname === '/analytics/qualify' && request.method === 'POST') {
+      const body = await request.json().catch(() => null);
+      const day = typeof body?.day === 'string' ? body.day : null;
+      if (!day || !body?.visitorKey) {
+        return json({ error: 'invalid qualify record' }, { status: 400 });
+      }
+      // Same key as the page view, so the two tables describe the same visitor
+      // without anything new being stored about them.
+      this.sql.exec(
+        'INSERT OR IGNORE INTO analytics_qualified (day, visitor_key) VALUES (?, ?)',
+        day,
+        String(body.visitorKey),
+      );
+      this.purge(now);
+      return json({ ok: true }, { status: 202 });
+    }
+
     if (url.pathname === '/analytics' && request.method === 'GET') {
       const days = Math.min(90, Math.max(1, Number(url.searchParams.get('days')) || 30));
       const today = new Date(now).toISOString().slice(0, 10);
       const firstDay = new Date(now - (days - 1) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const daily = Object.fromEntries(
         [...this.sql.exec(
-          `SELECT d.day, d.page_views, d.bot_requests, COUNT(v.visitor_key) AS unique_visitors
+          `SELECT d.day, d.page_views, d.bot_requests,
+                  (SELECT COUNT(*) FROM analytics_visitors v WHERE v.day = d.day) AS unique_visitors,
+                  (SELECT COUNT(*) FROM analytics_qualified q WHERE q.day = d.day) AS qualified_visitors
            FROM analytics_daily d
-           LEFT JOIN analytics_visitors v ON v.day = d.day
            WHERE d.day BETWEEN ? AND ?
-           GROUP BY d.day, d.page_views, d.bot_requests
            ORDER BY d.day DESC`,
           firstDay,
           today,
@@ -175,6 +202,7 @@ export class ContactStore {
         items.push({
           day,
           dau: Number(row?.unique_visitors ?? 0),
+          qualified: Number(row?.qualified_visitors ?? 0),
           pageViews: Number(row?.page_views ?? 0),
           botRequests: Number(row?.bot_requests ?? 0),
         });
@@ -186,22 +214,32 @@ export class ContactStore {
       const today = new Date(now).toISOString().slice(0, 10);
       const weekStart = new Date(now - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const monthStart = new Date(now - 29 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      const row = [...this.sql.exec(
+      // The published footer keeps counting every deduplicated visit, which is
+      // what it has always meant. Qualified visits ship alongside so the number
+      // shown can be switched deliberately rather than by redefining it here.
+      const totals = (table) => [...this.sql.exec(
         `SELECT
            SUM(CASE WHEN day = ? THEN 1 ELSE 0 END) AS today,
            SUM(CASE WHEN day >= ? THEN 1 ELSE 0 END) AS week,
            COUNT(*) AS month
-         FROM analytics_visitors
+         FROM ${table}
          WHERE day BETWEEN ? AND ?`,
         today,
         weekStart,
         monthStart,
         today,
       )][0];
+      const row = totals('analytics_visitors');
+      const qualifiedRow = totals('analytics_qualified');
       return json({
         today: Number(row?.today ?? 0),
         week: Number(row?.week ?? 0),
         month: Number(row?.month ?? 0),
+        qualified: {
+          today: Number(qualifiedRow?.today ?? 0),
+          week: Number(qualifiedRow?.week ?? 0),
+          month: Number(qualifiedRow?.month ?? 0),
+        },
         method: 'sum_of_daily_unique_visitors',
       });
     }

@@ -187,13 +187,16 @@ const dashboardScript = String.raw`
     analyticsStatus.textContent = '접속 통계를 불러오는 중…';
     try {
       const data = await api('/api/analytics');
-      const today = data.items[0] || { dau: 0, pageViews: 0, botRequests: 0 };
+      const today = data.items[0] || { dau: 0, qualified: 0, pageViews: 0, botRequests: 0 };
       const firstWeek = data.items.slice(0, 7);
       const averageDau = firstWeek.length
         ? Math.round(firstWeek.reduce((sum, item) => sum + item.dau, 0) / firstWeek.length * 10) / 10
         : 0;
       const excludedBots = data.items.reduce((sum, item) => sum + item.botRequests, 0);
       document.getElementById('today-dau').textContent = number(today.dau);
+      document.getElementById('today-qualified').textContent = number(today.qualified);
+      const share = today.dau ? Math.round((today.qualified / today.dau) * 100) : 0;
+      document.getElementById('qualified-share').textContent = today.dau ? share + '%' : '–';
       document.getElementById('today-views').textContent = number(today.pageViews);
       document.getElementById('week-dau').textContent = averageDau.toLocaleString('ko-KR');
       document.getElementById('bot-requests').textContent = number(excludedBots);
@@ -202,6 +205,7 @@ const dashboardScript = String.raw`
         row.append(
           element('td', '', day.format(new Date(item.day + 'T00:00:00Z'))),
           element('td', '', number(item.dau)),
+          element('td', '', number(item.qualified)),
           element('td', '', number(item.pageViews)),
           element('td', '', number(item.botRequests)),
         );
@@ -284,8 +288,11 @@ export const dashboardPage = () => pageShell(
     <section class="analytics" aria-labelledby="analytics-title">
       <h1 id="analytics-title">접속 현황</h1>
       <p class="section-note">원 IP나 브라우저 정보는 저장하지 않습니다. DAU는 날짜·IP·User-Agent의 일별 단방향 값으로 당일 중복을 제거한 추정치이며, 알려진 봇과 DNT/GPC 요청은 제외합니다.</p>
+      <p class="section-note"><strong>유효 방문자</strong>는 페이지가 화면에 실제로 표시된 채 3초 이상 머물렀거나 누르기·입력·스크롤이 있었던 방문만 셉니다. HTML만 받아 가고 끝나는 크롤러·에이전트는 전체 DAU에는 들어가지만 여기에는 들어오지 않으므로, <strong>두 숫자의 차이가 실질 트래픽의 비율</strong>입니다.</p>
       <div class="metrics">
-        <div class="metric"><span>오늘 DAU</span><strong id="today-dau">–</strong></div>
+        <div class="metric"><span>오늘 유효 방문자</span><strong id="today-qualified">–</strong></div>
+        <div class="metric"><span>오늘 DAU (전체)</span><strong id="today-dau">–</strong></div>
+        <div class="metric"><span>오늘 유효 비율</span><strong id="qualified-share">–</strong></div>
         <div class="metric"><span>오늘 페이지뷰</span><strong id="today-views">–</strong></div>
         <div class="metric"><span>최근 7일 평균 DAU</span><strong id="week-dau">–</strong></div>
         <div class="metric"><span>30일 제외 봇 요청</span><strong id="bot-requests">–</strong></div>
@@ -300,7 +307,7 @@ export const dashboardPage = () => pageShell(
       <p id="analytics-status" class="section-note" role="status"></p>
       <div class="analytics-table">
         <table>
-          <thead><tr><th scope="col">날짜</th><th scope="col">DAU</th><th scope="col">페이지뷰</th><th scope="col">제외 봇</th></tr></thead>
+          <thead><tr><th scope="col">날짜</th><th scope="col">DAU</th><th scope="col">유효</th><th scope="col">페이지뷰</th><th scope="col">제외 봇</th></tr></thead>
           <tbody id="analytics-rows"></tbody>
         </table>
       </div>

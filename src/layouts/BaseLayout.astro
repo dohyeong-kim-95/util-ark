@@ -168,6 +168,53 @@ const schemas = [
         });
       });
 
+      // A page view counts every browser that fetched the HTML, which includes
+      // whatever ran it and left. A visit "qualifies" once the page has been
+      // visible for three seconds or the visitor has touched it — the same rule
+      // Bubblelab uses to separate people from fetchers. The beacon fires once
+      // and carries no body; the server derives the same day-scoped key it
+      // already uses for the page view, so nothing new is stored about anyone.
+      {
+        const QUALIFY_MS = 3000;
+        const INTERACTIONS = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll'];
+        let timer = 0;
+        let visibleFor = 0;
+        let since: number | null = null;
+
+        const qualify = () => {
+          window.clearTimeout(timer);
+          INTERACTIONS.forEach((type) => window.removeEventListener(type, qualify));
+          document.removeEventListener('visibilitychange', onVisibility);
+          const url = '/api/analytics/qualify';
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(url, new Blob(['{}'], { type: 'application/json' }));
+            return;
+          }
+          fetch(url, { method: 'POST', keepalive: true }).catch(() => {});
+        };
+        const start = () => {
+          if (since !== null) return;
+          since = performance.now();
+          timer = window.setTimeout(qualify, Math.max(0, QUALIFY_MS - visibleFor));
+        };
+        // Time spent on a hidden tab is not time spent reading, so the clock
+        // pauses rather than running out in a background tab.
+        const pause = () => {
+          if (since === null) return;
+          visibleFor += performance.now() - since;
+          since = null;
+          window.clearTimeout(timer);
+        };
+        function onVisibility() {
+          if (document.hidden) pause();
+          else start();
+        }
+
+        INTERACTIONS.forEach((type) => window.addEventListener(type, qualify, { passive: true }));
+        document.addEventListener('visibilitychange', onVisibility);
+        if (!document.hidden) start();
+      }
+
       const visitorStats = document.querySelector<HTMLElement>('[data-visitor-stats]');
       if (visitorStats) {
         fetch('/api/analytics/public', { cache: 'no-store' })

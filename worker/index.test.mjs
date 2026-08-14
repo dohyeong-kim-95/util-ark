@@ -225,3 +225,71 @@ test('the root redirect is not counted as a page view', async () => {
   }), env);
   assert.equal(recorded, 1);
 });
+
+test('a qualified visit is recorded from a beacon and stores no new identifier', async () => {
+  const recorded = [];
+  const env = {
+    ADMIN_SESSION_SECRET: 'test-session-secret-value',
+    CONTACTS: namespace(async (request) => {
+      recorded.push({ path: new URL(request.url).pathname, body: await request.json() });
+      return Response.json({ ok: true }, { status: 202 });
+    }),
+    ASSETS: { fetch: () => new Response('asset') },
+  };
+  const beacon = (headers = {}) => new Request('https://utilark.app/api/analytics/qualify', {
+    method: 'POST',
+    headers: {
+      'Sec-Fetch-Site': 'same-origin',
+      'CF-Connecting-IP': '203.0.113.40',
+      'User-Agent': 'Mozilla/5.0 Reader',
+      ...headers,
+    },
+  });
+
+  const response = await worker.fetch(beacon(), env);
+  assert.equal(response.status, 202);
+  assert.equal(recorded.length, 1);
+  assert.equal(recorded[0].path, '/analytics/qualify');
+  assert.match(recorded[0].body.day, /^\d{4}-\d{2}-\d{2}$/u);
+  // The key is derived, never the raw address or agent.
+  assert.equal(typeof recorded[0].body.visitorKey, 'string');
+  assert.equal(recorded[0].body.visitorKey.includes('203.0.113.40'), false);
+  assert.equal(recorded[0].body.visitorKey.includes('Reader'), false);
+
+  // The same visitor on the same day resolves to the same key, so the store can
+  // deduplicate without anything identifying being kept.
+  await worker.fetch(beacon(), env);
+  assert.equal(recorded[1].body.visitorKey, recorded[0].body.visitorKey);
+});
+
+test('qualified visits honour the same exclusions as page views', async () => {
+  let calls = 0;
+  const env = {
+    ADMIN_SESSION_SECRET: 'test-session-secret-value',
+    CONTACTS: namespace(() => { calls += 1; return Response.json({ ok: true }, { status: 202 }); }),
+    ASSETS: { fetch: () => new Response('asset') },
+  };
+  const beacon = (headers) => new Request('https://utilark.app/api/analytics/qualify', {
+    method: 'POST',
+    headers: { 'Sec-Fetch-Site': 'same-origin', 'User-Agent': 'Mozilla/5.0 Reader', ...headers },
+  });
+
+  for (const headers of [
+    { DNT: '1' },
+    { 'Sec-GPC': '1' },
+    { Cookie: 'utilark_notrack=1' },
+    { 'User-Agent': 'Googlebot/2.1' },
+  ]) {
+    const response = await worker.fetch(beacon(headers), env);
+    assert.equal(response.status, 202, JSON.stringify(headers));
+  }
+  assert.equal(calls, 0, 'no excluded visit should reach storage');
+
+  // A cross-origin post is refused outright rather than counted.
+  const foreign = await worker.fetch(new Request('https://utilark.app/api/analytics/qualify', {
+    method: 'POST',
+    headers: { 'Sec-Fetch-Site': 'cross-site', Origin: 'https://example.com' },
+  }), env);
+  assert.equal(foreign.status, 403);
+  assert.equal(calls, 0);
+});

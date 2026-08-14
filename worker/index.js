@@ -1,5 +1,7 @@
 import { dashboardPage, loginPage, unavailablePage } from './admin-page.js';
-import { analyticsDay, dailyVisitorKey, likelyBot, trackablePageView } from './analytics.js';
+import {
+  analyticsDay, dailyVisitorKey, likelyBot, privacyOptOut, trackablePageView, trackingExcluded,
+} from './analytics.js';
 import { ContactStore } from './contact-store.js';
 import { preferredLocale } from './locale.js';
 import { legacyToolPath, resolveHost, subdomainRedirect } from './subdomains.js';
@@ -101,6 +103,38 @@ async function handleContact(request, env) {
     body: JSON.stringify({ visitorKey, contact: { locale, category, email, message } }),
   });
   return new Response(response.body, { status: response.status, headers: response.headers });
+}
+
+/**
+ * A visitor "qualifies" once they have stayed on a visible page for a few
+ * seconds or interacted with it — the rule Bubblelab settled on to tell a
+ * person from something that merely fetched the HTML. The two counts are kept
+ * side by side rather than one replacing the other: the gap between them is
+ * what says how much of the traffic was real.
+ *
+ * The key is the same day-scoped one the page view uses, so qualifying stores
+ * nothing new about anyone. Unlike Bubblelab this does not mint a per-browser
+ * UUID, because the privacy policy here promises no cross-day identifier.
+ */
+async function recordQualifiedVisit(request, env) {
+  if (!env.CONTACTS || !env.ADMIN_SESSION_SECRET) return jsonResponse({ ok: false }, { status: 503 });
+  // sendBeacon does not always carry an Origin header, and Sec-Fetch-Site is
+  // set by the browser rather than by script, so either one proves same origin.
+  // A forged call could only inflate the caller's own visit, which they could
+  // do by visiting anyway.
+  const fetchSite = request.headers.get('Sec-Fetch-Site');
+  const sameOrigin = fetchSite === 'same-origin' || sameOriginMutation(request);
+  if (!sameOrigin) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
+  if (likelyBot(request) || privacyOptOut(request) || trackingExcluded(request)) {
+    return jsonResponse({ ok: true }, { status: 202 });
+  }
+  const day = analyticsDay();
+  const visitorKey = await dailyVisitorKey(request, env.ADMIN_SESSION_SECRET, day);
+  return contactStub(env).fetch('https://contacts.internal/analytics/qualify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ day, visitorKey }),
+  });
 }
 
 async function recordPageView(request, env) {
@@ -235,6 +269,9 @@ export default {
       response = localeRedirect(request, url);
     }
     else if (url.pathname === '/api/contact') response = await handleContact(request, env);
+    else if (url.pathname === '/api/analytics/qualify' && request.method === 'POST') {
+      response = await recordQualifiedVisit(request, env);
+    }
     else if (url.pathname === '/api/analytics/public' && request.method === 'GET' && env.CONTACTS) {
       response = await contactStub(env).fetch('https://contacts.internal/analytics/public');
     }
