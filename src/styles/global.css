@@ -1058,6 +1058,87 @@ button:disabled {
   background: #fbfbf9;
 }
 
+/* ---- video tools ---- */
+
+.media-facts[hidden],
+.gif-stage[hidden],
+.option-grid[hidden] {
+  display: none;
+}
+
+/* What the output will be, before it is made. A GIF that turns out to be 90MB
+   after two minutes of encoding is a worse answer than a number beforehand. */
+.media-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.6rem;
+  margin: 1rem 0 0;
+}
+
+.media-facts > div {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.media-facts dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.media-facts dd {
+  margin: 0.15rem 0 0;
+  font-family: Inter, Pretendard, system-ui, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.media-facts .media-note {
+  grid-column: 1 / -1;
+  border-style: dashed;
+}
+
+.media-facts .media-note dt {
+  display: none;
+}
+
+.media-facts .media-note dd {
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+.gif-stage {
+  margin-top: 1rem;
+}
+
+.gif-stage video {
+  display: block;
+  width: 100%;
+  max-height: min(55vh, 24rem);
+  border-radius: var(--radius-md);
+  background: #111319;
+}
+
+.gif-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.6rem;
+}
+
+.gif-range span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
 .file-status[hidden] {
   display: none;
 }

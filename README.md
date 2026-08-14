@@ -5,10 +5,12 @@ Private-by-default browser utilities for [utilark.app](https://utilark.app), mai
 ## Included in the first release
 
 - Image converter: JPG, PNG, and WebP conversion in the browser, split into a page per directed pair
-- Image cropper with square, 4:3, 16:9, A4, and Korean ID photo ratios
+- Image cropper with square, 4:3, 16:9, A4, and both Korean ID photo ratios (30x40mm and 35x45mm)
 - Photos to PDF, sized down before embedding so the result can be emailed
-- Read Aloud: browser speech synthesis with on-device voices preferred and network voices flagged
-- Word and character counter: words, characters, lines, and UTF-8 bytes
+- Read Aloud: browser speech synthesis with on-device voices preferred and network voices flagged, reading pasted text, a PDF's text layer, or a Word document
+- MP4 to MP3: the audio taken out of a video and written as an MP3, decoded by the browser's own codecs
+- MP4 to GIF: a chosen few seconds of video turned into an animated GIF, with the size estimated before it is made
+- Word and character counter: words, characters, lines, and UTF-8 bytes, from typing or from a .docx
 - PDF merger: reorder and combine PDF files with `pdf-lib` in the browser
 - Ladder game: assign outcomes to people with a random ladder drawn in SVG
 - Localized `/en/` and `/ko/` routes with matching policy and help pages

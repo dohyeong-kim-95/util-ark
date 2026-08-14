@@ -15,7 +15,9 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
+    "@breezystack/lamejs": "^1.2.7",
     "astro": "^7.2.1",
+    "gifenc": "^1.0.3",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.2.108"
   },

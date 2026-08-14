@@ -92,6 +92,9 @@ export const SYNONYMS: string[][] = [
   ['용량', 'compress', '압축', '줄이기', 'size'],
   ['투명', 'transparent', 'transparency', '알파', 'alpha'],
   ['가이드', 'guide', '설명', '방법', 'how to', '튜토리얼'],
+  ['동영상', 'video', '영상', '비디오', 'mp4', '영화', 'movie'],
+  ['음원', 'audio', '소리', 'sound', '음성 추출', '오디오', '노래', 'music'],
+  ['움짤', 'gif', '움직이는 사진', '움직이는 이미지', 'animation', '애니메이션'],
 ];
 
 /* ---------- normalization ---------- */

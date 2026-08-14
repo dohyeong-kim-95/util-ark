@@ -3,26 +3,42 @@ import { readFile, readdir } from 'node:fs/promises';
 import { TOOL_SUBDOMAINS } from '../worker/subdomains.js';
 
 const dist = new URL('../dist/', import.meta.url);
-const requiredPages = [
-  'en/index.html',
-  'ko/index.html',
-  'en/about/index.html',
-  'ko/about/index.html',
-  'en/privacy/index.html',
-  'ko/privacy/index.html',
-  'en/contact/index.html',
-  'ko/contact/index.html',
-  'en/image-converter/index.html',
-  'ko/image-converter/index.html',
-  'en/word-counter/index.html',
-  'ko/word-counter/index.html',
-  'en/merge-pdf/index.html',
-  'ko/merge-pdf/index.html',
-  'en/ladder/index.html',
-  'ko/ladder/index.html',
-  'en/guides/index.html',
-  'ko/guides/index.html',
-];
+
+// Tool pages sit at /{locale}/{slug}/ next to about, privacy, and the rest, so
+// the built directory no longer tells us which of them are tools. Take the list
+// from the slug union in the source instead, which is what the pages are
+// generated from.
+const toolSource = await readFile(new URL('../src/data/tools.ts', import.meta.url), 'utf8');
+// The union spans several lines once there are enough tools, and may lead with
+// a `|`, so both shapes have to parse.
+const slugUnion = toolSource.match(/slug:\s*\|?\s*((?:'[a-z0-9-]+'\s*\|\s*)*'[a-z0-9-]+');/u)?.[1];
+if (!slugUnion) throw new Error('src/data/tools.ts: could not read the tool slug union');
+const allTools = [...slugUnion.matchAll(/'([a-z0-9-]+)'/gu)].map((match) => match[1]);
+
+// Directed conversion pairs are separate indexed pages sharing the tool route.
+const conversionSource = await readFile(new URL('../src/data/conversions.ts', import.meta.url), 'utf8');
+const allConversions = [...conversionSource.matchAll(/^\s{4}slug: '([a-z0-9-]+)',$/gmu)].map((match) => match[1]);
+if (allConversions.length === 0) throw new Error('src/data/conversions.ts: could not read the pair slugs');
+const indexedPages = [...allTools, ...allConversions];
+
+const guideSource = await readFile(new URL('../src/data/guides.ts', import.meta.url), 'utf8');
+const guideEntries = [...guideSource.matchAll(/slug: '([a-z0-9-]+)',\s*\n\s*tool: '([a-z0-9-]+)',/gu)]
+  .map((match) => ({ slug: match[1], tool: match[2] }));
+if (guideEntries.length === 0) throw new Error('src/data/guides.ts: could not read the guides');
+
+// Derived rather than listed. A hand-kept list silently stopped covering new
+// tools — four pages had been added since it was last edited, and none of them
+// were checked for a canonical link, hreflang, or structured data.
+const requiredPages = ['en', 'ko'].flatMap((locale) => [
+  `${locale}/index.html`,
+  `${locale}/about/index.html`,
+  `${locale}/privacy/index.html`,
+  `${locale}/terms/index.html`,
+  `${locale}/contact/index.html`,
+  `${locale}/guides/index.html`,
+  ...indexedPages.map((slug) => `${locale}/${slug}/index.html`),
+  ...guideEntries.map(({ slug }) => `${locale}/guides/${slug}/index.html`),
+]);
 
 const checks = [
   ['canonical', /rel="canonical"/u],
@@ -40,21 +56,6 @@ for (const page of requiredPages) {
     if (!pattern.test(html)) throw new Error(`${page}: missing ${name}`);
   }
 }
-
-// Tool pages sit at /{locale}/{slug}/ next to about, privacy, and the rest, so
-// the built directory no longer tells us which of them are tools. Take the list
-// from the slug union in the source instead, which is what the pages are
-// generated from.
-const toolSource = await readFile(new URL('../src/data/tools.ts', import.meta.url), 'utf8');
-const slugUnion = toolSource.match(/slug:\s*((?:'[a-z0-9-]+'\s*\|\s*)*'[a-z0-9-]+');/u)?.[1];
-if (!slugUnion) throw new Error('src/data/tools.ts: could not read the tool slug union');
-const allTools = [...slugUnion.matchAll(/'([a-z0-9-]+)'/gu)].map((match) => match[1]);
-
-// Directed conversion pairs are separate indexed pages sharing the tool route.
-const conversionSource = await readFile(new URL('../src/data/conversions.ts', import.meta.url), 'utf8');
-const allConversions = [...conversionSource.matchAll(/^\s{4}slug: '([a-z0-9-]+)',$/gmu)].map((match) => match[1]);
-if (allConversions.length === 0) throw new Error('src/data/conversions.ts: could not read the pair slugs');
-const indexedPages = [...allTools, ...allConversions];
 
 // Tool pages target search queries, so their titles carry the keyword plus a
 // synonym and "free"/"online" instead of the plain `${name} · Utilark` form.
@@ -82,11 +83,6 @@ for (const [page, freeWord] of [['en', 'Free'], ['ko', '무료']]) {
 // Guides carry the depth the tool pages cannot, so they have to be substantial
 // and reachable. Each one links to the tool it explains, and that tool links
 // back, which is the internal linking the research doc found on ranking sites.
-const guideSource = await readFile(new URL('../src/data/guides.ts', import.meta.url), 'utf8');
-const guideEntries = [...guideSource.matchAll(/slug: '([a-z0-9-]+)',\s*\n\s*tool: '([a-z0-9-]+)',/gu)]
-  .map((match) => ({ slug: match[1], tool: match[2] }));
-if (guideEntries.length === 0) throw new Error('src/data/guides.ts: could not read the guides');
-
 for (const locale of ['en', 'ko']) {
   const index = await readFile(new URL(`${locale}/guides/index.html`, dist), 'utf8');
   for (const { slug, tool } of guideEntries) {

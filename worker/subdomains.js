@@ -21,6 +21,8 @@ export const TOOL_SUBDOMAINS = {
   img2pdf: { tool: 'image-to-pdf' },
   mergepdf: { tool: 'merge-pdf' },
   readaloud: { tool: 'read-aloud' },
+  mp42mp3: { tool: 'mp4-to-mp3' },
+  mp42gif: { tool: 'mp4-to-gif' },
   wordcount: { tool: 'word-counter' },
   ladder: { tool: 'ladder' },
 

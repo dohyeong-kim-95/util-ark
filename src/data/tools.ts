@@ -22,7 +22,9 @@ export type ToolCopy = {
 };
 
 export type ToolDefinition = {
-  slug: 'image-converter' | 'image-crop' | 'image-to-pdf' | 'read-aloud' | 'word-counter' | 'merge-pdf' | 'ladder';
+  slug:
+    | 'image-converter' | 'image-crop' | 'image-to-pdf' | 'read-aloud'
+    | 'mp4-to-mp3' | 'mp4-to-gif' | 'word-counter' | 'merge-pdf' | 'ladder';
   icon: string;
   accent: string;
   copy: Record<Locale, ToolCopy>;
@@ -512,6 +514,164 @@ export const tools: ToolDefinition[] = [
           {
             question: '용량이 큰 PDF가 실패하는 이유는 무엇인가요?',
             answer: '브라우저 처리는 기기의 메모리를 사용합니다. 파일 수를 나눠 처리하거나 메모리 여유가 있는 데스크톱 기기를 이용해보세요.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    slug: 'mp4-to-mp3',
+    icon: '♪',
+    accent: '#ffb347',
+    copy: {
+      en: {
+        name: 'MP4 to MP3',
+        titleTag: 'MP4 to MP3 - Free Online Video to Audio, No Upload | Utilark',
+        short: 'Take the sound out of a video and save it as an MP3.',
+        description:
+          'Free MP4 to MP3 converter that runs in your browser. Extract audio from a video without uploading it — the file never leaves your device.',
+        keywords: ['MP4 to MP3', 'video to audio', 'extract audio from video', 'convert video to MP3'],
+        intro: [
+          'Pick a video and keep only its sound. A lecture recording you want on your phone, a song from a video, a podcast someone sent you as an MP4 — the picture is dropped and the audio is written as an MP3.',
+          'This matters more here than with a photo. **A video is the largest file most people ever convert**, and every other converter for this job asks you to upload it and wait. Here the browser decodes the sound and writes the MP3 on your own machine, so there is no upload, no queue, and no copy of your recording on someone else\'s server.',
+          'The decoding is done by the same codecs your browser uses to play the file, which means anything that plays will convert. A browser shipped without the MP4 audio licence — some Linux builds — cannot open AAC, and the tool says so rather than producing silence.',
+        ],
+        steps: [
+          'Choose a video file.',
+          'Pick a quality; the estimated size updates as you do.',
+          'Save as MP3.',
+        ],
+        faq: [
+          {
+            question: 'Is my video uploaded?',
+            answer: 'No. It is decoded and re-encoded in your browser, which is the point — a video is a big file, and uploading one to a converter means handing over a full copy of whatever you recorded. Nothing is sent to Utilark.',
+          },
+          {
+            question: 'Does converting improve the sound?',
+            answer: 'No, and nothing can. The audio in an MP4 is already compressed, usually as AAC, and writing it out as MP3 compresses it a second time. Choose a higher bitrate to lose less; 192 kbps is a reasonable default and 320 kbps is as close to the source as MP3 goes.',
+          },
+          {
+            question: 'How long a video can it handle?',
+            answer: 'The whole track is decoded into memory at once, so the limit is your device\'s, not a policy. Roughly twenty minutes of stereo, or twice that in mono; the tool works out the figure for your file and shows it. A longer recording is reported rather than attempted.',
+          },
+          {
+            question: 'Which formats work?',
+            answer: 'Whatever your browser can play, which covers MP4, MOV, WebM, M4A and more. It works on audio files too, so an M4A voice memo can become an MP3 the same way.',
+          },
+        ],
+      },
+      ko: {
+        name: 'MP4를 MP3로',
+        titleTag: 'MP4 MP3 변환 - 무료 동영상 소리 추출, 업로드 없음 | Utilark',
+        short: '동영상에서 소리만 뽑아 MP3로 저장합니다.',
+        description:
+          '브라우저에서 동작하는 무료 MP4 MP3 변환입니다. 동영상을 업로드하지 않고 소리만 추출하며, 파일이 기기 밖으로 나가지 않습니다.',
+        keywords: ['MP4 MP3 변환', '동영상 음원 추출', '영상 소리 추출', 'mp4 음성 추출'],
+        intro: [
+          '동영상을 고르면 소리만 남깁니다. 휴대폰에 넣어 두고 들을 강의 녹화, 영상 속 노래, MP4로 받은 팟캐스트 같은 것들입니다. 화면은 버리고 소리를 MP3로 씁니다.',
+          '이 도구에서는 업로드 여부가 사진보다 훨씬 중요합니다. **동영상은 사람들이 변환하는 파일 중 가장 큽니다.** 다른 변환 사이트는 전부 그 큰 파일을 올리고 기다리라고 합니다. 여기서는 브라우저가 사용자 기기에서 직접 해석하고 씁니다 — 업로드도, 대기열도, 남의 서버에 남는 녹화본 사본도 없습니다.',
+          '해석은 브라우저가 그 파일을 재생할 때 쓰는 코덱이 그대로 합니다. 즉 **재생되는 파일이면 변환됩니다.** MP4 소리(AAC) 라이선스 없이 배포된 브라우저(일부 리눅스용)는 열지 못하는데, 그럴 때는 조용한 파일을 만드는 대신 안 된다고 알려드립니다.',
+        ],
+        steps: [
+          '동영상 파일을 고릅니다.',
+          '음질을 정하면 예상 크기가 함께 바뀝니다.',
+          'MP3로 저장합니다.',
+        ],
+        faq: [
+          {
+            question: '동영상이 업로드되나요?',
+            answer: '아니요. 브라우저 안에서 해석하고 다시 씁니다. 이 도구의 핵심이 그것입니다 — 동영상은 큰 파일이고, 변환 사이트에 올린다는 것은 찍어 둔 것의 완전한 사본을 넘긴다는 뜻입니다. Utilark로는 아무것도 전송되지 않습니다.',
+          },
+          {
+            question: '변환하면 음질이 좋아지나요?',
+            answer: '좋아지지 않고, 어떤 방법으로도 좋아질 수 없습니다. MP4 안의 소리는 이미 압축된 것(보통 AAC)이고, MP3로 쓰면 두 번째 압축이 됩니다. 덜 잃으려면 높은 비트레이트를 고르세요. 192kbps면 무난하고, 320kbps가 MP3로 원본에 가장 가깝게 가는 선입니다.',
+          },
+          {
+            question: '얼마나 긴 영상까지 되나요?',
+            answer: '소리 전체를 메모리에 한 번에 펼치기 때문에 한계는 정책이 아니라 기기 사양입니다. 스테레오 기준 대략 20분, 모노면 그 두 배입니다. 고른 파일에 맞는 수치를 도구가 계산해 보여주고, 그보다 길면 시도하지 않고 알려드립니다.',
+          },
+          {
+            question: '어떤 형식이 되나요?',
+            answer: '브라우저가 재생할 수 있는 것이면 됩니다. MP4·MOV·WebM·M4A 등이 여기 들어갑니다. 소리 파일에도 그대로 동작하므로 M4A 음성 메모를 MP3로 바꾸는 데도 쓸 수 있습니다.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    slug: 'mp4-to-gif',
+    icon: '▷',
+    accent: '#5ecfd6',
+    copy: {
+      en: {
+        name: 'MP4 to GIF',
+        titleTag: 'MP4 to GIF - Free Online Video to GIF, No Upload | Utilark',
+        short: 'Turn a few seconds of video into an animated GIF.',
+        description:
+          'Free MP4 to GIF converter that runs in your browser. Pick the seconds you want, set the size and frame rate, and download — no upload.',
+        keywords: ['MP4 to GIF', 'video to GIF', 'make a GIF from a video', 'convert video to GIF'],
+        intro: [
+          'Scrub to the part worth repeating, mark the start and the end, and save it as a GIF. The video is played and captured on your own machine, so nothing is uploaded and there is no wait for a queue.',
+          '**A GIF has no video compression.** It stores a complete palette-mapped picture for every frame, which is why a few seconds can outweigh the video it came from. The tool shows the estimated size before it starts, and the three dials that matter — length, width and frame rate — are all in front of you.',
+          'GIF also holds only 256 colours per frame. A single palette is built for the whole clip rather than one per frame, because per-frame palettes make the colours crawl under a still background.',
+        ],
+        steps: [
+          'Choose a video and scrub to the part you want.',
+          'Mark the start and the end, then set the width and frame rate.',
+          'Save as GIF.',
+        ],
+        faq: [
+          {
+            question: 'Why is my GIF so much bigger than the video?',
+            answer: 'Because a GIF has no motion compression. A video stores what changed between frames; a GIF stores every frame whole. Ten seconds at 480 pixels and 10 frames per second is over a hundred full pictures. Shorten the range first, then reduce the width, then lower the frame rate — in that order, for the largest saving with the least visible loss.',
+          },
+          {
+            question: 'Why do the colours look flat?',
+            answer: 'A GIF frame can hold 256 colours, so a gradient or a film shot has to be approximated. That is the format, not the conversion. If the colours matter more than the autoplay, a short MP4 is the better file to share.',
+          },
+          {
+            question: 'Is my video uploaded?',
+            answer: 'No. The frames are drawn on a canvas in your browser and encoded there. Nothing is sent to Utilark.',
+          },
+          {
+            question: 'Is there a length limit?',
+            answer: 'The GIF is capped at 600 frames, which is a minute at 10 frames per second and half that at 20. Long before that limit the file becomes too big to send anywhere, which is the real constraint.',
+          },
+        ],
+      },
+      ko: {
+        name: 'MP4를 GIF로',
+        titleTag: 'MP4 GIF 변환 - 무료 동영상 GIF 만들기, 업로드 없음 | Utilark',
+        short: '동영상의 몇 초를 움직이는 GIF로 만듭니다.',
+        description:
+          '브라우저에서 동작하는 무료 MP4 GIF 변환입니다. 원하는 구간을 고르고 크기와 초당 장수를 정해 내려받으세요. 업로드하지 않습니다.',
+        keywords: ['MP4 GIF 변환', '동영상 gif 만들기', '영상 움짤 만들기', 'gif 변환 사이트'],
+        intro: [
+          '반복해서 볼 만한 부분으로 재생 위치를 옮기고, 시작과 끝을 찍어 GIF로 저장하세요. 재생과 캡처가 모두 사용자 기기에서 일어나므로 업로드도 대기열도 없습니다.',
+          '**GIF에는 동영상 압축이 없습니다.** 장면마다 완성된 그림을 통째로 담기 때문에, 몇 초짜리가 원본 영상보다 커지는 일이 흔합니다. 그래서 시작 전에 예상 크기를 보여주고, 크기를 좌우하는 세 가지(길이·가로 크기·초당 장수)를 모두 앞에 꺼내 두었습니다.',
+          'GIF는 한 장면에 색을 256개까지만 담습니다. 장면마다 색을 따로 고르면 가만히 있는 배경의 색이 계속 흔들려 보이기 때문에, 구간 전체에 하나의 색표를 만들어 씁니다.',
+        ],
+        steps: [
+          '동영상을 고르고 원하는 지점으로 재생 위치를 옮깁니다.',
+          '시작과 끝을 찍고 가로 크기와 초당 장수를 정합니다.',
+          'GIF로 저장합니다.',
+        ],
+        faq: [
+          {
+            question: 'GIF가 원본 영상보다 큰 이유가 무엇인가요?',
+            answer: 'GIF에는 움직임 압축이 없기 때문입니다. 동영상은 이전 장면에서 바뀐 부분만 저장하지만 GIF는 매 장면을 통째로 저장합니다. 가로 480px에 초당 10장으로 10초면 완성된 그림이 100장이 넘습니다. 줄이려면 구간을 짧게 → 가로 크기를 작게 → 초당 장수를 낮추는 순서가 좋습니다. 눈에 덜 띄면서 가장 많이 줄어듭니다.',
+          },
+          {
+            question: '색이 왜 밋밋해 보이나요?',
+            answer: 'GIF 한 장면에 들어가는 색이 256개까지라, 그라데이션이나 영화 장면은 근사치로 바꿔 담을 수밖에 없습니다. 변환 문제가 아니라 형식의 성질입니다. 자동 재생보다 색이 중요하다면 짧은 MP4를 그대로 보내는 편이 낫습니다.',
+          },
+          {
+            question: '동영상이 업로드되나요?',
+            answer: '아니요. 장면을 브라우저 안의 캔버스에 그리고 거기서 인코딩합니다. Utilark로 전송되는 것은 없습니다.',
+          },
+          {
+            question: '길이 제한이 있나요?',
+            answer: '최대 600장까지 담습니다. 초당 10장이면 1분, 20장이면 30초입니다. 다만 그 한계에 닿기 한참 전에 파일이 어디로도 보내기 어려운 크기가 되므로, 실질적인 제한은 그쪽입니다.',
           },
         ],
       },

@@ -1,0 +1,259 @@
+---
+import type { Locale } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const labels = locale === 'ko'
+  ? {
+      pick: '동영상 고르기',
+      hint: 'MP4·MOV·WebM 등. 브라우저에서 만들며 업로드하지 않습니다.',
+      start: '시작(초)',
+      end: '끝(초)',
+      fps: '초당 장수',
+      width: '가로 크기',
+      convert: 'GIF로 저장',
+      working: 'GIF를 만드는 중',
+      done: 'GIF를 내려받았습니다.',
+      frames: '장수',
+      estimate: '예상 크기',
+      length: '길이',
+      useRange: '구간 지정',
+      rangeNote: '재생 위치를 옮긴 뒤 버튼을 누르면 그 지점이 들어갑니다.',
+      setStart: '여기를 시작으로',
+      setEnd: '여기를 끝으로',
+      sizeWarn: 'GIF는 장면마다 그림을 통째로 담기 때문에 쉽게 커집니다. 크기를 줄이려면 구간을 짧게, 가로 크기를 작게, 초당 장수를 낮추세요. 예상 크기는 어림값이라 실제와 차이가 큽니다 — 움직임이 많고 색이 복잡하면 이 근처, 단순한 화면이면 훨씬 작게 나옵니다. 설정을 바꿨을 때 몇 배가 되는지 가늠하는 용도로 보세요.',
+      errCodec: '이 브라우저가 이 동영상을 열지 못합니다. Chrome·Edge·Safari에서 열어 보세요. 일부 리눅스용 브라우저는 MP4 영상(H.264) 코덱이 빠져 있습니다.',
+      errEmpty: '구간이 비어 있습니다. 끝을 시작보다 뒤로 정하세요.',
+      errFailed: '변환하지 못했습니다.',
+      capped: '최대 {n}장까지만 담습니다.',
+    }
+  : {
+      pick: 'Choose a video',
+      hint: 'MP4, MOV, WebM and more. The GIF is made in your browser and the file is not uploaded.',
+      start: 'Start (s)',
+      end: 'End (s)',
+      fps: 'Frames per second',
+      width: 'Width',
+      convert: 'Save as GIF',
+      working: 'Building the GIF',
+      done: 'Your GIF has been downloaded.',
+      frames: 'Frames',
+      estimate: 'Estimated size',
+      length: 'Length',
+      useRange: 'Range',
+      rangeNote: 'Move the playhead, then press a button to use that point.',
+      setStart: 'Start here',
+      setEnd: 'End here',
+      sizeWarn: 'A GIF stores a whole picture per frame, so it grows quickly. For a smaller file, shorten the range, reduce the width, or lower the frame rate. The estimate is rough and can be far out — busy, detailed footage lands near it and a simple scene comes out much smaller. Use it to see how much a setting changes things, not as a figure.',
+      errCodec: 'This browser cannot open this video. Try Chrome, Edge or Safari — some Linux builds ship without the MP4 video (H.264) codec.',
+      errEmpty: 'That range is empty. Set the end after the start.',
+      errFailed: 'The conversion failed.',
+      capped: 'At most {n} frames are included.',
+    };
+---
+
+<div class="media-tool gif-tool" data-locale={locale} data-copy={JSON.stringify(labels)}>
+  <label class="drop-zone">
+    <input type="file" accept="video/*" />
+    <strong>{labels.pick}</strong>
+    <span>{labels.hint}</span>
+  </label>
+
+  <div class="gif-stage" data-stage hidden>
+    <video data-preview controls muted playsinline></video>
+    <div class="gif-range">
+      <button type="button" class="ghost" data-action="set-start">{labels.setStart}</button>
+      <button type="button" class="ghost" data-action="set-end">{labels.setEnd}</button>
+      <span>{labels.rangeNote}</span>
+    </div>
+  </div>
+
+  <div class="option-grid" data-options hidden>
+    <label>
+      <span>{labels.start}</span>
+      <input type="number" data-option="start" min="0" step="0.1" value="0" />
+    </label>
+    <label>
+      <span>{labels.end}</span>
+      <input type="number" data-option="end" min="0" step="0.1" value="0" />
+    </label>
+    <label>
+      <span>{labels.fps}</span>
+      <select data-option="fps">
+        <option value="8">8</option>
+        <option value="10" selected>10</option>
+        <option value="15">15</option>
+        <option value="20">20</option>
+      </select>
+    </label>
+    <label>
+      <span>{labels.width}</span>
+      <select data-option="width">
+        <option value="240">240px</option>
+        <option value="360">360px</option>
+        <option value="480" selected>480px</option>
+        <option value="640">640px</option>
+      </select>
+    </label>
+  </div>
+
+  <dl class="media-facts" data-facts hidden></dl>
+
+  <div class="tool-actions">
+    <button type="button" class="primary" data-action="convert" disabled>{labels.convert}</button>
+    <span class="action-status" role="status"></span>
+  </div>
+</div>
+
+<script>
+  import { MAX_GIF_FRAMES, MediaError, formatBytes, gifBytes, planFrames } from '../../lib/media-plan';
+  import type { VideoFacts } from '../../lib/video-to-gif';
+
+  const root = document.querySelector<HTMLElement>('.gif-tool');
+  if (root) {
+    const copy = JSON.parse(root.dataset.copy || '{}') as Record<string, string>;
+    const locale = root.dataset.locale || 'en';
+    const picker = root.querySelector<HTMLInputElement>('input[type="file"]');
+    const stage = root.querySelector<HTMLElement>('[data-stage]');
+    const preview = root.querySelector<HTMLVideoElement>('[data-preview]');
+    const options = root.querySelector<HTMLElement>('[data-options]');
+    const facts = root.querySelector<HTMLElement>('[data-facts]');
+    const button = root.querySelector<HTMLButtonElement>('[data-action="convert"]');
+    const status = root.querySelector<HTMLElement>('.action-status');
+    const startInput = root.querySelector<HTMLInputElement>('[data-option="start"]');
+    const endInput = root.querySelector<HTMLInputElement>('[data-option="end"]');
+    const fpsSelect = root.querySelector<HTMLSelectElement>('[data-option="fps"]');
+    const widthSelect = root.querySelector<HTMLSelectElement>('[data-option="width"]');
+
+    let file: File | null = null;
+    let facts_: VideoFacts | null = null;
+    let sourceUrl = '';
+
+    const say = (message: string) => { if (status) status.textContent = message; };
+    const row = (term: string, value: string) => `<div><dt>${term}</dt><dd>${value}</dd></div>`;
+
+    const currentPlan = () => {
+      if (!facts_) return null;
+      try {
+        return planFrames({
+          duration: facts_.duration,
+          start: Number(startInput?.value ?? 0),
+          end: Number(endInput?.value ?? facts_.duration),
+          fps: Number(fpsSelect?.value ?? 10),
+          maxWidth: Number(widthSelect?.value ?? 480),
+          sourceWidth: facts_.width,
+          sourceHeight: facts_.height,
+        });
+      } catch {
+        return null;
+      }
+    };
+
+    const paintFacts = () => {
+      if (!facts) return;
+      const plan = currentPlan();
+      if (!plan) {
+        facts.innerHTML = `<div class="media-note"><dt></dt><dd>${copy.errEmpty}</dd></div>`;
+        facts.hidden = false;
+        if (button) button.disabled = true;
+        return;
+      }
+      const seconds = plan.delays.reduce((sum, delay) => sum + delay, 0) / 100;
+      const capped = plan.times.length >= MAX_GIF_FRAMES
+        ? `<div class="media-note"><dt></dt><dd>${copy.capped.replace('{n}', String(MAX_GIF_FRAMES))}</dd></div>`
+        : '';
+      facts.innerHTML =
+        row(copy.length, `${seconds.toFixed(1)}s`) +
+        row(copy.frames, `${plan.times.length} · ${plan.width}×${plan.height}`) +
+        row(copy.estimate, formatBytes(gifBytes(plan), locale)) +
+        capped +
+        `<div class="media-note"><dt></dt><dd>${copy.sizeWarn}</dd></div>`;
+      facts.hidden = false;
+      if (button) button.disabled = false;
+    };
+
+    picker?.addEventListener('change', async () => {
+      file = picker.files?.[0] ?? null;
+      if (button) button.disabled = true;
+      if (!file) return;
+      if (sourceUrl) URL.revokeObjectURL(sourceUrl);
+      say('');
+
+      try {
+        const { inspectVideo } = await import('../../lib/video-to-gif');
+        const opened = await inspectVideo(file);
+        facts_ = opened.facts;
+        sourceUrl = opened.url;
+        if (preview) preview.src = sourceUrl;
+        if (stage) stage.hidden = false;
+        if (options) options.hidden = false;
+        if (startInput) { startInput.value = '0'; startInput.max = String(facts_.duration.toFixed(1)); }
+        if (endInput) {
+          // Five seconds is a GIF; a whole video is a download nobody wanted.
+          endInput.value = Math.min(5, facts_.duration).toFixed(1);
+          endInput.max = String(facts_.duration.toFixed(1));
+        }
+        paintFacts();
+      } catch (error) {
+        const reason = error instanceof MediaError ? error.reason : '';
+        say(reason === 'empty' ? copy.errEmpty : copy.errCodec);
+      }
+    });
+
+    [startInput, endInput, fpsSelect, widthSelect].forEach((control) => {
+      control?.addEventListener('input', paintFacts);
+      control?.addEventListener('change', paintFacts);
+    });
+
+    root.querySelector('[data-action="set-start"]')?.addEventListener('click', () => {
+      if (!preview || !startInput) return;
+      startInput.value = preview.currentTime.toFixed(1);
+      paintFacts();
+    });
+    root.querySelector('[data-action="set-end"]')?.addEventListener('click', () => {
+      if (!preview || !endInput) return;
+      endInput.value = preview.currentTime.toFixed(1);
+      paintFacts();
+    });
+
+    button?.addEventListener('click', async () => {
+      const plan = currentPlan();
+      if (!plan || !file || !button) return;
+      button.disabled = true;
+      // The visible preview cannot be seeked frame by frame while someone is
+      // watching it, so the frames are grabbed from a second element.
+      const worker = document.createElement('video');
+      worker.muted = true;
+      worker.playsInline = true;
+      worker.preload = 'auto';
+      worker.src = sourceUrl;
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          worker.addEventListener('loadeddata', () => resolve(), { once: true });
+          worker.addEventListener('error', () => reject(new MediaError('unreadable', 'load failed')), { once: true });
+        });
+        const { videoToGif } = await import('../../lib/video-to-gif');
+        const blob = await videoToGif(worker, plan, (done, total) => {
+          say(`${copy.working} ${done} / ${total}`);
+        });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `${file.name.replace(/\.[^.]+$/u, '')}.gif`;
+        anchor.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        say(`${copy.done} ${formatBytes(blob.size, locale)}`);
+      } catch (error) {
+        say(error instanceof MediaError && error.reason === 'empty' ? copy.errEmpty : copy.errFailed);
+      } finally {
+        worker.removeAttribute('src');
+        worker.load();
+        button.disabled = false;
+      }
+    });
+  }
+</script>

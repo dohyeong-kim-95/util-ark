@@ -1,0 +1,166 @@
+---
+import type { Locale } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const labels = locale === 'ko'
+  ? {
+      pick: '동영상 고르기',
+      hint: 'MP4·MOV·WebM 등. 브라우저에서 소리만 뽑아내며 업로드하지 않습니다.',
+      quality: '음질',
+      convert: 'MP3로 저장',
+      reading: '소리를 읽는 중…',
+      encoding: 'MP3로 만드는 중',
+      done: 'MP3를 내려받았습니다.',
+      length: '길이',
+      channels: '채널',
+      estimate: '예상 크기',
+      mono: '모노',
+      stereo: '스테레오',
+      errNoAudio: '소리가 없는 동영상입니다.',
+      errCodec: '이 브라우저가 이 동영상의 소리를 해석하지 못합니다. Chrome·Edge·Safari에서 열어 보세요. 일부 리눅스용 브라우저는 MP4 소리(AAC) 코덱이 빠져 있습니다.',
+      errTooLong: '너무 긴 동영상입니다. 브라우저 메모리 안에서 한 번에 처리할 수 있는 길이를 넘었습니다.',
+      errFailed: '변환하지 못했습니다.',
+      limitNote: '이 형식이면 약 {n}분까지 처리할 수 있습니다.',
+    }
+  : {
+      pick: 'Choose a video',
+      hint: 'MP4, MOV, WebM and more. The sound is extracted in your browser and the file is not uploaded.',
+      quality: 'Quality',
+      convert: 'Save as MP3',
+      reading: 'Reading the audio…',
+      encoding: 'Writing the MP3',
+      done: 'Your MP3 has been downloaded.',
+      length: 'Length',
+      channels: 'Channels',
+      estimate: 'Estimated size',
+      mono: 'Mono',
+      stereo: 'Stereo',
+      errNoAudio: 'This video has no sound.',
+      errCodec: 'This browser cannot decode this video’s audio. Try Chrome, Edge or Safari — some Linux builds ship without the MP4 audio (AAC) codec.',
+      errTooLong: 'That video is too long to decode in one piece in the browser’s memory.',
+      errFailed: 'The conversion failed.',
+      limitNote: 'At this format, about {n} minutes can be processed.',
+    };
+---
+
+<div class="media-tool" data-locale={locale} data-copy={JSON.stringify(labels)}>
+  <label class="drop-zone">
+    <input type="file" accept="video/*,audio/*" />
+    <strong>{labels.pick}</strong>
+    <span>{labels.hint}</span>
+  </label>
+
+  <dl class="media-facts" data-facts hidden></dl>
+
+  <div class="option-grid">
+    <label>
+      <span>{labels.quality}</span>
+      <select data-option="bitrate">
+        <option value="128">128 kbps</option>
+        <option value="192" selected>192 kbps</option>
+        <option value="256">256 kbps</option>
+        <option value="320">320 kbps</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="tool-actions">
+    <button type="button" class="primary" data-action="convert" disabled>{labels.convert}</button>
+    <span class="action-status" role="status"></span>
+  </div>
+</div>
+
+<script>
+  import { MediaError, formatBytes, mp3Bytes, maxAudioSeconds, type Mp3Bitrate } from '../../lib/media-plan';
+
+  const root = document.querySelector<HTMLElement>('.media-tool');
+  if (root) {
+    const copy = JSON.parse(root.dataset.copy || '{}') as Record<string, string>;
+    const locale = root.dataset.locale || 'en';
+    const picker = root.querySelector<HTMLInputElement>('input[type="file"]');
+    const facts = root.querySelector<HTMLElement>('[data-facts]');
+    const bitrateSelect = root.querySelector<HTMLSelectElement>('[data-option="bitrate"]');
+    const button = root.querySelector<HTMLButtonElement>('[data-action="convert"]');
+    const status = root.querySelector<HTMLElement>('.action-status');
+
+    let file: File | null = null;
+    let decoded: AudioBuffer | null = null;
+
+    const say = (message: string) => { if (status) status.textContent = message; };
+
+    const messageFor = (error: unknown) => {
+      const reason = error instanceof MediaError ? error.reason : '';
+      if (reason === 'no-audio') return copy.errNoAudio;
+      if (reason === 'too-long') return copy.errTooLong;
+      if (reason === 'unsupported-codec' || reason === 'unreadable') return copy.errCodec;
+      return copy.errFailed;
+    };
+
+    const row = (term: string, value: string) => `<div><dt>${term}</dt><dd>${value}</dd></div>`;
+
+    const paintFacts = () => {
+      if (!facts || !decoded) return;
+      const bitrate = Number(bitrateSelect?.value ?? 192) as Mp3Bitrate;
+      const minutes = Math.floor(decoded.duration / 60);
+      const seconds = Math.round(decoded.duration % 60);
+      const limit = Math.floor(maxAudioSeconds(decoded.sampleRate, decoded.numberOfChannels) / 60);
+      facts.innerHTML =
+        row(copy.length, `${minutes}:${String(seconds).padStart(2, '0')}`) +
+        row(copy.channels, decoded.numberOfChannels > 1 ? copy.stereo : copy.mono) +
+        row(copy.estimate, formatBytes(mp3Bytes(decoded.duration, bitrate), locale)) +
+        `<div class="media-note"><dt></dt><dd>${copy.limitNote.replace('{n}', String(limit))}</dd></div>`;
+      facts.hidden = false;
+    };
+
+    picker?.addEventListener('change', async () => {
+      file = picker.files?.[0] ?? null;
+      decoded = null;
+      if (facts) facts.hidden = true;
+      if (button) button.disabled = true;
+      if (!file) return;
+
+      say(copy.reading);
+      try {
+        // Decoding up front rather than on the button: the length and channel
+        // count are what the size estimate needs, and they are only knowable
+        // once the browser has actually opened the track.
+        const { decodeAudio } = await import('../../lib/video-to-mp3');
+        decoded = await decodeAudio(await file.arrayBuffer());
+        say('');
+        paintFacts();
+        if (button) button.disabled = false;
+      } catch (error) {
+        say(messageFor(error));
+      }
+    });
+
+    bitrateSelect?.addEventListener('change', paintFacts);
+
+    button?.addEventListener('click', async () => {
+      if (!decoded || !file || !button) return;
+      button.disabled = true;
+      try {
+        const { encodeMp3 } = await import('../../lib/video-to-mp3');
+        const bitrate = Number(bitrateSelect?.value ?? 192) as Mp3Bitrate;
+        const blob = await encodeMp3(decoded, bitrate, (fraction) => {
+          say(`${copy.encoding} ${Math.round(fraction * 100)}%`);
+        });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `${file.name.replace(/\.[^.]+$/u, '')}.mp3`;
+        anchor.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        say(copy.done);
+      } catch (error) {
+        say(messageFor(error));
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+</script>
