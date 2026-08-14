@@ -12,6 +12,8 @@ Private-by-default browser utilities for [utilark.app](https://utilark.app), mai
 - MP4 to GIF: a chosen few seconds of video turned into an animated GIF, with the size estimated before it is made
 - Word and character counter: words, characters, lines, and UTF-8 bytes, from typing or from a .docx
 - PDF merger: reorder and combine PDF files with `pdf-lib` in the browser
+- PDF splitter: extract or delete pages, rotate them, or save each one separately, picked from rendered previews
+- PDF to image: pages as PNG or JPG at screen, document, or print resolution, several arriving as one ZIP
 - Ladder game: assign outcomes to people with a random ladder drawn in SVG
 - Localized `/en/` and `/ko/` routes with matching policy and help pages
 - Canonical URLs, `hreflang`, Open Graph metadata, JSON-LD, sitemap, and robots.txt

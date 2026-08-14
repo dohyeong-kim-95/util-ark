@@ -20,6 +20,7 @@ export const TOOL_SUBDOMAINS = {
   imagecrop: { tool: 'image-crop' },
   img2pdf: { tool: 'image-to-pdf' },
   mergepdf: { tool: 'merge-pdf' },
+  splitpdf: { tool: 'split-pdf' },
   readaloud: { tool: 'read-aloud' },
   mp42mp3: { tool: 'mp4-to-mp3' },
   mp42gif: { tool: 'mp4-to-gif' },
@@ -36,9 +37,8 @@ export const TOOL_SUBDOMAINS = {
   png2webp: { tool: 'png-to-webp' },
   webp2png: { tool: 'webp-to-png' },
 
-  // Reserved for the reverse direction, PDF to images, which does not exist
-  // yet. Not to be confused with img2pdf above.
-  pdf2image: { tool: null, pending: true },
+  // The reverse direction, PDF to images. Not to be confused with img2pdf above.
+  pdf2image: { tool: 'pdf-to-image' },
 };
 
 /**

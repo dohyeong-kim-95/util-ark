@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import worker from './index.js';
-import { TOOL_SUBDOMAINS, resolveHost } from './subdomains.js';
+import { TOOL_SUBDOMAINS, resolveHost, subdomainRedirect } from './subdomains.js';
 
 const env = { ASSETS: { fetch: () => new Response('asset') } };
 
@@ -55,10 +55,23 @@ test('a conversion subdomain lands on that directed pair, not the general conver
   assert.equal(webp.headers.get('Location'), 'https://utilark.app/en/webp-to-jpg/');
 });
 
-test('a reserved name with no tool yet lands on the localized home', async () => {
-  const response = await visit('https://pdf2image.utilark.app/', { 'Accept-Language': 'ko' });
+test('a reserved name with no tool yet lands on the localized home', () => {
+  // Driven through `subdomainRedirect` with a synthetic host rather than a real
+  // reserved name. Every name in the map now has a page behind it — `pdf2image`
+  // was the last one and used to be this test's subject — and a test that has to
+  // be rewritten every time a reservation goes live stops testing the branch and
+  // starts tracking the map.
+  const host = { kind: 'tool', label: 'somethingnew', tool: null, pending: true };
+  const response = subdomainRedirect(new URL('https://somethingnew.utilark.app/'), host, 'ko');
   assert.equal(response.status, 302);
   assert.equal(response.headers.get('Location'), 'https://utilark.app/ko/');
+  assert.equal(response.headers.get('Vary'), 'Accept-Language, Cookie');
+});
+
+test('the reserved name pdf2image now resolves to the tool it was held for', async () => {
+  const response = await visit('https://pdf2image.utilark.app/', { 'Accept-Language': 'ko' });
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('Location'), 'https://utilark.app/ko/pdf-to-image/');
 });
 
 test('a subdomain owns only its root, so every other path is normalized to the apex', async () => {

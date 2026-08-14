@@ -15,6 +15,8 @@ import ReadAloud from './tools/ReadAloud.astro';
 import VideoToGif from './tools/VideoToGif.astro';
 import VideoToMp3 from './tools/VideoToMp3.astro';
 import MergePdf from './tools/MergePdf.astro';
+import PdfToImage from './tools/PdfToImage.astro';
+import SplitPdf from './tools/SplitPdf.astro';
 import WordCounter from './tools/WordCounter.astro';
 
 interface Props {
@@ -33,6 +35,8 @@ const components = {
   'mp4-to-gif': VideoToGif,
   'word-counter': WordCounter,
   'merge-pdf': MergePdf,
+  'split-pdf': SplitPdf,
+  'pdf-to-image': PdfToImage,
   ladder: Ladder,
 };
 const InteractiveTool = components[tool.slug];

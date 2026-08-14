@@ -283,8 +283,8 @@ export type PdfProgress = (done: number, total: number) => void;
  * text, and this reports that rather than returning silence.
  */
 export async function pdfToText(data: ArrayBuffer, onProgress?: PdfProgress): Promise<string> {
-  const pdfjs = await import('pdfjs-dist');
-  const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.min.mjs');
+  const workerUrl = (await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')).default;
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
   const loading = pdfjs.getDocument({

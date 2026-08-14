@@ -24,7 +24,8 @@ export type ToolCopy = {
 export type ToolDefinition = {
   slug:
     | 'image-converter' | 'image-crop' | 'image-to-pdf' | 'read-aloud'
-    | 'mp4-to-mp3' | 'mp4-to-gif' | 'word-counter' | 'merge-pdf' | 'ladder';
+    | 'mp4-to-mp3' | 'mp4-to-gif' | 'word-counter' | 'merge-pdf'
+    | 'split-pdf' | 'pdf-to-image' | 'ladder';
   icon: string;
   accent: string;
   copy: Record<Locale, ToolCopy>;
@@ -514,6 +515,164 @@ export const tools: ToolDefinition[] = [
           {
             question: '용량이 큰 PDF가 실패하는 이유는 무엇인가요?',
             answer: '브라우저 처리는 기기의 메모리를 사용합니다. 파일 수를 나눠 처리하거나 메모리 여유가 있는 데스크톱 기기를 이용해보세요.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    slug: 'split-pdf',
+    icon: '⑃',
+    accent: '#a5d6a7',
+    copy: {
+      en: {
+        name: 'Split PDF',
+        titleTag: 'Split PDF - Free Online Extract & Delete Pages | Utilark',
+        short: 'Keep the pages you want, drop the rest, and rotate what is sideways.',
+        description:
+          'Free online PDF splitter. Extract a page range, delete pages, rotate them, or save each page as its own file — all in your browser, nothing uploaded.',
+        keywords: ['split PDF', 'extract PDF pages', 'delete pages from PDF', 'rotate PDF'],
+        intro: [
+          'Send pages 3 to 7 instead of the whole report. Take out the page that should not have been in there. Turn the sheet that was scanned sideways. These are the jobs an office PDF needs most often, and the ones a reader without a paid licence will not do.',
+          '**If your workplace does not allow uploading internal documents, this is the difference that matters.** A contract, a personnel file or an internal report cannot go to a converter that asks for it first. Here the document is opened and rewritten by your own browser, so nothing leaves the machine and there is nothing to approve.',
+          'Every page is drawn as a preview so you can pick by looking rather than by counting. Typing a range works too, and the two stay in step.',
+        ],
+        steps: [
+          'Choose a PDF; each page appears as a preview.',
+          'Click the pages you want, or type a range like 1-3, 7.',
+          'Keep them, delete them, or save each one separately, then download.',
+        ],
+        faq: [
+          {
+            question: 'Is my document uploaded?',
+            answer: 'No. It is opened and rewritten in your browser with pdf-lib, and nothing is sent to Utilark. That is what makes this usable where uploading a company document to an outside service is not allowed.',
+          },
+          {
+            question: 'Does splitting lose quality?',
+            answer: 'No. The pages are copied across as they are — the same text, images and fonts, not re-rendered. A page taken out of a 40MB report is exactly the page it was.',
+          },
+          {
+            question: 'Does rotating actually turn the page?',
+            answer: 'Yes, and it is stored in the file rather than applied to the picture, so the text stays selectable and the file does not grow. A page already turned three quarters and rotated once more lands back at upright rather than at a full turn, which some readers ignore.',
+          },
+          {
+            question: 'Can I reorder pages?',
+            answer: 'Not here. A selection is always read in page order, so "5-7, 1" means those four pages rather than an instruction to move page one to the end. Quietly reordering a document that someone only meant to trim is the kind of mistake that is noticed far too late.',
+          },
+        ],
+      },
+      ko: {
+        name: 'PDF 쪼개기',
+        titleTag: 'PDF 분할 - 무료 페이지 추출·삭제·회전 | Utilark',
+        short: '필요한 쪽만 남기고, 뺄 쪽은 빼고, 누운 쪽은 돌립니다.',
+        description:
+          '무료 온라인 PDF 분할 도구입니다. 페이지 추출·삭제·회전과 쪽별 저장을 브라우저 안에서 처리하며 업로드하지 않습니다.',
+        keywords: ['PDF 분할', 'PDF 페이지 추출', 'PDF 페이지 삭제', 'PDF 회전'],
+        intro: [
+          '보고서 전체 대신 3~7쪽만 보내기. 들어가면 안 되는 쪽 빼기. 옆으로 스캔된 장 돌리기. 사무실에서 PDF에 하는 일 중 가장 잦은 것들이고, 유료 프로그램 없이는 안 되는 것들입니다.',
+          '**회사에서 내부 문서 업로드가 막혀 있다면 이 차이가 전부입니다.** 계약서·인사자료·내부 보고서는 파일부터 올리라는 변환 사이트에 넣을 수 없습니다. 여기서는 사용자 브라우저가 직접 열고 다시 씁니다 — 파일이 기기 밖으로 나가지 않으니 결재받을 것도 없습니다.',
+          '모든 쪽을 미리보기로 그려주기 때문에 번호를 세지 않고 눈으로 고르면 됩니다. 범위를 직접 적어도 되고, 둘은 서로 맞춰 움직입니다.',
+        ],
+        steps: [
+          'PDF를 고르면 각 쪽이 미리보기로 나타납니다.',
+          '원하는 쪽을 누르거나 1-3, 7처럼 범위를 적습니다.',
+          '남기기·지우기·한 장씩 따로 중에서 고르고 내려받습니다.',
+        ],
+        faq: [
+          {
+            question: '문서가 업로드되나요?',
+            answer: '아니요. 브라우저 안에서 `pdf-lib`으로 열고 다시 쓰며 Utilark로 전송되는 것은 없습니다. 회사 문서를 외부 서비스에 올릴 수 없는 환경에서도 쓸 수 있는 이유가 이것입니다.',
+          },
+          {
+            question: '나누면 화질이 떨어지나요?',
+            answer: '떨어지지 않습니다. 쪽을 있는 그대로 옮겨 담습니다 — 글자도 이미지도 글꼴도 원본 그대로이고 다시 그리지 않습니다. 40MB짜리 보고서에서 뽑은 한 쪽은 그 쪽 그대로입니다.',
+          },
+          {
+            question: '회전이 실제로 저장되나요?',
+            answer: '저장됩니다. 그림을 돌려 다시 그리는 것이 아니라 PDF 안의 회전 값으로 기록하기 때문에 글자를 그대로 선택할 수 있고 용량도 늘지 않습니다. 이미 270도인 쪽을 한 번 더 돌리면 360이 아니라 0으로 맞춰집니다 — 360을 무시하는 뷰어가 있기 때문입니다.',
+          },
+          {
+            question: '쪽 순서를 바꿀 수 있나요?',
+            answer: '이 도구에서는 안 됩니다. 선택은 항상 쪽 번호 순서로 읽으므로 `5-7, 1`은 그 네 쪽을 뜻하지 1쪽을 맨 뒤로 보내라는 뜻이 아닙니다. 잘라내려던 것뿐인 문서의 순서를 말없이 바꿔 버리면 한참 뒤에야 발견되기 때문입니다.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    slug: 'pdf-to-image',
+    icon: '⊞',
+    accent: '#f4a3c0',
+    copy: {
+      en: {
+        name: 'PDF to Image',
+        titleTag: 'PDF to JPG - Free Online PDF to Image, No Upload | Utilark',
+        short: 'Save PDF pages as PNG or JPG pictures.',
+        description:
+          'Free online PDF to image converter. Turn pages into PNG or JPG at screen, document, or print resolution, entirely in your browser.',
+        keywords: ['PDF to JPG', 'PDF to image', 'PDF to PNG', 'convert PDF pages to images'],
+        intro: [
+          'A page from a report into a slide, a diagram into a chat message, a form into something you can mark up — all of them start with getting the page out of the PDF as a picture.',
+          '**The document never leaves your browser.** The pages are drawn on a canvas here with the same engine that displays a PDF, which is what makes this usable on work documents that are not allowed to go to an outside service.',
+          'Pick the resolution by what the picture is for. Screen is enough to paste into a message; document suits a slide; print is worth it only when the result will be printed, because the files get large quickly.',
+        ],
+        steps: [
+          'Choose a PDF.',
+          'Pick the pages, the format, and the resolution.',
+          'Save — one page arrives as an image, several as a ZIP.',
+        ],
+        faq: [
+          {
+            question: 'PNG or JPG?',
+            answer: 'PNG for pages that are mostly text, diagrams or screenshots: it is lossless, so small lettering stays crisp. JPG for pages that are mostly photographs, where the file is several times smaller and the loss does not show.',
+          },
+          {
+            question: 'Which resolution should I choose?',
+            answer: '96 DPI matches a screen and is enough for a message or a chat. 150 DPI is the useful middle and what a slide wants. 300 DPI is print resolution and roughly ten times the file size of screen — worth it only if it really will be printed.',
+          },
+          {
+            question: 'Can I get the text back out of the images?',
+            answer: 'No. An image of a page is a picture; the characters are gone. If you want the words, use Read Aloud, which reads a PDF\'s text layer, or copy them from a PDF reader. This tool does the opposite conversion on purpose.',
+          },
+          {
+            question: 'Is my PDF uploaded?',
+            answer: 'No. It is rendered in your browser. The only thing fetched from Utilark is a character-mapping table, and only when a PDF uses an older Korean or Japanese encoding — your document is not sent with that request.',
+          },
+        ],
+      },
+      ko: {
+        name: 'PDF를 이미지로',
+        titleTag: 'PDF JPG 변환 - 무료 PDF 이미지 변환, 업로드 없음 | Utilark',
+        short: 'PDF 쪽을 PNG나 JPG 그림으로 저장합니다.',
+        description:
+          '무료 온라인 PDF 이미지 변환입니다. 화면용·문서용·인쇄용 해상도로 PNG나 JPG를 만들며 전 과정이 브라우저에서 처리됩니다.',
+        keywords: ['PDF JPG 변환', 'PDF 이미지 변환', 'PDF PNG 변환', 'PDF 사진으로 저장'],
+        intro: [
+          '보고서 한 쪽을 발표 자료에 붙일 때, 도면을 메신저로 보낼 때, 서식에 표시를 해서 돌려줄 때 — 모두 PDF에서 그 쪽을 그림으로 꺼내는 데서 시작합니다.',
+          '**문서가 브라우저 밖으로 나가지 않습니다.** PDF를 화면에 보여줄 때 쓰는 것과 같은 엔진으로 이 자리에서 그립니다. 외부 서비스로 보낼 수 없는 업무 문서에도 쓸 수 있는 이유가 이것입니다.',
+          '해상도는 쓸 곳에 맞춰 고르세요. 메신저로 보낼 거면 화면용으로 충분하고, 발표 자료라면 문서용이 맞습니다. 인쇄용은 정말 인쇄할 때만 쓰세요 — 파일이 금방 커집니다.',
+        ],
+        steps: [
+          'PDF를 고릅니다.',
+          '쪽 번호와 형식, 해상도를 정합니다.',
+          '저장하면 한 쪽은 이미지로, 여러 쪽은 ZIP으로 받습니다.',
+        ],
+        faq: [
+          {
+            question: 'PNG와 JPG 중 무엇을 고르나요?',
+            answer: '글자·도표·화면 캡처가 많은 쪽은 PNG입니다. 무손실이라 작은 글씨가 뭉개지지 않습니다. 사진이 대부분인 쪽은 JPG가 맞습니다. 용량이 몇 배 작으면서 손실이 눈에 띄지 않습니다.',
+          },
+          {
+            question: '해상도는 어떻게 정하나요?',
+            answer: '96 DPI는 화면 해상도로, 메신저나 채팅에 보내기에 충분합니다. 150 DPI가 쓸모 있는 중간값이고 발표 자료에 적당합니다. 300 DPI는 인쇄 해상도이며 화면용보다 파일이 열 배쯤 커지므로, 실제로 인쇄할 때만 고르세요.',
+          },
+          {
+            question: '이미지에서 글자를 다시 뽑을 수 있나요?',
+            answer: '없습니다. 쪽을 이미지로 만들면 그림이 되고 글자 정보는 사라집니다. 글이 필요하면 텍스트 읽어주기로 PDF의 글자 층을 읽거나 PDF 뷰어에서 복사하세요. 이 도구는 의도적으로 그 반대 방향의 변환입니다.',
+          },
+          {
+            question: 'PDF가 업로드되나요?',
+            answer: '아니요. 브라우저에서 그립니다. Utilark에서 받아오는 것은 글자 대응표 한 개뿐이고, 그것도 오래된 한글·일본어 인코딩을 쓴 PDF일 때만 받습니다. 그 요청에 문서 내용은 실리지 않습니다.',
           },
         ],
       },

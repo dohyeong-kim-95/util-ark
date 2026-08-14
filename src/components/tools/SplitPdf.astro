@@ -1,0 +1,296 @@
+---
+import type { Locale } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const labels = locale === 'ko'
+  ? {
+      pick: 'PDF 고르기',
+      hint: '브라우저 안에서 처리하며 업로드하지 않습니다.',
+      pages: '쪽 번호',
+      pagesHint: '예: 1-3, 7, 9-12 · 미리보기를 눌러 골라도 됩니다',
+      mode: '어떻게 할까요',
+      modeKeep: '고른 쪽만 남기기',
+      modeDrop: '고른 쪽 지우기',
+      modeEach: '고른 쪽을 한 장씩 따로 (ZIP)',
+      rotate: '고른 쪽 돌리기',
+      rotate0: '그대로',
+      rotate90: '오른쪽 90°',
+      rotate180: '180°',
+      rotate270: '왼쪽 90°',
+      selectAll: '전체 선택',
+      selectNone: '선택 해제',
+      save: '저장',
+      loading: 'PDF를 여는 중…',
+      thumbs: '미리보기를 그리는 중',
+      working: '만드는 중…',
+      done: '내려받았습니다.',
+      result: '결과',
+      resultPages: '{n}쪽',
+      errEncrypted: '암호가 걸린 PDF입니다. 암호를 푼 뒤 다시 올려 주세요.',
+      errInvalid: 'PDF 파일이 아닙니다.',
+      errNone: '남길 쪽이 없습니다. 지울 쪽을 다시 고르세요.',
+      errFailed: '처리하지 못했습니다.',
+    }
+  : {
+      pick: 'Choose a PDF',
+      hint: 'Handled in your browser and never uploaded.',
+      pages: 'Pages',
+      pagesHint: 'For example 1-3, 7, 9-12 — or click the previews',
+      mode: 'What to do',
+      modeKeep: 'Keep only these pages',
+      modeDrop: 'Delete these pages',
+      modeEach: 'Save each of these separately (ZIP)',
+      rotate: 'Rotate these pages',
+      rotate0: 'Leave as is',
+      rotate90: 'Right 90°',
+      rotate180: '180°',
+      rotate270: 'Left 90°',
+      selectAll: 'Select all',
+      selectNone: 'Clear',
+      save: 'Save',
+      loading: 'Opening the PDF…',
+      thumbs: 'Drawing previews',
+      working: 'Working…',
+      done: 'Downloaded.',
+      result: 'Result',
+      resultPages: '{n} pages',
+      errEncrypted: 'That PDF is password protected. Remove the password and try again.',
+      errInvalid: 'That is not a PDF.',
+      errNone: 'That would leave no pages. Choose different pages to delete.',
+      errFailed: 'The file could not be processed.',
+    };
+---
+
+<div class="pdf-tool" data-locale={locale} data-copy={JSON.stringify(labels)}>
+  <label class="drop-zone">
+    <input type="file" accept="application/pdf,.pdf" />
+    <strong>{labels.pick}</strong>
+    <span>{labels.hint}</span>
+  </label>
+
+  <div class="pdf-workspace" data-workspace hidden>
+    <div class="option-grid">
+      <label>
+        <span>{labels.pages}</span>
+        <input type="text" data-option="pages" inputmode="numeric" autocomplete="off" placeholder="1-3, 7" />
+      </label>
+      <label>
+        <span>{labels.mode}</span>
+        <select data-option="mode">
+          <option value="keep">{labels.modeKeep}</option>
+          <option value="drop">{labels.modeDrop}</option>
+          <option value="each">{labels.modeEach}</option>
+        </select>
+      </label>
+      <label>
+        <span>{labels.rotate}</span>
+        <select data-option="rotate">
+          <option value="0">{labels.rotate0}</option>
+          <option value="90">{labels.rotate90}</option>
+          <option value="180">{labels.rotate180}</option>
+          <option value="270">{labels.rotate270}</option>
+        </select>
+      </label>
+    </div>
+    <p class="pdf-hint">{labels.pagesHint}</p>
+
+    <div class="tool-actions pdf-select-actions">
+      <button type="button" class="ghost" data-action="all">{labels.selectAll}</button>
+      <button type="button" class="ghost" data-action="none">{labels.selectNone}</button>
+      <span class="pdf-summary" data-summary></span>
+    </div>
+
+    <ol class="pdf-pages" data-thumbs></ol>
+
+    <div class="tool-actions">
+      <button type="button" class="primary" data-action="save" disabled>{labels.save}</button>
+      <span class="action-status" role="status"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { PageSelectionError, formatPages, invertPages, normalizeRotation, pageFileName, parsePages } from '../../lib/pdf-pages';
+  import { PdfError } from '../../lib/pdf-text';
+
+  const root = document.querySelector<HTMLElement>('.pdf-tool');
+  if (root) {
+    const copy = JSON.parse(root.dataset.copy || '{}') as Record<string, string>;
+    const picker = root.querySelector<HTMLInputElement>('input[type="file"]');
+    const workspace = root.querySelector<HTMLElement>('[data-workspace]');
+    const pagesInput = root.querySelector<HTMLInputElement>('[data-option="pages"]');
+    const modeSelect = root.querySelector<HTMLSelectElement>('[data-option="mode"]');
+    const rotateSelect = root.querySelector<HTMLSelectElement>('[data-option="rotate"]');
+    const thumbs = root.querySelector<HTMLOListElement>('[data-thumbs]');
+    const summary = root.querySelector<HTMLElement>('[data-summary]');
+    const saveButton = root.querySelector<HTMLButtonElement>('[data-action="save"]');
+    const status = root.querySelector<HTMLElement>('.action-status');
+
+    let file: File | null = null;
+    let pageCount = 0;
+    let selected = new Set<number>();
+    const thumbUrls: string[] = [];
+
+    const say = (message: string) => { if (status) status.textContent = message; };
+
+    const messageFor = (error: unknown) => {
+      if (error instanceof PdfError) {
+        if (error.reason === 'encrypted') return copy.errEncrypted;
+        if (error.reason === 'invalid') return copy.errInvalid;
+      }
+      if (error instanceof PageSelectionError) return error.message;
+      return copy.errFailed;
+    };
+
+    /** The text field and the thumbnails are two views of one selection. */
+    const paintSelection = () => {
+      if (pagesInput && document.activeElement !== pagesInput) {
+        pagesInput.value = formatPages([...selected]);
+      }
+      thumbs?.querySelectorAll<HTMLElement>('[data-page]').forEach((item) => {
+        const page = Number(item.dataset.page);
+        item.classList.toggle('is-selected', selected.has(page));
+        item.querySelector('button')?.setAttribute('aria-pressed', String(selected.has(page)));
+      });
+      const mode = modeSelect?.value ?? 'keep';
+      const kept = mode === 'drop' ? invertPages([...selected], pageCount).length : selected.size;
+      if (summary) summary.textContent = `${copy.result}: ${copy.resultPages.replace('{n}', String(kept))}`;
+      if (saveButton) saveButton.disabled = kept === 0;
+    };
+
+    picker?.addEventListener('change', async () => {
+      file = picker.files?.[0] ?? null;
+      if (!file) return;
+      thumbUrls.splice(0).forEach((url) => URL.revokeObjectURL(url));
+      if (thumbs) thumbs.replaceChildren();
+      say(copy.loading);
+
+      try {
+        const data = await file.arrayBuffer();
+        const { openPdf } = await import('../../lib/pdf-render');
+        const pdf = await openPdf(data.slice(0));
+        pageCount = pdf.pageCount;
+        selected = new Set(Array.from({ length: pageCount }, (_unused, index) => index + 1));
+        if (workspace) workspace.hidden = false;
+        paintSelection();
+
+        // Thumbnails are drawn one at a time, after the controls are already
+        // usable — someone who knows they want pages 1 to 3 should not wait for
+        // a hundred previews to decide it.
+        for (let page = 1; page <= pageCount; page += 1) {
+          say(`${copy.thumbs} ${page} / ${pageCount}`);
+          const rendered = await pdf.render(page, 0.35, 'image/jpeg', 0.7);
+          const url = URL.createObjectURL(rendered.blob);
+          thumbUrls.push(url);
+          const item = document.createElement('li');
+          item.dataset.page = String(page);
+          item.innerHTML =
+            `<button type="button" aria-pressed="true">` +
+            `<img src="${url}" alt="" loading="lazy" /><span>${page}</span></button>`;
+          item.querySelector('button')?.addEventListener('click', () => {
+            if (selected.has(page)) selected.delete(page);
+            else selected.add(page);
+            paintSelection();
+          });
+          thumbs?.append(item);
+          paintSelection();
+        }
+        await pdf.close();
+        say('');
+      } catch (error) {
+        say(messageFor(error));
+      }
+    });
+
+    pagesInput?.addEventListener('input', () => {
+      try {
+        selected = new Set(parsePages(pagesInput.value, pageCount));
+        say('');
+      } catch {
+        // Half-typed input is not an error worth shouting about; the save
+        // button reports the real problem when it is pressed.
+        return;
+      }
+      paintSelection();
+    });
+
+    modeSelect?.addEventListener('change', paintSelection);
+
+    root.querySelector('[data-action="all"]')?.addEventListener('click', () => {
+      selected = new Set(Array.from({ length: pageCount }, (_unused, index) => index + 1));
+      paintSelection();
+    });
+    root.querySelector('[data-action="none"]')?.addEventListener('click', () => {
+      selected = new Set();
+      paintSelection();
+    });
+
+    saveButton?.addEventListener('click', async () => {
+      if (!file || !saveButton) return;
+      saveButton.disabled = true;
+      say(copy.working);
+
+      try {
+        const chosen = parsePages(pagesInput?.value || formatPages([...selected]), pageCount);
+        const mode = modeSelect?.value ?? 'keep';
+        const turn = Number(rotateSelect?.value ?? 0);
+        const kept = mode === 'drop' ? invertPages(chosen, pageCount) : chosen;
+        if (!kept.length) throw new PageSelectionError('empty', copy.errNone);
+
+        const { PDFDocument, degrees } = await import('pdf-lib');
+        const source = await PDFDocument.load(await file.arrayBuffer());
+        const stem = file.name.replace(/\.[^.]+$/u, '') || 'utilark';
+
+        // Rotation applies to the pages that were picked, whichever mode is on:
+        // "delete 2 and 4, and turn the rest" is one action, not two.
+        const turned = new Set(mode === 'drop' ? kept : chosen);
+        const build = async (pages: number[]) => {
+          const out = await PDFDocument.create();
+          const copied = await out.copyPages(source, pages.map((page) => page - 1));
+          copied.forEach((page, index) => {
+            if (turn && turned.has(pages[index])) {
+              page.setRotation(degrees(normalizeRotation(page.getRotation().angle + turn)));
+            }
+            out.addPage(page);
+          });
+          return out.save();
+        };
+
+        let blob: Blob;
+        let name: string;
+        if (mode === 'each') {
+          const { writeZip } = await import('../../lib/zip-write');
+          const entries = [];
+          for (const page of kept) {
+            say(`${copy.working} ${entries.length + 1} / ${kept.length}`);
+            entries.push({
+              name: pageFileName(file.name, page, pageCount, 'pdf'),
+              bytes: await build([page]),
+            });
+          }
+          blob = writeZip(entries);
+          name = `${stem}-pages.zip`;
+        } else {
+          blob = new Blob([await build(kept) as BlobPart], { type: 'application/pdf' });
+          name = `${stem}-${mode === 'drop' ? 'trimmed' : 'pages'}.pdf`;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = name;
+        anchor.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        say(copy.done);
+      } catch (error) {
+        say(messageFor(error));
+      } finally {
+        saveButton.disabled = false;
+      }
+    });
+  }
+</script>
