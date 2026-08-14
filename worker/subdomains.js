@@ -20,6 +20,7 @@ export const TOOL_SUBDOMAINS = {
   imagecrop: { tool: 'image-crop' },
   img2pdf: { tool: 'image-to-pdf' },
   mergepdf: { tool: 'merge-pdf' },
+  readaloud: { tool: 'read-aloud' },
   wordcount: { tool: 'word-counter' },
   ladder: { tool: 'ladder' },
 

@@ -1723,3 +1723,36 @@ button:disabled {
   font-size: 0.85rem;
   line-height: 1.5;
 }
+
+.speech-tool .field {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.speech-tool textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  resize: vertical;
+  line-height: 1.7;
+}
+
+.text-actions {
+  margin-top: 0.9rem;
+}
+
+.speech-warning {
+  margin: 1.1rem 0 0;
+  padding: 0.85rem 1.05rem;
+  border: 1px solid var(--yellow-deep);
+  border-radius: var(--radius-md);
+  background: rgba(246, 211, 101, 0.16);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.speech-warning[hidden] {
+  display: none;
+}

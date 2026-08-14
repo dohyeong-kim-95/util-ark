@@ -113,7 +113,9 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
         {
           heading: 'Files and text used in tools',
           paragraphs: [
-            'Image conversion, word counting, PDF merging, and the ladder game run locally in your browser. Utilark does not receive, store, or review the files, text, and names you use in these tools.',
+            'The tools run locally in your browser: image conversion and cropping, photo-to-PDF, word counting, PDF merging, reading text aloud, and the ladder game. Utilark does not receive, store, or review the files, text, and names you use in them.',
+            'Reading text aloud has one exception that does not involve Utilark. Speech uses the voices your browser offers, and some browsers generate their higher-quality voices on their own servers rather than on your device. Choosing such a voice means your browser sends the text to its vendor to be spoken. The tool labels every voice as on device or network, lists on-device voices first, and warns before you play a network voice. Utilark neither receives nor can see that text either way.',
+            'Cropping a photo, converting it, or placing it in a PDF redraws the image, which discards the metadata a camera stores in the file — including GPS coordinates. This happens on your device and is a side effect of the processing, not something Utilark collects.',
             'Closing or refreshing the page clears the tool state unless your browser itself retains form state. Downloaded results are saved wherever your browser is configured to save them.',
           ],
         },
@@ -189,7 +191,9 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
         {
           heading: '도구에서 사용하는 파일과 글',
           paragraphs: [
-            '이미지 변환, 글자수 계산, PDF 합치기, 사다리타기는 사용자의 브라우저에서 실행됩니다. Utilark는 이 도구에 넣은 파일, 글, 이름을 받거나 저장하거나 열람하지 않습니다.',
+            '이미지 변환과 자르기, 사진 PDF 만들기, 글자수 계산, PDF 합치기, 텍스트 읽어주기, 사다리타기는 사용자의 브라우저에서 실행됩니다. Utilark는 이 도구에 넣은 파일, 글, 이름을 받거나 저장하거나 열람하지 않습니다.',
+            '텍스트 읽어주기에는 Utilark와 무관한 예외가 하나 있습니다. 읽어주기는 브라우저가 제공하는 목소리를 쓰는데, 일부 브라우저는 고품질 목소리를 기기가 아니라 자사 서버에서 만들어 보냅니다. 그런 목소리를 고르면 **읽는 글이 브라우저 제조사로 전송됩니다.** 이 도구는 목소리마다 기기 내장·네트워크를 표시하고, 기기 내장 목소리를 먼저 보여주며, 네트워크 목소리를 재생하기 전에 알려줍니다. 어느 쪽이든 Utilark는 그 글을 받지도, 볼 수도 없습니다.',
+            '사진을 자르거나 변환하거나 PDF에 넣으면 이미지를 다시 그리게 되며, 이 과정에서 카메라가 파일에 기록한 메타데이터가 사라집니다 — GPS 좌표도 포함됩니다. 사용자의 기기에서 일어나는 처리의 부수 효과이며 Utilark가 수집하는 것이 아닙니다.',
             '페이지를 닫거나 새로고침하면 브라우저 자체가 입력 상태를 복구하는 경우를 제외하고 도구 상태가 사라집니다. 결과 파일은 사용자의 브라우저에 설정된 위치에 저장됩니다.',
           ],
         },

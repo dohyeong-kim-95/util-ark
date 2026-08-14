@@ -4,7 +4,10 @@ Private-by-default browser utilities for [utilark.app](https://utilark.app), mai
 
 ## Included in the first release
 
-- Image converter: JPG, PNG, and WebP conversion in the browser
+- Image converter: JPG, PNG, and WebP conversion in the browser, split into a page per directed pair
+- Image cropper with square, 4:3, 16:9, A4, and Korean ID photo ratios
+- Photos to PDF, sized down before embedding so the result can be emailed
+- Read Aloud: browser speech synthesis with on-device voices preferred and network voices flagged
 - Word and character counter: words, characters, lines, and UTF-8 bytes
 - PDF merger: reorder and combine PDF files with `pdf-lib` in the browser
 - Ladder game: assign outcomes to people with a random ladder drawn in SVG
@@ -15,6 +18,8 @@ Private-by-default browser utilities for [utilark.app](https://utilark.app), mai
 - Optional AdSense loading, generated `ads.txt`, and advertising disclosures in both privacy policies
 
 No selected file or text entered into a tool is sent to Utilark. The contact form is the explicit exception: its message and optional reply email are sent to the Utilark Worker and retained for up to 180 days.
+
+Read Aloud has a second exception that does not involve Utilark at all: some browsers generate their higher-quality voices on their own servers, so choosing one sends the text to that vendor. The tool labels every voice as on device or network, orders on-device voices first, and warns before a network voice plays. Both privacy policies describe this.
 
 ## Local development
 
@@ -67,7 +72,8 @@ If the meta tag is rejected anyway, Naver's HTML-file method avoids the root ent
 
 - `/` — `302` to `/en/` or `/ko/`, chosen from the `utilark_lang` cookie and then `Accept-Language`
 - `/en/`, `/ko/` — localized home pages
-- `/en/tools/{tool}/`, `/ko/tools/{tool}/` — localized tool pages
+- `/en/{tool}/`, `/ko/{tool}/` — localized tool and conversion-pair pages; the old `/tools/` paths are `301`ed here
+- `/en/guides/`, `/ko/guides/` — longer articles, each linked to and from the tool it explains
 - Localized about, privacy, terms, and contact pages
 - `{tool}.utilark.app/` — `302` to that tool's localized page, chosen the same way as `/`; any other path on a subdomain is `301`ed to the same path on `utilark.app`
 
@@ -80,7 +86,7 @@ Production uses an independent Cloudflare Worker named `utilark`. Pushes to `mai
 Add these repository secrets under **Settings → Secrets and variables → Actions**:
 
 - `CLOUDFLARE_ACCOUNT_ID`
-- `CLOUDFLARE_API_TOKEN` — use a Utilark-specific token with Workers Scripts edit access, plus `Zone → Workers Routes → Edit` and `Zone → Zone → Read` on the `utilark.app` zone so the wildcard subdomain route deploys from configuration
+- `CLOUDFLARE_API_TOKEN` — use a Utilark-specific token with Workers Scripts edit access, plus `Zone → Workers Routes → Edit` on the `utilark.app` zone so the wildcard subdomain route deploys from configuration
 
 The workflow creates or updates the Worker through Wrangler.
 
@@ -90,9 +96,9 @@ The production custom domains are:
 
 - `utilark.app` — public site and `POST /api/contact`
 - `admin.utilark.app` — noindex administrator login and contact inbox
-- One short entry-point subdomain per tool, such as `mergepdf.utilark.app`, plus names reserved for conversion pages that do not exist yet, such as `png2jpg.utilark.app`
+- One short entry-point subdomain per page: a plain label for a tool (`mergepdf.utilark.app`) and `{from}2{to}` for a conversion (`png2jpg.utilark.app`)
 
-Every tool subdomain redirects to a localized page on `utilark.app` rather than serving its own copy, so indexing, link signals, the sitemap, and the AdSense site registration stay on one host. `docs/subdomains.md` has the full map, the redirect rules, and the dashboard steps; `worker/subdomains.js` is the source of truth, and `npm test` fails if it drifts from the tools that were built.
+Every tool subdomain redirects to a localized page on `utilark.app` rather than serving its own copy, so indexing, link signals, the sitemap, and the AdSense site registration stay on one host. `docs/subdomains.md` has the full map, the redirect rules, and the dashboard steps; `worker/subdomains.js` is the source of truth, and `npm test` fails if it drifts from the pages that were built.
 
 Contact records use a Utilark-only SQLite-backed Durable Object. Tool files and tool text never enter this storage. Records expire after 180 days, and public submissions are rate-limited using an HMAC value instead of storing the source IP address.
 

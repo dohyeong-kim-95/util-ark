@@ -1,0 +1,315 @@
+---
+import type { Locale } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const labels = locale === 'ko'
+  ? {
+      label: '읽을 내용',
+      placeholder: '읽어줄 글을 붙여 넣거나 직접 쓰세요.',
+      paste: '클립보드에서 붙여넣기',
+      clear: '지우기',
+      voice: '목소리',
+      rate: '속도',
+      speak: '읽어주기',
+      stop: '멈추기',
+      pause: '일시정지',
+      resume: '이어듣기',
+      empty: '읽을 내용을 입력해주세요.',
+      unsupported: '이 브라우저는 음성 읽기를 지원하지 않습니다.',
+      noVoice: '이 기기에 설치된 목소리가 없습니다. 시스템 설정에서 음성을 추가해주세요.',
+      pasteFailed: '클립보드를 읽지 못했습니다. 직접 붙여넣어 주세요.',
+      onDevice: '기기 내장',
+      network: '네트워크',
+      networkWarning:
+        '고른 목소리가 네트워크 음성입니다. 읽는 글이 브라우저 제조사 서버로 전송됩니다. 기기 내장 목소리를 고르면 글이 기기 밖으로 나가지 않습니다.',
+      progress: '진행',
+    }
+  : {
+      label: 'Text to read',
+      placeholder: 'Paste or type the text you want read aloud.',
+      paste: 'Paste from clipboard',
+      clear: 'Clear',
+      voice: 'Voice',
+      rate: 'Speed',
+      speak: 'Read aloud',
+      stop: 'Stop',
+      pause: 'Pause',
+      resume: 'Resume',
+      empty: 'Enter some text to read.',
+      unsupported: 'This browser cannot read text aloud.',
+      noVoice: 'This device has no installed voices. Add one in your system settings.',
+      pasteFailed: 'Could not read the clipboard. Paste the text manually instead.',
+      onDevice: 'on device',
+      network: 'network',
+      networkWarning:
+        'The selected voice is a network voice, so the text is sent to your browser vendor to be spoken. Choosing an on-device voice keeps the text on your device.',
+      progress: 'Progress',
+    };
+---
+
+<div
+  class="speech-tool"
+  data-empty={labels.empty}
+  data-unsupported={labels.unsupported}
+  data-novoice={labels.noVoice}
+  data-pastefailed={labels.pasteFailed}
+  data-ondevice={labels.onDevice}
+  data-network={labels.network}
+  data-networkwarning={labels.networkWarning}
+  data-speak={labels.speak}
+  data-stop={labels.stop}
+  data-pause={labels.pause}
+  data-resume={labels.resume}
+  data-lang={locale === 'ko' ? 'ko-KR' : 'en-US'}
+>
+  <label class="field">
+    <span>{labels.label}</span>
+    <textarea rows="8" placeholder={labels.placeholder}></textarea>
+  </label>
+
+  <div class="tool-actions text-actions">
+    <button type="button" data-action="paste" hidden>{labels.paste}</button>
+    <button type="button" data-action="clear">{labels.clear}</button>
+  </div>
+
+  <div class="option-grid">
+    <label>
+      <span>{labels.voice}</span>
+      <select data-option="voice"></select>
+    </label>
+    <label>
+      <span>{labels.rate}: <output>1.0×</output></span>
+      <input data-option="rate" type="range" min="0.5" max="2" value="1" step="0.1" />
+    </label>
+  </div>
+
+  <p class="speech-warning" role="status" hidden></p>
+
+  <div class="tool-actions">
+    <button type="button" class="primary" data-action="speak">{labels.speak}</button>
+    <button type="button" data-action="pause" disabled>{labels.pause}</button>
+    <span class="action-status" role="status"></span>
+  </div>
+</div>
+
+<script>
+  /**
+   * Browser speech synthesis has a set of traps that every implementation meets
+   * in the same order, so they are all handled here rather than discovered
+   * again: an empty first voice list, Chrome cutting long speech at roughly
+   * fifteen seconds, Chrome's queue stalling on long playback, iOS refusing a
+   * first play outside a user gesture, a leftover utterance blocking the next
+   * one, and audio that keeps going after the page is gone.
+   */
+  const root = document.querySelector<HTMLElement>('.speech-tool');
+  const synth = window.speechSynthesis;
+  const Utterance = window.SpeechSynthesisUtterance;
+
+  if (root && synth && Utterance) {
+    const textarea = root.querySelector<HTMLTextAreaElement>('textarea');
+    const voiceSelect = root.querySelector<HTMLSelectElement>('[data-option="voice"]');
+    const rateInput = root.querySelector<HTMLInputElement>('[data-option="rate"]');
+    const rateOutput = root.querySelector<HTMLOutputElement>('output');
+    const speakButton = root.querySelector<HTMLButtonElement>('[data-action="speak"]');
+    const pauseButton = root.querySelector<HTMLButtonElement>('[data-action="pause"]');
+    const pasteButton = root.querySelector<HTMLButtonElement>('[data-action="paste"]');
+    const warning = root.querySelector<HTMLElement>('.speech-warning');
+    const status = root.querySelector<HTMLElement>('.action-status');
+    const pageLang = root.dataset.lang ?? 'en-US';
+
+    let voices: SpeechSynthesisVoice[] = [];
+    let queue: string[] = [];
+    let index = 0;
+    let speaking = false;
+    let ping = 0;
+
+    const liveVoices = () => {
+      try { return synth.getVoices() ?? []; } catch { return []; }
+    };
+
+    // Chrome truncates a long utterance, so speak sentence-sized pieces and let
+    // them run as a queue. It also makes stopping feel immediate.
+    const MAX_CHARS = 160;
+    const chunk = (text: string) => {
+      const out: string[] = [];
+      for (const line of text.split(/\n+/u)) {
+        const clean = line.replace(/[^\S\n]+/gu, ' ').trim();
+        if (!clean) continue;
+        for (const piece of clean.split(/(?<=[.!?…。？！])\s+/u)) {
+          const sentence = piece.trim();
+          if (!sentence) continue;
+          if (sentence.length <= MAX_CHARS) { out.push(sentence); continue; }
+          let rest = sentence;
+          while (rest.length > MAX_CHARS) {
+            let cut = rest.lastIndexOf(' ', MAX_CHARS);
+            if (cut <= 0) cut = MAX_CHARS;
+            out.push(rest.slice(0, cut).trim());
+            rest = rest.slice(cut).trim();
+          }
+          if (rest) out.push(rest);
+        }
+      }
+      return out;
+    };
+
+    const selectedVoice = () => voices[Number(voiceSelect?.value ?? -1)] ?? null;
+
+    const showWarning = () => {
+      if (!warning) return;
+      const voice = selectedVoice();
+      // A network voice means the text is sent away to be spoken. On a site
+      // whose whole claim is that nothing leaves the device, that has to be
+      // said out loud rather than buried.
+      const remote = voice ? voice.localService === false : false;
+      warning.hidden = !remote;
+      warning.textContent = remote ? (root.dataset.networkwarning ?? '') : '';
+    };
+
+    const fillVoices = () => {
+      if (!voiceSelect) return;
+      const base = pageLang.split('-')[0];
+      // Voices for the page language first, then the rest, and on-device ahead
+      // of network within each group so the private option is the default.
+      const rank = (voice: SpeechSynthesisVoice) =>
+        (String(voice.lang ?? '').toLowerCase().startsWith(base) ? 0 : 2)
+        + (voice.localService ? 0 : 1);
+      voices = liveVoices().slice().sort((a, b) => rank(a) - rank(b));
+      voiceSelect.replaceChildren();
+      voices.forEach((voice, position) => {
+        const option = document.createElement('option');
+        option.value = String(position);
+        const kind = voice.localService ? root.dataset.ondevice : root.dataset.network;
+        option.textContent = `${voice.name} · ${voice.lang} (${kind})`;
+        voiceSelect.append(option);
+      });
+      if (status && voices.length === 0) status.textContent = root.dataset.novoice ?? '';
+      showWarning();
+    };
+
+    // The first getVoices() is empty in most browsers. Wait for the event, but
+    // give up after a second — it never fires on some devices.
+    fillVoices();
+    if (voices.length === 0) {
+      const settle = () => { synth.removeEventListener?.('voiceschanged', settle); fillVoices(); };
+      synth.addEventListener?.('voiceschanged', settle);
+      window.setTimeout(settle, 1000);
+    }
+
+    const setSpeakingUi = (active: boolean) => {
+      speaking = active;
+      if (speakButton) speakButton.textContent = active ? (root.dataset.stop ?? '') : (root.dataset.speak ?? '');
+      if (pauseButton) {
+        pauseButton.disabled = !active;
+        pauseButton.textContent = root.dataset.pause ?? '';
+      }
+      if (!active && status) status.textContent = '';
+    };
+
+    const stopPing = () => { window.clearInterval(ping); ping = 0; };
+    const finish = () => {
+      stopPing();
+      queue = [];
+      index = 0;
+      setSpeakingUi(false);
+    };
+
+    const speakNext = () => {
+      if (!speaking) return;
+      if (index >= queue.length) { finish(); return; }
+      if (status) status.textContent = `${index + 1} / ${queue.length}`;
+      const utterance = new Utterance(queue[index]);
+      const voice = selectedVoice();
+      if (voice) {
+        try { utterance.voice = voice; } catch { /* fall back to the default */ }
+      }
+      utterance.lang = voice?.lang ?? pageLang;
+      utterance.rate = Number(rateInput?.value ?? 1);
+      utterance.onend = () => { index += 1; speakNext(); };
+      utterance.onerror = (event) => {
+        // Stopping makes Chrome report interrupted/canceled. That is not a failure.
+        const kind = (event as SpeechSynthesisErrorEvent).error;
+        if (kind === 'interrupted' || kind === 'canceled') return;
+        finish();
+      };
+      try { synth.speak(utterance); } catch { finish(); }
+    };
+
+    speakButton?.addEventListener('click', () => {
+      if (speaking) {
+        finish();
+        try { synth.cancel(); } catch { /* nothing left to cancel */ }
+        return;
+      }
+      const text = textarea?.value ?? '';
+      queue = chunk(text);
+      if (queue.length === 0) {
+        if (status) status.textContent = root.dataset.empty ?? '';
+        return;
+      }
+      // A leftover utterance stops the next speak() from doing anything.
+      try { synth.cancel(); } catch { /* nothing left to cancel */ }
+      index = 0;
+      setSpeakingUi(true);
+      // Chrome's queue stalls on long playback unless it is nudged.
+      ping = window.setInterval(() => {
+        if (!speaking) { stopPing(); return; }
+        if (synth.paused) return;
+        try { synth.resume(); } catch { /* nothing to resume */ }
+      }, 8000);
+      // iOS only allows a first play inside the gesture, so nothing is awaited
+      // between the click and speak().
+      speakNext();
+    });
+
+    pauseButton?.addEventListener('click', () => {
+      if (!speaking || !pauseButton) return;
+      if (synth.paused) {
+        try { synth.resume(); } catch { /* nothing to resume */ }
+        pauseButton.textContent = root.dataset.pause ?? '';
+      } else {
+        try { synth.pause(); } catch { /* nothing to pause */ }
+        pauseButton.textContent = root.dataset.resume ?? '';
+      }
+    });
+
+    voiceSelect?.addEventListener('change', showWarning);
+    rateInput?.addEventListener('input', () => {
+      if (rateOutput) rateOutput.value = `${Number(rateInput.value).toFixed(1)}×`;
+    });
+    root.querySelector('[data-action="clear"]')?.addEventListener('click', () => {
+      if (textarea) { textarea.value = ''; textarea.focus(); }
+    });
+
+    // Reading the clipboard needs permission and is missing in some browsers,
+    // so the button only appears where it can actually work.
+    if (navigator.clipboard?.readText && pasteButton) {
+      pasteButton.hidden = false;
+      pasteButton.addEventListener('click', async () => {
+        try {
+          const text = await navigator.clipboard.readText();
+          if (textarea && text) {
+            textarea.value = textarea.value ? `${textarea.value}\n${text}` : text;
+          }
+        } catch {
+          if (status) status.textContent = root.dataset.pastefailed ?? '';
+        }
+      });
+    }
+
+    // Audio outliving the page is the one failure a visitor cannot undo.
+    const silence = () => {
+      if (!speaking) return;
+      finish();
+      try { synth.cancel(); } catch { /* nothing left to cancel */ }
+    };
+    window.addEventListener('pagehide', silence);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) silence(); });
+  } else if (root) {
+    const status = root.querySelector<HTMLElement>('.action-status');
+    if (status) status.textContent = root.dataset.unsupported ?? '';
+  }
+</script>
