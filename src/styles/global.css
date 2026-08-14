@@ -1742,6 +1742,7 @@ button:disabled {
   background: #fbfbf9;
   color: var(--ink);
   font: inherit;
+  font-weight: 400;
   resize: vertical;
   line-height: 1.7;
   overflow-wrap: anywhere;
