@@ -10,7 +10,7 @@
     "deploy": "npm run build && wrangler deploy",
     "preview": "astro preview",
     "check": "astro check",
-    "test": "npm run check && npm run build && node scripts/check-built-seo.mjs && node --test worker/*.test.mjs"
+    "test": "npm run check && npm run build && node scripts/check-built-seo.mjs && node --test worker/*.test.mjs test/*.test.mts"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",

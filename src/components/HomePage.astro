@@ -3,6 +3,7 @@ import { tools } from '../data/tools';
 import { ui, type Locale } from '../i18n/ui';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ToolCard from './ToolCard.astro';
+import ToolSearch from './ToolSearch.astro';
 
 interface Props {
   locale: Locale;
@@ -38,7 +39,8 @@ const schema = {
         <h1>{t.home.toolsTitle}</h1>
         <p>{t.home.toolsDescription}</p>
       </div>
-      <div class="tool-grid">
+      <ToolSearch locale={locale} />
+      <div class="tool-grid" data-tool-grid>
         {tools.map((tool) => <ToolCard tool={tool} locale={locale} />)}
       </div>
     </div>

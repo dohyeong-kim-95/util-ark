@@ -33,6 +33,11 @@ export const ui = {
         'The tools in this first release process your files and text locally in the browser. Utilark does not upload or store them.',
       toolsTitle: 'Available now',
       toolsDescription: 'Focused tools that do one job well, on desktop and mobile.',
+      searchLabel: 'Search tools and guides',
+      searchPlaceholder: 'Search — crop · png to jpg · 사다리',
+      searchClear: 'Clear the search',
+      searchHint: 'press Enter for the first result',
+      searchEmpty: 'Nothing matched. Try the format name, the slug, or a Korean word.',
     },
     common: {
       openTool: 'Open tool',
@@ -79,6 +84,11 @@ export const ui = {
         '첫 공개판의 도구는 파일과 글을 브라우저 안에서 처리합니다. Utilark 서버로 업로드하거나 저장하지 않습니다.',
       toolsTitle: '지금 사용할 수 있어요',
       toolsDescription: '데스크톱과 모바일에서 한 가지 일을 확실히 처리하는 도구들입니다.',
+      searchLabel: '도구·가이드 검색',
+      searchPlaceholder: '검색 — 자르기 · ㅅㄷㄹ · png to jpg',
+      searchClear: '검색어 지우기',
+      searchHint: 'Enter를 누르면 첫 결과로 이동합니다',
+      searchEmpty: '찾는 게 없어요. 초성(ㅅㄷㄹ)·영문 주소·한영 오타도 됩니다.',
     },
     common: {
       openTool: '도구 열기',

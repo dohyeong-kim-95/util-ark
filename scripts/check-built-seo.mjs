@@ -202,6 +202,27 @@ for (const label of ['TODAY', 'WEEK', 'MONTH', 'data-visitor-stats']) {
   if (!koreanHome.includes(label)) throw new Error(`Korean home: missing public visitor counter ${label}`);
 }
 
+// The landing search is only as good as the index baked into the page, and a
+// stale or truncated index would still render a working-looking box.
+for (const locale of ['ko', 'en']) {
+  const html = await readFile(new URL(`${locale}/index.html`, dist), 'utf8');
+  const island = html.match(/<script[^>]*data-search-index[^>]*>([\s\S]*?)<\/script>/u)?.[1];
+  if (!island) throw new Error(`${locale} home: missing the search index`);
+  const entries = JSON.parse(island);
+  if (entries.length !== indexedPages.length + guideEntries.length) {
+    throw new Error(
+      `${locale} home: search index has ${entries.length} entries, expected ` +
+      `${indexedPages.length + guideEntries.length}`,
+    );
+  }
+  for (const entry of entries) {
+    if (!entry.title || !entry.name || !entry.url.startsWith(`/${locale}/`)) {
+      throw new Error(`${locale} home: search entry is incomplete or points elsewhere: ${entry.name}`);
+    }
+  }
+  if (!html.includes('data-tool-grid')) throw new Error(`${locale} home: search cannot hide the tool grid`);
+}
+
 const koreanPrivacy = await readFile(new URL('ko/privacy/index.html', dist), 'utf8');
 if (!koreanPrivacy.includes('utilark_notrack') || !koreanPrivacy.includes('90일')) {
   throw new Error('Korean privacy policy: missing analytics disclosure');
@@ -251,6 +272,8 @@ const typographyChecks = [
   ['balanced paragraph wrapping', /text-wrap:pretty/u],
   ['mobile home heading size', /clamp\(2\.45rem,12vw,4rem\)/u],
   ['mobile tool heading size', /clamp\(2\.35rem,11vw,3\.8rem\)/u],
+  // One column turned seven tools into a scroll nobody finished.
+  ['two-column tool grid on mobile', /\.tool-grid,\.hit-grid\{grid-template-columns:repeat\(2/u],
 ];
 
 for (const [name, pattern] of typographyChecks) {

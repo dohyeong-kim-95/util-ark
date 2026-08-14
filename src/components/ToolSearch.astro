@@ -1,0 +1,116 @@
+---
+import { searchIndex } from '../lib/search-index';
+import { ui, type Locale } from '../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = ui[locale].home;
+const entries = searchIndex(locale);
+// `</script>` inside a JSON island would close the tag early; the `<` escape is
+// the standard way out and JSON.parse reads it back unchanged.
+const indexJson = JSON.stringify(entries).replace(/</gu, '\\u003c');
+---
+
+{/* The field is hidden until the script that powers it is running, so a page
+    with a broken bundle shows the grid rather than a box that does nothing. */}
+<div class="tool-search" data-tool-search hidden>
+  <input
+    type="search"
+    id="tool-search-input"
+    data-search-input
+    autocomplete="off"
+    autocapitalize="off"
+    spellcheck="false"
+    aria-label={t.searchLabel}
+    placeholder={t.searchPlaceholder}
+  />
+  <button type="button" class="search-clear" data-search-clear aria-label={t.searchClear} hidden>✕</button>
+</div>
+<p class="search-status" data-search-status hidden aria-live="polite"></p>
+<ul class="hit-grid" data-search-results hidden></ul>
+
+<script is:inline type="application/json" data-search-index set:html={indexJson} />
+
+<script>
+  import { searchEntries, type SearchEntry } from '../lib/search-rules';
+
+  const box = document.querySelector<HTMLElement>('[data-tool-search]');
+  const input = document.querySelector<HTMLInputElement>('[data-search-input]');
+  const clear = document.querySelector<HTMLButtonElement>('[data-search-clear]');
+  const status = document.querySelector<HTMLElement>('[data-search-status]');
+  const results = document.querySelector<HTMLElement>('[data-search-results]');
+  const indexNode = document.querySelector<HTMLElement>('[data-search-index]');
+  const grid = document.querySelector<HTMLElement>('[data-tool-grid]');
+
+  if (box && input && clear && status && results && indexNode && grid) {
+    const locale = document.documentElement.lang === 'ko' ? 'ko' : 'en';
+    const copy = locale === 'ko'
+      ? { hint: 'Enter를 누르면 첫 결과로 이동합니다', empty: '찾는 게 없어요. 초성(ㅅㄷㄹ)·영문 주소·한영 오타도 됩니다.', count: (n: number) => `${n}개` }
+      : { hint: 'press Enter for the first result', empty: 'Nothing matched. Try the format name, the slug, or a Korean word.', count: (n: number) => `${n} result${n === 1 ? '' : 's'}` };
+
+    const entries: SearchEntry[] = JSON.parse(indexNode.textContent || '[]');
+    // Only rules that would otherwise look arbitrary explain themselves. Nobody
+    // needs to be told that "crop" matched "Crop Image".
+    const EXPLAIN = new Set(['chosung', 'jamo', 'layout', 'synonym']);
+
+    box.hidden = false;
+
+    const esc = (value: string) =>
+      value.replace(/[&<>]/gu, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch] as string);
+    const escAttr = (value: string) => esc(value).replace(/"/gu, '&quot;');
+
+    let found = searchEntries([], '');
+
+    const render = () => {
+      const query = input.value;
+      clear.hidden = !query;
+
+      if (!query.trim()) {
+        found = [];
+        results.hidden = true;
+        status.hidden = true;
+        results.replaceChildren();
+        grid.hidden = false;
+        return;
+      }
+
+      found = searchEntries(entries, query, { locale });
+      grid.hidden = true;
+      status.hidden = false;
+      results.hidden = found.length === 0;
+      results.innerHTML = found
+        .map(({ entry, rule, label }) => {
+          const why = EXPLAIN.has(rule) ? `<span class="hit-why">${esc(label)}</span>` : '';
+          return `<li><a class="hit" style="--tool-accent:${escAttr(entry.accent)}" href="${escAttr(entry.url)}">` +
+            `<span class="hit-icon" aria-hidden="true">${esc(entry.icon)}</span>` +
+            `<span class="hit-body"><strong>${esc(entry.title)}</strong>` +
+            `<small>${esc(entry.kind)}${why}</small></span></a></li>`;
+        })
+        .join('');
+      status.textContent = found.length ? `${copy.count(found.length)} — ${copy.hint}` : copy.empty;
+    };
+
+    input.addEventListener('input', render);
+    input.addEventListener('keydown', (event) => {
+      // While an IME is composing, Enter commits the Korean syllable — it is not
+      // a request to navigate away.
+      if (event.isComposing) return;
+      if (event.key === 'Enter' && found.length) location.href = found[0].entry.url;
+      if (event.key === 'Escape') { input.value = ''; render(); }
+    });
+    clear.addEventListener('click', () => { input.value = ''; render(); input.focus(); });
+    // '/' jumps into the field on a desktop keyboard.
+    addEventListener('keydown', (event) => {
+      if (event.key !== '/' || event.target === input || event.metaKey || event.ctrlKey) return;
+      const tag = (event.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      event.preventDefault();
+      input.focus();
+    });
+
+    render();
+  }
+</script>
