@@ -348,17 +348,25 @@ export const tools: ToolDefinition[] = [
         short: 'Count words, characters, lines, and UTF-8 bytes instantly.',
         description:
           'Free online word and character counter with line and UTF-8 byte counts. Text stays in your browser and is never uploaded.',
-        keywords: ['word counter', 'character counter', 'byte counter', 'online text counter'],
+        keywords: ['word counter', 'character counter', 'byte counter', 'docx word count'],
         intro: [
           'Paste or type text to see live counts for words, characters, characters without spaces, lines, and UTF-8 bytes.',
-          'Word boundaries use the browser’s language-aware segmenter when available, with a whitespace-based fallback.',
+          'A Word document can be loaded straight from your computer. It is unzipped and read in the browser, so the file goes no further than the page you are on.',
         ],
         steps: [
-          'Paste or type text in the editor.',
+          'Paste text, or load a .docx or text file.',
           'Read the counts as they update instantly.',
           'Clear or copy the text when you are done.',
         ],
         faq: [
+          {
+            question: 'Can I count a Word document?',
+            answer: 'Yes. Pick a .docx file or drop it on the box and its text loads into the editor. A .docx is a ZIP of XML, and the browser can already unzip and read it, so nothing is uploaded and no extra software is needed. The older binary .doc format cannot be read — open it in Word and save it as .docx first.',
+          },
+          {
+            question: 'Which parts of a Word file are counted?',
+            answer: 'The body you wrote, including tables and text boxes. Headers, footers, footnotes and comments live in separate parts of the file and are left out, as is text you deleted with track changes turned on and any field code such as an automatic page number.',
+          },
           {
             question: 'What counts as a word?',
             answer: 'Utilark uses the browser’s language-aware word segmentation when supported. Older browsers fall back to groups separated by whitespace.',
@@ -379,17 +387,25 @@ export const tools: ToolDefinition[] = [
         short: '글자, 단어, 줄, UTF-8 바이트 수를 바로 계산합니다.',
         description:
           '공백 포함·제외 글자수, 단어수, 줄 수와 UTF-8 바이트를 계산합니다. 입력한 글은 브라우저 밖으로 전송하지 않습니다.',
-        keywords: ['글자수 세기', '단어수 계산', '바이트 계산기', '공백 제외 글자수'],
+        keywords: ['글자수 세기', '단어수 계산', '공백 제외 글자수', 'docx 글자수'],
         intro: [
           '글을 붙여 넣거나 입력하면 단어수, 공백 포함·제외 글자수, 줄 수, UTF-8 바이트가 실시간으로 표시됩니다.',
-          '가능한 브라우저에서는 언어별 단어 경계를 인식하고, 지원하지 않으면 공백을 기준으로 계산합니다.',
+          'Word 문서(.docx)를 그대로 올려도 됩니다. 브라우저 안에서 압축을 풀고 읽기 때문에 파일이 이 페이지 밖으로 나가지 않습니다.',
         ],
         steps: [
-          '입력창에 글을 붙여 넣거나 직접 작성합니다.',
+          '글을 붙여 넣거나 .docx·텍스트 파일을 불러옵니다.',
           '실시간으로 바뀌는 계산 결과를 확인합니다.',
           '작업을 마치면 복사하거나 입력창을 비웁니다.',
         ],
         faq: [
+          {
+            question: 'Word 문서(.docx) 글자수도 셀 수 있나요?',
+            answer: '됩니다. 파일을 고르거나 입력창에 끌어다 놓으면 본문이 그대로 들어옵니다. .docx는 XML을 압축해 둔 ZIP 파일이고 브라우저가 압축 해제와 읽기를 이미 할 수 있어서, 업로드도 별도 프로그램 설치도 필요 없습니다. 옛 형식인 .doc는 읽지 못하니 Word에서 .docx로 저장한 뒤 올려 주세요.',
+          },
+          {
+            question: 'Word 파일의 어디까지 세나요?',
+            answer: '직접 쓴 본문이며 표와 텍스트 상자 안의 글도 포함합니다. 머리글·바닥글·각주·메모는 파일 안에서 별도 영역에 저장되므로 세지 않고, 변경 내용 추적으로 지운 글과 자동 쪽 번호 같은 필드 코드도 빼고 셉니다. 자기소개서 글자수를 확인할 때 필요한 것은 본문이기 때문입니다.',
+          },
           {
             question: '단어는 어떤 기준으로 계산하나요?',
             answer: '브라우저가 지원하면 언어별 단어 분리 기능을 사용합니다. 오래된 브라우저에서는 공백으로 나뉜 묶음을 단어로 셉니다.',

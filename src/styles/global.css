@@ -1002,6 +1002,61 @@ button:disabled {
   font-size: 0.7rem;
 }
 
+/* The counter is text-first, so loading a file is one slim row above the box
+   rather than a drop target competing with it for the screen. */
+.counter-source {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.85rem;
+  align-items: center;
+  margin-bottom: 0.7rem;
+}
+
+.file-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.file-pick:hover {
+  border-color: var(--ink);
+}
+
+.file-pick:focus-within {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.file-pick::before {
+  content: '⤒';
+  font-size: 1rem;
+}
+
+.file-pick input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.counter-source small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.counter-tool.is-dropping .counter-input textarea {
+  border-color: var(--ink);
+  background: #fbfbf9;
+}
+
 .drop-zone {
   min-height: 11rem;
   display: grid;

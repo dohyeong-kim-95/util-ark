@@ -8,6 +8,18 @@ interface Props {
 const { locale } = Astro.props;
 const labels = locale === 'ko'
   ? {
+      loadFile: '파일에서 불러오기',
+      fileNote: 'Word(.docx)와 텍스트 파일. 브라우저에서 읽으며 업로드하지 않습니다.',
+      dropHere: '놓으면 불러옵니다',
+      // A file name can end in any character, and Korean object particles differ
+      // by the final consonant, so the sentence is built to need no particle.
+      loaded: '불러왔습니다 ·',
+      replace: '지금 입력된 글을 파일 내용으로 바꿉니다. 계속할까요?',
+      errNotDocx: '.docx 파일이 아닙니다. Word에서 다른 이름으로 저장 → .docx를 고르세요.',
+      errOldDoc: '옛 형식(.doc)은 읽지 못합니다. Word에서 .docx로 저장한 뒤 다시 올려 주세요.',
+      errBrowser: '이 브라우저는 파일 압축을 풀지 못합니다. 최신 브라우저에서 열어 주세요.',
+      errTooBig: '파일이 너무 큽니다(25MB 이하).',
+      errFailed: '파일을 읽지 못했습니다.',
       placeholder: '여기에 글을 입력하거나 붙여 넣으세요.',
       words: '단어',
       characters: '글자(공백 포함)',
@@ -20,6 +32,16 @@ const labels = locale === 'ko'
       copyFailed: '복사하지 못했습니다',
     }
   : {
+      loadFile: 'Load from a file',
+      fileNote: 'Word (.docx) and text files. Read in your browser, never uploaded.',
+      dropHere: 'Drop to load',
+      loaded: 'Loaded ·',
+      replace: 'This replaces the text you have now. Continue?',
+      errNotDocx: 'That is not a .docx file. In Word, use Save As and pick .docx.',
+      errOldDoc: 'The older .doc format cannot be read. Save it as .docx in Word and try again.',
+      errBrowser: 'This browser cannot decompress the file. Try a current browser.',
+      errTooBig: 'That file is too large (25MB maximum).',
+      errFailed: 'The file could not be read.',
       placeholder: 'Type or paste your text here.',
       words: 'Words',
       characters: 'Characters',
@@ -38,7 +60,28 @@ const labels = locale === 'ko'
   data-locale={locale}
   data-copied={labels.copied}
   data-copy-failed={labels.copyFailed}
+  data-file-copy={JSON.stringify({
+    dropHere: labels.dropHere,
+    loaded: labels.loaded,
+    replace: labels.replace,
+    notDocx: labels.errNotDocx,
+    oldDoc: labels.errOldDoc,
+    browser: labels.errBrowser,
+    tooBig: labels.errTooBig,
+    failed: labels.errFailed,
+  })}
 >
+  <div class="counter-source">
+    <label class="file-pick">
+      <input
+        type="file"
+        data-file
+        accept=".docx,.txt,.md,.csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+      />
+      <span>{labels.loadFile}</span>
+    </label>
+    <small>{labels.fileNote}</small>
+  </div>
   <div class="counter-input">
     <textarea
       aria-label={labels.placeholder}
@@ -74,9 +117,12 @@ const labels = locale === 'ko'
 </div>
 
 <script>
+  import { DocxError, docxToText } from '../../lib/docx-text';
+
   const root = document.querySelector<HTMLElement>('.counter-tool');
   if (root) {
     const input = root.querySelector<HTMLTextAreaElement>('textarea');
+    const filePicker = root.querySelector<HTMLInputElement>('[data-file]');
     const locale = root.dataset.locale || 'en';
     const copyButton = root.querySelector<HTMLButtonElement>('[data-action="copy"]');
     const status = root.querySelector<HTMLElement>('.action-status');
@@ -107,6 +153,87 @@ const labels = locale === 'ko'
       });
       if (copyButton) copyButton.disabled = !text;
     };
+    /* ---------- loading a file ---------- */
+    const fileCopy = JSON.parse(root.dataset.fileCopy || '{}') as Record<string, string>;
+    const MAX_BYTES = 25 * 1024 * 1024;
+
+    const say = (message: string) => {
+      if (!status) return;
+      window.clearTimeout(statusTimer);
+      status.textContent = message;
+      statusTimer = window.setTimeout(() => { status.textContent = ''; }, 6000);
+    };
+
+    /**
+     * Korean text files written before UTF-8 became the default are still EUC-KR,
+     * and decoding one as UTF-8 gives a page of replacement characters rather
+     * than an error. Strict mode turns that silence into something catchable.
+     */
+    const decodeText = (bytes: ArrayBuffer) => {
+      try {
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      } catch {
+        try {
+          return new TextDecoder('euc-kr').decode(bytes);
+        } catch {
+          return new TextDecoder().decode(bytes);
+        }
+      }
+    };
+
+    const loadFile = async (file: File) => {
+      if (!input) return;
+      const name = file.name;
+      const lower = name.toLowerCase();
+      if (lower.endsWith('.doc')) return say(fileCopy.oldDoc);
+      if (file.size > MAX_BYTES) return say(fileCopy.tooBig);
+      // Replacing what someone has already typed loses it — programmatic edits
+      // do not enter the browser's undo history.
+      if (input.value.trim() && !window.confirm(fileCopy.replace)) return;
+
+      try {
+        const buffer = await file.arrayBuffer();
+        input.value = lower.endsWith('.docx') ? await docxToText(buffer) : decodeText(buffer);
+        update();
+        input.focus();
+        say(`${fileCopy.loaded} ${name}`);
+      } catch (error) {
+        if (error instanceof DocxError) {
+          say(error.reason === 'unreadable' ? fileCopy.browser : fileCopy.notDocx);
+          return;
+        }
+        say(fileCopy.failed);
+      }
+    };
+
+    filePicker?.addEventListener('change', () => {
+      const file = filePicker.files?.[0];
+      if (file) void loadFile(file);
+      // Cleared so that picking the same file twice fires `change` both times.
+      filePicker.value = '';
+    });
+
+    // Dropping onto the box the text will land in is the obvious gesture, so it
+    // works there as well as on the button.
+    const stop = (event: DragEvent) => { event.preventDefault(); };
+    root.addEventListener('dragover', (event) => {
+      if (!event.dataTransfer?.types.includes('Files')) return;
+      stop(event);
+      event.dataTransfer.dropEffect = 'copy';
+      root.classList.add('is-dropping');
+    });
+    root.addEventListener('dragleave', (event) => {
+      if (event.relatedTarget && root.contains(event.relatedTarget as Node)) return;
+      root.classList.remove('is-dropping');
+    });
+    root.addEventListener('drop', (event) => {
+      const file = event.dataTransfer?.files?.[0];
+      if (!file) return;
+      stop(event);
+      root.classList.remove('is-dropping');
+      void loadFile(file);
+    });
+
     input?.addEventListener('input', update);
     root.querySelector('[data-action="clear"]')?.addEventListener('click', () => {
       if (!input) return;
