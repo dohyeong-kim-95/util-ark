@@ -10,3 +10,6 @@ dist/
 Thumbs.db
 .vscode/
 .idea/
+
+# Copied from pdfjs-dist at build time (scripts/sync-pdf-assets.mjs).
+public/cmaps/

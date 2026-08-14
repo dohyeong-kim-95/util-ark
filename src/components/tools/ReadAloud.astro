@@ -10,6 +10,18 @@ const labels = locale === 'ko'
   ? {
       label: '읽을 내용',
       placeholder: '읽어줄 글을 붙여 넣거나 직접 쓰세요.',
+      loadFile: 'PDF·문서 불러오기',
+      fileNote: 'PDF·Word(.docx)·텍스트. 글자를 선택할 수 있는 PDF만 됩니다 — 스캔본은 읽지 못합니다.',
+      reading: '읽는 중',
+      loaded: '불러왔습니다 ·',
+      replace: '지금 입력된 글을 파일 내용으로 바꿉니다. 계속할까요?',
+      errNoText: '글자가 없는 PDF입니다. 스캔하거나 사진으로 만든 PDF는 글자가 아니라 그림이라, 이 도구가 읽을 수 있는 글자가 없습니다.',
+      errEncrypted: '암호가 걸린 PDF입니다. 암호를 푼 뒤 다시 올려 주세요.',
+      errNotPdf: '읽을 수 없는 파일입니다. PDF·.docx·텍스트 파일을 올려 주세요.',
+      errNotDocx: '.docx 파일이 아닙니다. Word에서 다른 이름으로 저장 → .docx를 고르세요.',
+      errOldDoc: '옛 형식(.doc)은 읽지 못합니다. Word에서 .docx로 저장한 뒤 다시 올려 주세요.',
+      errTooBig: '파일이 너무 큽니다(25MB 이하).',
+      errFailed: '파일을 읽지 못했습니다.',
       paste: '붙여넣기',
       clear: '지우기',
       voice: '목소리',
@@ -34,6 +46,18 @@ const labels = locale === 'ko'
   : {
       label: 'Text to read',
       placeholder: 'Paste or type the text you want read aloud.',
+      loadFile: 'Load a PDF or document',
+      fileNote: 'PDF, Word (.docx) and text. Only PDFs whose text can be selected — scans cannot be read.',
+      reading: 'Reading',
+      loaded: 'Loaded ·',
+      replace: 'This replaces the text you have now. Continue?',
+      errNoText: 'That PDF holds no text. A scanned or photographed PDF is a picture of a page, so there are no characters for this tool to read.',
+      errEncrypted: 'That PDF is password protected. Remove the password and try again.',
+      errNotPdf: 'That file could not be read. Load a PDF, a .docx, or a text file.',
+      errNotDocx: 'That is not a .docx file. In Word, use Save As and pick .docx.',
+      errOldDoc: 'The older .doc format cannot be read. Save it as .docx in Word and try again.',
+      errTooBig: 'That file is too large (25MB maximum).',
+      errFailed: 'The file could not be read.',
       paste: 'Paste',
       clear: 'Clear',
       voice: 'Voice',
@@ -71,7 +95,33 @@ const labels = locale === 'ko'
   data-pause={labels.pause}
   data-resume={labels.resume}
   data-lang={locale === 'ko' ? 'ko-KR' : 'en-US'}
+  data-file-copy={JSON.stringify({
+    reading: labels.reading,
+    loaded: labels.loaded,
+    replace: labels.replace,
+    noText: labels.errNoText,
+    encrypted: labels.errEncrypted,
+    notPdf: labels.errNotPdf,
+    notDocx: labels.errNotDocx,
+    oldDoc: labels.errOldDoc,
+    tooBig: labels.errTooBig,
+    failed: labels.errFailed,
+  })}
 >
+  <div class="counter-source">
+    <label class="file-pick">
+      <input
+        type="file"
+        data-file
+        accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+      />
+      <span>{labels.loadFile}</span>
+    </label>
+    <small>{labels.fileNote}</small>
+  </div>
+  {/* Separate from the player's status, which counts sentences while speaking. */}
+  <p class="file-status" data-file-status role="status" hidden></p>
+
   <label class="field">
     <span>{labels.label}</span>
     <textarea rows="8" placeholder={labels.placeholder}></textarea>
@@ -356,6 +406,100 @@ const labels = locale === 'ko'
       queue = chunk(textarea.value);
       index = 0;
       renderTranscript();
+    });
+
+    /* ---------- loading a PDF or a document ---------- */
+    const filePicker = root.querySelector<HTMLInputElement>('[data-file]');
+    const fileStatus = root.querySelector<HTMLElement>('[data-file-status]');
+    const fileCopy = JSON.parse(root.dataset.fileCopy || '{}') as Record<string, string>;
+    const MAX_BYTES = 25 * 1024 * 1024;
+    let fileTimer = 0;
+
+    const sayFile = (message: string, sticky = false) => {
+      if (!fileStatus) return;
+      window.clearTimeout(fileTimer);
+      fileStatus.textContent = message;
+      fileStatus.hidden = !message;
+      if (!sticky && message) {
+        fileTimer = window.setTimeout(() => { fileStatus.hidden = true; }, 8000);
+      }
+    };
+
+    const decodeText = (bytes: ArrayBuffer) => {
+      try {
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      } catch {
+        try { return new TextDecoder('euc-kr').decode(bytes); } catch { return new TextDecoder().decode(bytes); }
+      }
+    };
+
+    const loadFile = async (file: File) => {
+      if (!textarea) return;
+      const lower = file.name.toLowerCase();
+      if (lower.endsWith('.doc')) return sayFile(fileCopy.oldDoc, true);
+      if (file.size > MAX_BYTES) return sayFile(fileCopy.tooBig, true);
+      if (textarea.value.trim() && !window.confirm(fileCopy.replace)) return;
+      // Reading a file while speaking would swap the text out from under the
+      // queue mid-sentence.
+      if (speaking) { finish(); try { synth.cancel(); } catch { /* nothing to cancel */ } }
+
+      try {
+        const buffer = await file.arrayBuffer();
+        let text: string;
+        if (lower.endsWith('.pdf')) {
+          sayFile(fileCopy.reading, true);
+          // pdf.js and its worker are around half a megabyte, which no visitor
+          // typing into the box should pay for. It arrives only once a PDF does.
+          const { pdfToText } = await import('../../lib/pdf-text');
+          text = await pdfToText(buffer, (done, total) => {
+            sayFile(`${fileCopy.reading} ${done} / ${total}`, true);
+          });
+        } else if (lower.endsWith('.docx')) {
+          const { docxToText } = await import('../../lib/docx-text');
+          text = await docxToText(buffer);
+        } else {
+          text = decodeText(buffer);
+        }
+
+        textarea.value = text;
+        queue = chunk(text);
+        index = 0;
+        renderTranscript();
+        sayFile(`${fileCopy.loaded} ${file.name}`);
+      } catch (error) {
+        const reason = (error as { reason?: string })?.reason;
+        const message =
+          reason === 'no-text-layer' ? fileCopy.noText
+          : reason === 'encrypted' ? fileCopy.encrypted
+          : reason === 'invalid' ? fileCopy.notPdf
+          : reason === 'not-a-zip' || reason === 'not-a-docx' ? fileCopy.notDocx
+          : fileCopy.failed;
+        sayFile(message, true);
+      }
+    };
+
+    filePicker?.addEventListener('change', () => {
+      const file = filePicker.files?.[0];
+      if (file) void loadFile(file);
+      filePicker.value = '';
+    });
+
+    root.addEventListener('dragover', (event) => {
+      if (!event.dataTransfer?.types.includes('Files')) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+      root.classList.add('is-dropping');
+    });
+    root.addEventListener('dragleave', (event) => {
+      if (event.relatedTarget && root.contains(event.relatedTarget as Node)) return;
+      root.classList.remove('is-dropping');
+    });
+    root.addEventListener('drop', (event) => {
+      const file = event.dataTransfer?.files?.[0];
+      if (!file) return;
+      event.preventDefault();
+      root.classList.remove('is-dropping');
+      void loadFile(file);
     });
 
     speakButton?.addEventListener('click', () => {

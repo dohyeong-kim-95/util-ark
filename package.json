@@ -4,18 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "node scripts/sync-pdf-assets.mjs && astro dev",
     "start": "astro dev",
     "build": "astro build",
     "deploy": "npm run build && wrangler deploy",
     "preview": "astro preview",
     "check": "astro check",
-    "test": "npm run check && npm run build && node scripts/check-built-seo.mjs && node --test worker/*.test.mjs test/*.test.mts"
+    "test": "npm run check && npm run build && node scripts/check-built-seo.mjs && node --test worker/*.test.mjs test/*.test.mts",
+    "prebuild": "node scripts/sync-pdf-assets.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
     "astro": "^7.2.1",
-    "pdf-lib": "^1.17.1"
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.2.108"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",

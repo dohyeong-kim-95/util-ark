@@ -191,6 +191,16 @@ for (const page of ['index.html', 'en/index.html', 'ko/index.html', 'en/merge-pd
   if (/<frame[\s>]/iu.test(html)) throw new Error(`${page}: frames hide the verification tag from Naver`);
 }
 
+// The CMaps are copied from pdfjs-dist by a prebuild step and are gitignored, so
+// a build that skipped it would still pass everything else while quietly turning
+// older Korean PDFs into mojibake.
+const cmaps = await readdir(new URL('cmaps/', dist)).catch(() => []);
+for (const required of ['UniKS-UCS2-H.bcmap', 'UniJIS-UCS2-H.bcmap', 'UniGB-UCS2-H.bcmap']) {
+  if (!cmaps.includes(required)) {
+    throw new Error(`dist/cmaps is missing ${required}; run scripts/sync-pdf-assets.mjs`);
+  }
+}
+
 const sitemapFiles = await readdir(new URL('.', dist));
 if (!sitemapFiles.includes('sitemap-index.xml')) throw new Error('missing sitemap-index.xml');
 
