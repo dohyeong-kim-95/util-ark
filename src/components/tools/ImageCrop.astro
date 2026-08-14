@@ -1,0 +1,312 @@
+---
+import type { Locale } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const labels = locale === 'ko'
+  ? {
+      pick: '이미지 선택',
+      hint: 'JPG, PNG, WebP · 한 장씩 자릅니다',
+      ratio: '비율',
+      free: '자유',
+      square: '정사각 1:1',
+      photo: '사진 4:3',
+      wide: '와이드 16:9',
+      a4: 'A4 문서',
+      idPhoto: '증명사진 3.5:4.5',
+      crop: '잘라서 내려받기',
+      reset: '선택 영역 초기화',
+      empty: '먼저 이미지를 선택해주세요.',
+      done: '잘라낸 이미지를 내려받았습니다.',
+      failed: '이미지를 자르지 못했습니다.',
+      size: '선택 영역',
+      moveHandle: '선택 영역 조절',
+    }
+  : {
+      pick: 'Choose an image',
+      hint: 'JPG, PNG, WebP · one image at a time',
+      ratio: 'Aspect ratio',
+      free: 'Free',
+      square: 'Square 1:1',
+      photo: 'Photo 4:3',
+      wide: 'Wide 16:9',
+      a4: 'A4 document',
+      idPhoto: 'ID photo 3.5:4.5',
+      crop: 'Crop & download',
+      reset: 'Reset selection',
+      empty: 'Choose an image first.',
+      done: 'Your cropped image has been downloaded.',
+      failed: 'Could not crop the image.',
+      size: 'Selection',
+      moveHandle: 'Adjust selection',
+    };
+---
+
+<div
+  class="crop-tool"
+  data-empty={labels.empty}
+  data-done={labels.done}
+  data-failed={labels.failed}
+>
+  <label class="drop-zone">
+    <input type="file" accept="image/jpeg,image/png,image/webp" />
+    <strong>{labels.pick}</strong>
+    <span>{labels.hint}</span>
+  </label>
+
+  <div class="crop-stage" hidden>
+    <div class="crop-frame">
+      <img alt="" />
+      <div class="crop-box" tabindex="0" role="group" aria-label={labels.moveHandle}>
+        <span class="crop-handle" data-handle="nw"></span>
+        <span class="crop-handle" data-handle="ne"></span>
+        <span class="crop-handle" data-handle="sw"></span>
+        <span class="crop-handle" data-handle="se"></span>
+      </div>
+    </div>
+    <p class="crop-size"><span>{labels.size}</span> <output>—</output></p>
+  </div>
+
+  <div class="option-grid">
+    <label>
+      <span>{labels.ratio}</span>
+      <select data-option="ratio">
+        <option value="free">{labels.free}</option>
+        <option value="1:1">{labels.square}</option>
+        <option value="4:3">{labels.photo}</option>
+        <option value="16:9">{labels.wide}</option>
+        <option value="210:297">{labels.a4}</option>
+        <option value="35:45">{labels.idPhoto}</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="tool-actions">
+    <button type="button" class="primary" data-action="crop">{labels.crop}</button>
+    <button type="button" data-action="reset">{labels.reset}</button>
+    <span class="action-status" role="status"></span>
+  </div>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>('.crop-tool');
+  if (root) {
+    const input = root.querySelector<HTMLInputElement>('input[type="file"]');
+    const stage = root.querySelector<HTMLElement>('.crop-stage');
+    const frame = root.querySelector<HTMLElement>('.crop-frame');
+    const preview = root.querySelector<HTMLImageElement>('.crop-frame img');
+    const box = root.querySelector<HTMLElement>('.crop-box');
+    const ratioSelect = root.querySelector<HTMLSelectElement>('[data-option="ratio"]');
+    const sizeOutput = root.querySelector<HTMLOutputElement>('.crop-size output');
+    const status = root.querySelector<HTMLElement>('.action-status');
+
+    let source: File | null = null;
+    let bitmap: ImageBitmap | HTMLImageElement | null = null;
+    let objectUrl = '';
+    // The selection is kept in source-image pixels so it survives the preview
+    // being re-laid-out — a phone rotation changes the displayed size, not the
+    // crop the visitor chose.
+    let sel = { x: 0, y: 0, w: 0, h: 0 };
+
+    const naturalSize = () => {
+      if (!bitmap) return { w: 0, h: 0 };
+      return 'width' in bitmap ? { w: bitmap.width, h: bitmap.height } : { w: 0, h: 0 };
+    };
+    const ratio = () => {
+      const value = ratioSelect?.value ?? 'free';
+      if (value === 'free') return null;
+      const [a, b] = value.split(':').map(Number);
+      return a / b;
+    };
+    const clampToImage = () => {
+      const { w: iw, h: ih } = naturalSize();
+      sel.w = Math.min(sel.w, iw);
+      sel.h = Math.min(sel.h, ih);
+      sel.x = Math.min(Math.max(0, sel.x), iw - sel.w);
+      sel.y = Math.min(Math.max(0, sel.y), ih - sel.h);
+    };
+    const applyRatio = () => {
+      const r = ratio();
+      if (!r) return;
+      const { w: iw, h: ih } = naturalSize();
+      // Fit the largest box of this ratio inside what is currently selected,
+      // then grow it back toward the image so a preset never leaves a sliver.
+      let w = Math.min(iw, Math.max(sel.w, 1));
+      let h = w / r;
+      if (h > ih) { h = ih; w = h * r; }
+      sel.w = w;
+      sel.h = h;
+      clampToImage();
+    };
+    const paint = () => {
+      if (!frame || !box || !preview || !bitmap) return;
+      const rect = preview.getBoundingClientRect();
+      const { w: iw, h: ih } = naturalSize();
+      if (!iw || !ih || !rect.width) return;
+      const scale = rect.width / iw;
+      box.style.left = `${sel.x * scale}px`;
+      box.style.top = `${sel.y * scale}px`;
+      box.style.width = `${sel.w * scale}px`;
+      box.style.height = `${sel.h * scale}px`;
+      if (sizeOutput) sizeOutput.value = `${Math.round(sel.w)} × ${Math.round(sel.h)} px`;
+    };
+    const resetSelection = () => {
+      const { w: iw, h: ih } = naturalSize();
+      sel = { x: 0, y: 0, w: iw, h: ih };
+      applyRatio();
+      sel.x = (iw - sel.w) / 2;
+      sel.y = (ih - sel.h) / 2;
+      paint();
+    };
+
+    const decode = async (file: File) => {
+      // Same reasoning as the converter: a phone photo carries an EXIF rotation
+      // tag, and cropping the unrotated pixels would cut the wrong region.
+      if ('createImageBitmap' in window) {
+        return createImageBitmap(file, { imageOrientation: 'from-image' })
+          .catch(() => createImageBitmap(file));
+      }
+      return new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error('decode'));
+        image.src = URL.createObjectURL(file);
+      });
+    };
+
+    input?.addEventListener('change', async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        source = file;
+        bitmap = await decode(file);
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        // Draw the decoded (already-rotated) pixels so the preview and the crop
+        // maths agree; showing the raw file would reintroduce the rotation.
+        // A blob URL rather than a data URL, because a phone photo as base64
+        // is megabytes of string held in memory for no reason.
+        const canvas = document.createElement('canvas');
+        const { w, h } = naturalSize();
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d')?.drawImage(bitmap as CanvasImageSource, 0, 0);
+        const previewBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve));
+        if (!previewBlob) throw new Error('preview');
+        objectUrl = URL.createObjectURL(previewBlob);
+        if (stage) stage.hidden = false;
+        if (status) status.textContent = '';
+        if (preview) {
+          // The box is positioned from the rendered size, which is zero until
+          // the image has actually loaded.
+          preview.onload = resetSelection;
+          preview.src = objectUrl;
+        }
+      } catch {
+        if (status) status.textContent = root.dataset.failed ?? '';
+      }
+    });
+
+    ratioSelect?.addEventListener('change', () => { applyRatio(); paint(); });
+    root.querySelector('[data-action="reset"]')?.addEventListener('click', resetSelection);
+    window.addEventListener('resize', paint);
+
+    let drag: { mode: string; startX: number; startY: number; origin: typeof sel } | null = null;
+    const pointerScale = () => {
+      const rect = preview?.getBoundingClientRect();
+      const { w: iw } = naturalSize();
+      return rect && rect.width && iw ? iw / rect.width : 1;
+    };
+
+    box?.addEventListener('pointerdown', (event) => {
+      const target = event.target as HTMLElement;
+      const mode = target.dataset.handle ?? 'move';
+      drag = { mode, startX: event.clientX, startY: event.clientY, origin: { ...sel } };
+      (event.target as HTMLElement).setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+    });
+
+    window.addEventListener('pointermove', (event) => {
+      if (!drag || !bitmap) return;
+      const scale = pointerScale();
+      const dx = (event.clientX - drag.startX) * scale;
+      const dy = (event.clientY - drag.startY) * scale;
+      const { w: iw, h: ih } = naturalSize();
+      const start = drag.origin;
+      const r = ratio();
+
+      if (drag.mode === 'move') {
+        sel.x = Math.min(Math.max(0, start.x + dx), iw - start.w);
+        sel.y = Math.min(Math.max(0, start.y + dy), ih - start.h);
+      } else {
+        const east = drag.mode.includes('e');
+        const south = drag.mode.includes('s');
+        let w = Math.max(24, east ? start.w + dx : start.w - dx);
+        let h = Math.max(24, south ? start.h + dy : start.h - dy);
+        // Drive height from width so a locked ratio never drifts as the pointer
+        // moves diagonally.
+        if (r) h = w / r;
+        // Cap against the edges the drag is moving toward before placing the
+        // box, so passing an edge pins it there instead of rejecting the move.
+        w = Math.min(w, east ? iw - start.x : start.x + start.w);
+        h = Math.min(h, south ? ih - start.y : start.y + start.h);
+        if (r) {
+          if (w / r > h) w = h * r;
+          else h = w / r;
+        }
+        sel = {
+          x: east ? start.x : start.x + start.w - w,
+          y: south ? start.y : start.y + start.h - h,
+          w,
+          h,
+        };
+        clampToImage();
+      }
+      paint();
+    });
+
+    const endDrag = () => { drag = null; };
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+
+    root.querySelector('[data-action="crop"]')?.addEventListener('click', async () => {
+      if (!bitmap || !source) {
+        if (status) status.textContent = root.dataset.empty ?? '';
+        return;
+      }
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(sel.w));
+        canvas.height = Math.max(1, Math.round(sel.h));
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('canvas');
+        if (source.type === 'image/jpeg') {
+          context.fillStyle = '#ffffff';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        context.drawImage(
+          bitmap as CanvasImageSource,
+          Math.round(sel.x), Math.round(sel.y), canvas.width, canvas.height,
+          0, 0, canvas.width, canvas.height,
+        );
+        const type = source.type === 'image/png' ? 'image/png' : source.type;
+        const blob = await new Promise<Blob | null>((resolve) =>
+          canvas.toBlob(resolve, type, 0.92));
+        if (!blob) throw new Error('encode');
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const dot = source.name.lastIndexOf('.');
+        link.href = url;
+        link.download = `${dot > 0 ? source.name.slice(0, dot) : source.name}-crop${
+          dot > 0 ? source.name.slice(dot) : ''}`;
+        link.click();
+        URL.revokeObjectURL(url);
+        if (status) status.textContent = root.dataset.done ?? '';
+      } catch {
+        if (status) status.textContent = root.dataset.failed ?? '';
+      }
+    });
+  }
+</script>

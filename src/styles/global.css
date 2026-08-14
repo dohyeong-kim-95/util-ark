@@ -1673,3 +1673,53 @@ button:disabled {
   font-size: 0.95rem;
   color: var(--muted);
 }
+
+.crop-stage[hidden] {
+  display: none;
+}
+
+.crop-frame {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0;
+  touch-action: none;
+}
+
+.crop-frame img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.crop-box {
+  position: absolute;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--ink), 0 0 0 9999px rgba(17, 19, 25, 0.45);
+  cursor: move;
+  touch-action: none;
+}
+
+.crop-handle {
+  position: absolute;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--surface);
+  touch-action: none;
+}
+
+.crop-handle[data-handle='nw'] { left: -0.75rem; top: -0.75rem; cursor: nwse-resize; }
+.crop-handle[data-handle='ne'] { right: -0.75rem; top: -0.75rem; cursor: nesw-resize; }
+.crop-handle[data-handle='sw'] { left: -0.75rem; bottom: -0.75rem; cursor: nesw-resize; }
+.crop-handle[data-handle='se'] { right: -0.75rem; bottom: -0.75rem; cursor: nwse-resize; }
+
+.crop-size {
+  margin: 0.9rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}

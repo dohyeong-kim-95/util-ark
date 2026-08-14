@@ -22,7 +22,7 @@ export type ToolCopy = {
 };
 
 export type ToolDefinition = {
-  slug: 'image-converter' | 'word-counter' | 'merge-pdf' | 'ladder';
+  slug: 'image-converter' | 'image-crop' | 'word-counter' | 'merge-pdf' | 'ladder';
   icon: string;
   accent: string;
   copy: Record<Locale, ToolCopy>;
@@ -93,6 +93,83 @@ export const tools: ToolDefinition[] = [
           {
             question: '변환하면 화질이 좋아지나요?',
             answer: '아니요. 형식을 바꿔도 사라진 디테일은 복원되지 않습니다. 낮은 화질 설정은 용량을 줄이지만 선명도도 낮출 수 있습니다.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    slug: 'image-crop',
+    icon: '⊡',
+    accent: '#57c7a2',
+    copy: {
+      en: {
+        name: 'Crop Image',
+        titleTag: 'Crop Image - Free Online Photo Cropper | Utilark',
+        short: 'Trim a photo to the part you want, in your browser.',
+        description:
+          'Free online image cropper with square, 4:3, 16:9, A4, and ID photo ratios. The photo is cropped on your device and never uploaded.',
+        keywords: ['crop image', 'photo cropper', 'crop picture online', 'ID photo crop'],
+        intro: [
+          'Drag the corners to choose the part of the picture you want to keep. Locking a ratio keeps the selection at a fixed shape, which is what you need for a profile picture, a document, or an ID photo.',
+          'Cropping re-encodes the image, and that quietly strips the metadata a camera writes into a photo — including the GPS coordinates of where it was taken. That is usually a good thing to lose before sharing a picture.',
+        ],
+        steps: [
+          'Choose one image.',
+          'Pick a ratio, or leave it free, then drag the selection.',
+          'Crop and download the result.',
+        ],
+        faq: [
+          {
+            question: 'Is the photo uploaded anywhere?',
+            answer: 'No. The image is decoded and cropped in your browser, and the file is not sent to Utilark.',
+          },
+          {
+            question: 'Does cropping remove the location data?',
+            answer: 'Yes. The result is drawn fresh, so EXIF metadata including GPS coordinates and the camera model does not carry over.',
+          },
+          {
+            question: 'Why is the ID photo ratio 3.5:4.5?',
+            answer: 'That is the 35 by 45 millimetre shape used for Korean ID and passport photographs. The ratio is what the tool fixes; printing at the right size is a separate step.',
+          },
+          {
+            question: 'Does the picture lose quality?',
+            answer: 'A PNG stays lossless. A JPG or WebP is compressed again when it is saved, so crop from the original rather than from a file you already cropped once.',
+          },
+        ],
+      },
+      ko: {
+        name: '사진 자르기',
+        titleTag: '사진 자르기 - 무료 온라인 이미지 크롭 | Utilark',
+        short: '사진에서 원하는 부분만 브라우저에서 잘라냅니다.',
+        description:
+          '정사각·4:3·16:9·A4·증명사진 비율을 지원하는 무료 이미지 자르기입니다. 사진은 사용자 기기에서 처리되며 업로드되지 않습니다.',
+        keywords: ['사진 자르기', '이미지 자르기', '사진 크롭', '증명사진 자르기'],
+        intro: [
+          '모서리를 끌어 남길 부분을 정하세요. 비율을 고정하면 선택 영역이 그 모양을 유지하기 때문에 프로필 사진, 문서, 증명사진처럼 규격이 정해진 경우에 필요합니다.',
+          '자르기는 이미지를 다시 저장하는 과정이라, 카메라가 사진에 적어 넣은 메타데이터가 함께 사라집니다 — **촬영 위치 GPS 좌표도 포함됩니다.** 사진을 남에게 보내기 전이라면 대개 사라지는 편이 나은 정보입니다.',
+        ],
+        steps: [
+          '이미지를 한 장 선택합니다.',
+          '비율을 고르거나 자유로 두고 선택 영역을 끕니다.',
+          '잘라서 결과를 내려받습니다.',
+        ],
+        faq: [
+          {
+            question: '사진이 어딘가로 업로드되나요?',
+            answer: '아니요. 이미지 해석과 자르기는 브라우저 안에서 진행되며 파일을 Utilark로 전송하지 않습니다.',
+          },
+          {
+            question: '자르면 위치정보도 지워지나요?',
+            answer: '지워집니다. 결과물을 새로 그리기 때문에 GPS 좌표와 카메라 기종을 포함한 EXIF 메타데이터가 넘어가지 않습니다.',
+          },
+          {
+            question: '증명사진 비율이 왜 3.5:4.5인가요?',
+            answer: '국내 증명사진·여권사진에 쓰는 35×45mm 규격의 비율입니다. 이 도구가 맞춰주는 것은 비율이고, 실제 크기로 인쇄하는 것은 별도 작업입니다.',
+          },
+          {
+            question: '화질이 떨어지나요?',
+            answer: 'PNG는 무손실로 유지됩니다. JPG와 WebP는 저장할 때 다시 압축되므로, 한 번 자른 파일을 또 자르지 말고 원본에서 자르세요.',
           },
         ],
       },
