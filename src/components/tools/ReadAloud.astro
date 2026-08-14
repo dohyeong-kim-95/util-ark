@@ -10,7 +10,7 @@ const labels = locale === 'ko'
   ? {
       label: '읽을 내용',
       placeholder: '읽어줄 글을 붙여 넣거나 직접 쓰세요.',
-      paste: '클립보드에서 붙여넣기',
+      paste: '붙여넣기',
       clear: '지우기',
       voice: '목소리',
       rate: '속도',
@@ -34,7 +34,7 @@ const labels = locale === 'ko'
   : {
       label: 'Text to read',
       placeholder: 'Paste or type the text you want read aloud.',
-      paste: 'Paste from clipboard',
+      paste: 'Paste',
       clear: 'Clear',
       voice: 'Voice',
       rate: 'Speed',
@@ -78,7 +78,13 @@ const labels = locale === 'ko'
   </label>
 
   <div class="tool-actions text-actions">
-    <button type="button" data-action="paste" hidden>{labels.paste}</button>
+    <button type="button" data-action="paste" hidden>
+      <svg class="clipboard-icon" aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M9 5.5h6M9 4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3H9V4Z"></path>
+        <path d="M8 5H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
+      </svg>
+      <span>{labels.paste}</span>
+    </button>
     <button type="button" data-action="clear">{labels.clear}</button>
   </div>
 
