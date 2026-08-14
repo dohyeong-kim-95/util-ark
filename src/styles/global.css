@@ -418,72 +418,21 @@ button:disabled {
   font-size: 0.85rem;
 }
 
-/* Results are denser than the tool cards: at this point the visitor has named
-   what they want, so the job is to list matches, not to sell each one. */
-.hit-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.7rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.hit {
-  display: flex;
-  gap: 0.7rem;
-  align-items: center;
-  height: 100%;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  text-decoration: none;
-  color: inherit;
-}
-
-.hit:hover {
-  border-color: var(--tool-accent);
-}
-
-.hit-icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 2.1rem;
-  height: 2.1rem;
-  border: 1px solid var(--ink);
-  border-radius: 0.6rem;
-  background: var(--tool-accent);
-  font-size: 0.85rem;
-}
-
-.hit-body {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.hit-body strong {
-  font-size: 0.95rem;
-  line-height: 1.35;
-}
-
-.hit-body small {
-  margin-top: 0.15rem;
+/* Results reuse `.tool-card` wholesale, so a match is the same card the grid
+   shows rather than a shrunken row. The one addition is this line, because
+   results mix tools, conversion pages and guides. */
+/* A span, not a paragraph, so the mobile clamp on `.tool-card p` leaves it be. */
+.card-kind {
+  display: block;
+  position: relative;
+  z-index: 1;
+  margin: 0 0 0.2rem;
   color: var(--muted);
-  font-size: 0.75rem;
-  line-height: 1.45;
-}
-
-/* Why a hit surfaced, when the reason is not self-evident. Set inline with the
-   category rather than as a badge — it reads as part of the sentence. */
-.hit-why::before {
-  content: ' · ';
-}
-
-.hit-kind {
-  font-weight: 600;
+  font-family: Inter, Pretendard, system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .tool-grid[hidden] {
@@ -1686,8 +1635,7 @@ button:disabled {
   /* Two across rather than one. A single column turned seven tools into a
      scroll long enough that the last of them was never seen; side by side they
      fit roughly one screen, which is the point of a landing page. */
-  .tool-grid,
-  .hit-grid {
+  .tool-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.6rem;
   }
@@ -1734,17 +1682,6 @@ button:disabled {
      the row repeating that costs a third of the card and says nothing. */
   .tool-card .card-action {
     display: none;
-  }
-
-  .hit {
-    padding: 0.6rem 0.7rem;
-    gap: 0.5rem;
-  }
-
-  .hit-icon {
-    width: 1.8rem;
-    height: 1.8rem;
-    font-size: 0.75rem;
   }
 
   .section-heading {

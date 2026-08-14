@@ -30,7 +30,9 @@ const indexJson = JSON.stringify(entries).replace(/</gu, '\\u003c');
   <button type="button" class="search-clear" data-search-clear aria-label={t.searchClear} hidden>✕</button>
 </div>
 <p class="search-status" data-search-status hidden aria-live="polite"></p>
-<ul class="hit-grid" data-search-results hidden></ul>
+{/* Same class as the grid it replaces: a result is the tool card, not a
+    smaller stand-in for it. */}
+<div class="tool-grid" data-search-results hidden></div>
 
 <script is:inline type="application/json" data-search-index set:html={indexJson} />
 
@@ -58,9 +60,6 @@ const indexJson = JSON.stringify(entries).replace(/</gu, '\\u003c');
         };
 
     const entries: SearchEntry[] = JSON.parse(indexNode.textContent || '[]');
-    // Only rules that would otherwise look arbitrary explain themselves. Nobody
-    // needs to be told that "crop" matched "Crop Image".
-    const EXPLAIN = new Set(['chosung', 'jamo', 'layout', 'synonym']);
 
     box.hidden = false;
 
@@ -87,14 +86,18 @@ const indexJson = JSON.stringify(entries).replace(/</gu, '\\u003c');
       grid.hidden = true;
       status.hidden = false;
       results.hidden = found.length === 0;
+      // Mirrors ToolCard.astro exactly, plus the category line — results mix
+      // tools, conversion pages and guides, and the card is the same shape for
+      // all three. Change one and change the other.
       results.innerHTML = found
-        .map(({ entry, rule, label }) => {
-          const why = EXPLAIN.has(rule) ? `<span class="hit-why">${esc(label)}</span>` : '';
-          return `<li><a class="hit" style="--tool-accent:${escAttr(entry.accent)}" href="${escAttr(entry.url)}">` +
-            `<span class="hit-icon" aria-hidden="true">${esc(entry.icon)}</span>` +
-            `<span class="hit-body"><strong>${esc(entry.title)}</strong>` +
-            `<small><span class="hit-kind">${esc(entry.kind)}</span>${why}</small></span></a></li>`;
-        })
+        .map(({ entry }) =>
+          `<article class="tool-card" style="--tool-accent:${escAttr(entry.accent)}">` +
+            `<div class="tool-icon" aria-hidden="true">${esc(entry.icon)}</div>` +
+            `<div><span class="card-kind">${esc(entry.kind)}</span>` +
+            `<h3><a href="${escAttr(entry.url)}">${esc(entry.title)}</a></h3>` +
+            `<p>${esc(entry.desc)}</p></div>` +
+            `<a class="card-action" href="${escAttr(entry.url)}">${esc(entry.action)}<span aria-hidden="true">↗</span></a>` +
+          `</article>`)
         .join('');
       status.textContent = found.length ? copy.count(found.length) : copy.empty;
     };

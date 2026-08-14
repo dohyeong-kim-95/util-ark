@@ -216,11 +216,19 @@ for (const locale of ['ko', 'en']) {
     );
   }
   for (const entry of entries) {
-    if (!entry.title || !entry.name || !entry.url.startsWith(`/${locale}/`)) {
-      throw new Error(`${locale} home: search entry is incomplete or points elsewhere: ${entry.name}`);
+    if (!entry.title || !entry.name || !entry.desc || !entry.action) {
+      throw new Error(`${locale} home: search entry cannot be drawn as a card: ${entry.name}`);
+    }
+    if (!entry.url.startsWith(`/${locale}/`)) {
+      throw new Error(`${locale} home: search entry points outside the locale: ${entry.name}`);
     }
   }
   if (!html.includes('data-tool-grid')) throw new Error(`${locale} home: search cannot hide the tool grid`);
+  // A result is the same card as the grid, at the same size. A compact list
+  // would be a different site's idea of a result.
+  if (!/class="tool-grid" data-search-results/u.test(html)) {
+    throw new Error(`${locale} home: search results do not use the tool grid`);
+  }
 }
 
 const koreanPrivacy = await readFile(new URL('ko/privacy/index.html', dist), 'utf8');
@@ -273,7 +281,7 @@ const typographyChecks = [
   ['mobile home heading size', /clamp\(2\.45rem,12vw,4rem\)/u],
   ['mobile tool heading size', /clamp\(2\.35rem,11vw,3\.8rem\)/u],
   // One column turned seven tools into a scroll nobody finished.
-  ['two-column tool grid on mobile', /\.tool-grid,\.hit-grid\{grid-template-columns:repeat\(2/u],
+  ['two-column tool grid on mobile', /\.tool-grid\{grid-template-columns:repeat\(2/u],
 ];
 
 for (const [name, pattern] of typographyChecks) {

@@ -8,31 +8,31 @@ import { chosungOf, jamoOf, layoutJamo, normalize, searchEntries, type SearchEnt
  * a rule rather than a data change: the real index is rebuilt whenever copy is
  * edited, and a test bound to it would fail on rewording instead of on a bug.
  */
+/** Fields the card needs to be drawn but the engine never reads. */
+const card = (name: string) => ({
+  url: `/ko/${name}/`, icon: '⊡', accent: '#57c7a2', kind: '도구', action: '도구 열기',
+});
+
 const entries: SearchEntry[] = [
   {
     title: '사진 자르기', name: 'image-crop', desc: '사진에서 원하는 부분만 잘라냅니다.',
-    keywords: ['사진 자르기', '이미지 자르기', '증명사진 자르기'],
-    url: '/ko/image-crop/', icon: '⊡', accent: '#57c7a2', kind: '도구',
+    keywords: ['사진 자르기', '이미지 자르기', '증명사진 자르기'], ...card('image-crop'),
   },
   {
     title: '이미지 변환', name: 'image-converter', desc: 'JPG·PNG·WebP를 서로 바꿉니다.',
-    keywords: ['이미지 변환', '사진 확장자 변환'],
-    url: '/ko/image-converter/', icon: '⇄', accent: '#7c9cff', kind: '도구',
+    keywords: ['이미지 변환', '사진 확장자 변환'], ...card('image-converter'),
   },
   {
     title: 'PNG를 JPG로', name: 'png-to-jpg', desc: 'PNG 이미지를 JPG로 바꿔 용량을 줄입니다.',
-    keywords: ['png jpg 변환'],
-    url: '/ko/png-to-jpg/', icon: '◧', accent: '#ff8f70', kind: '이미지 변환',
+    keywords: ['png jpg 변환'], ...card('png-to-jpg'),
   },
   {
     title: '사다리타기', name: 'ladder', desc: '순서와 역할을 무작위로 정합니다.',
-    keywords: ['사다리타기', '제비뽑기'],
-    url: '/ko/ladder/', icon: '⑂', accent: '#f2c94c', kind: '도구',
+    keywords: ['사다리타기', '제비뽑기'], ...card('ladder'),
   },
   {
     title: 'PDF 합치기', name: 'merge-pdf', desc: '여러 PDF를 한 파일로 합칩니다.',
-    keywords: ['PDF 합치기'],
-    url: '/ko/merge-pdf/', icon: '⧉', accent: '#9b8cff', kind: '도구',
+    keywords: ['PDF 합치기'], ...card('merge-pdf'),
   },
 ];
 

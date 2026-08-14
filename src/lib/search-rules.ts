@@ -33,6 +33,8 @@ export type SearchEntry = {
   accent: string;
   /** Localized group label: tool, converter, guide. */
   kind: string;
+  /** Localized call to action, since a guide is read rather than opened. */
+  action: string;
 };
 
 export type SearchHit = {
