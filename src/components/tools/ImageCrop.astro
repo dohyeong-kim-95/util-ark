@@ -24,6 +24,7 @@ const labels = locale === 'ko'
       failed: '이미지를 자르지 못했습니다.',
       size: '선택 영역',
       moveHandle: '선택 영역 조절',
+      change: '다른 이미지 선택',
     }
   : {
       pick: 'Choose an image',
@@ -42,6 +43,7 @@ const labels = locale === 'ko'
       failed: 'Could not crop the image.',
       size: 'Selection',
       moveHandle: 'Adjust selection',
+      change: 'Choose a different image',
     };
 ---
 
@@ -51,15 +53,18 @@ const labels = locale === 'ko'
   data-done={labels.done}
   data-failed={labels.failed}
 >
-  <label class="drop-zone">
-    <input type="file" accept="image/jpeg,image/png,image/webp" />
-    <strong>{labels.pick}</strong>
-    <span>{labels.hint}</span>
-  </label>
-
   <div class="crop-stage" hidden>
     <div class="crop-frame">
       <img alt="" />
+      <!-- Four panels dim everything outside the selection. A single huge
+           box-shadow would spill past the frame and darken the controls
+           below it, which is the whole page on a phone. -->
+      <div class="crop-shade" aria-hidden="true">
+        <span data-shade="top"></span>
+        <span data-shade="bottom"></span>
+        <span data-shade="left"></span>
+        <span data-shade="right"></span>
+      </div>
       <div class="crop-box" tabindex="0" role="group" aria-label={labels.moveHandle}>
         <span class="crop-handle" data-handle="nw"></span>
         <span class="crop-handle" data-handle="ne"></span>
@@ -67,8 +72,18 @@ const labels = locale === 'ko'
         <span class="crop-handle" data-handle="se"></span>
       </div>
     </div>
-    <p class="crop-size"><span>{labels.size}</span> <output>—</output></p>
   </div>
+
+  <p class="crop-size" hidden><span>{labels.size}</span> <output>—</output></p>
+
+  <!-- After the stage in the source, so an empty tool leads with the picker
+       and a loaded one leads with the picture. -->
+  <label class="drop-zone">
+    <input type="file" accept="image/jpeg,image/png,image/webp" />
+    <strong data-pick>{labels.pick}</strong>
+    <strong data-change hidden>{labels.change}</strong>
+    <span data-hint>{labels.hint}</span>
+  </label>
 
   <div class="option-grid">
     <label>
@@ -101,6 +116,13 @@ const labels = locale === 'ko'
     const box = root.querySelector<HTMLElement>('.crop-box');
     const ratioSelect = root.querySelector<HTMLSelectElement>('[data-option="ratio"]');
     const sizeOutput = root.querySelector<HTMLOutputElement>('.crop-size output');
+    const sizeRow = root.querySelector<HTMLElement>('.crop-size');
+    const shades = {
+      top: root.querySelector<HTMLElement>('[data-shade="top"]'),
+      bottom: root.querySelector<HTMLElement>('[data-shade="bottom"]'),
+      left: root.querySelector<HTMLElement>('[data-shade="left"]'),
+      right: root.querySelector<HTMLElement>('[data-shade="right"]'),
+    };
     const status = root.querySelector<HTMLElement>('.action-status');
 
     let source: File | null = null;
@@ -147,10 +169,31 @@ const labels = locale === 'ko'
       const { w: iw, h: ih } = naturalSize();
       if (!iw || !ih || !rect.width) return;
       const scale = rect.width / iw;
-      box.style.left = `${sel.x * scale}px`;
-      box.style.top = `${sel.y * scale}px`;
-      box.style.width = `${sel.w * scale}px`;
-      box.style.height = `${sel.h * scale}px`;
+      const left = sel.x * scale;
+      const top = sel.y * scale;
+      const width = sel.w * scale;
+      const height = sel.h * scale;
+      box.style.left = `${left}px`;
+      box.style.top = `${top}px`;
+      box.style.width = `${width}px`;
+      box.style.height = `${height}px`;
+      // The dim is drawn as four panels around the selection so it can never
+      // reach past the picture.
+      const displayHeight = rect.height;
+      if (shades.top) {
+        shades.top.style.cssText = `left:0;top:0;width:100%;height:${top}px`;
+      }
+      if (shades.bottom) {
+        shades.bottom.style.cssText =
+          `left:0;top:${top + height}px;width:100%;height:${Math.max(0, displayHeight - top - height)}px`;
+      }
+      if (shades.left) {
+        shades.left.style.cssText = `left:0;top:${top}px;width:${left}px;height:${height}px`;
+      }
+      if (shades.right) {
+        shades.right.style.cssText =
+          `left:${left + width}px;top:${top}px;width:${Math.max(0, rect.width - left - width)}px;height:${height}px`;
+      }
       if (sizeOutput) sizeOutput.value = `${Math.round(sel.w)} × ${Math.round(sel.h)} px`;
     };
     const resetSelection = () => {
@@ -197,6 +240,11 @@ const labels = locale === 'ko'
         if (!previewBlob) throw new Error('preview');
         objectUrl = URL.createObjectURL(previewBlob);
         if (stage) stage.hidden = false;
+        if (sizeRow) sizeRow.hidden = false;
+        root.classList.add('has-image');
+        root.querySelector<HTMLElement>('[data-pick]')?.setAttribute('hidden', '');
+        root.querySelector<HTMLElement>('[data-change]')?.removeAttribute('hidden');
+        root.querySelector<HTMLElement>('[data-hint]')?.setAttribute('hidden', '');
         if (status) status.textContent = '';
         if (preview) {
           // The box is positioned from the rendered size, which is zero until

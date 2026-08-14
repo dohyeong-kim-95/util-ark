@@ -1678,6 +1678,20 @@ button:disabled {
   display: none;
 }
 
+/* The preview gets a panel of its own so the picture is the thing on screen,
+   not one control among several. */
+.crop-stage {
+  display: grid;
+  place-items: center;
+  min-height: min(60vh, 26rem);
+  padding: clamp(0.75rem, 3vw, 1.5rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background:
+    repeating-conic-gradient(rgba(17, 19, 25, 0.05) 0% 25%, transparent 0% 50%) 50% / 1.5rem 1.5rem,
+    var(--surface);
+}
+
 .crop-frame {
   position: relative;
   display: inline-block;
@@ -1689,15 +1703,24 @@ button:disabled {
 .crop-frame img {
   display: block;
   max-width: 100%;
+  /* Bounded by height too, so a tall photo cannot push the controls off screen. */
+  max-height: min(60vh, 26rem);
+  width: auto;
   height: auto;
   user-select: none;
   -webkit-user-drag: none;
 }
 
+.crop-shade span {
+  position: absolute;
+  background: rgba(17, 19, 25, 0.45);
+  pointer-events: none;
+}
+
 .crop-box {
   position: absolute;
   border: 2px solid var(--surface);
-  box-shadow: 0 0 0 1px var(--ink), 0 0 0 9999px rgba(17, 19, 25, 0.45);
+  box-shadow: 0 0 0 1px var(--ink);
   cursor: move;
   touch-action: none;
 }
@@ -1722,6 +1745,25 @@ button:disabled {
   color: var(--muted);
   font-size: 0.85rem;
   line-height: 1.5;
+}
+
+.crop-size[hidden] {
+  display: none;
+}
+
+/* Once a picture is loaded the picker stops being the headline and becomes a
+   quiet way back, sitting under the preview it used to sit above. */
+.crop-tool.has-image .drop-zone {
+  min-height: 0;
+  margin-top: 1rem;
+  padding: 0.75rem 1.1rem;
+  border-style: solid;
+  background: var(--surface);
+}
+
+.crop-tool.has-image .drop-zone strong {
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .speech-tool .field {
