@@ -106,9 +106,9 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
       description:
         'How Utilark handles browser-processed files, access logs, advertising, and other data when you use the service.',
       lead: 'The current tools do not upload the files or text you choose to Utilark.',
-      updated: '2026-08-12',
+      updated: '2026-08-17',
       notice:
-        'This policy covers Utilark at utilark.app, including the contact form. Browser extensions, downloaded files, and third-party sites have their own policies.',
+        'This policy covers Utilark at utilark.app, including the contact and tool-feedback forms. Browser extensions, downloaded files, and third-party sites have their own policies.',
       sections: [
         {
           heading: 'Files and text used in tools',
@@ -135,6 +135,15 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
             'When you use the contact form, Utilark stores the message, category, language, submission time, status, and any reply email you choose to provide. A reply email is optional. Do not include sensitive information or attach private documents.',
             'Contact messages are used only to review and respond to the inquiry. They are available to the Utilark administrator at admin.utilark.app, are kept separately from Bubblelab data, and are automatically removed after 180 days unless deleted earlier.',
             'For abuse prevention, the service temporarily uses a keyed one-way value derived from the connection IP address. The original IP address is not stored in the contact database, and expired rate-limit records are removed automatically.',
+          ],
+        },
+        {
+          heading: 'Tool feedback and published quotes',
+          paragraphs: [
+            'After using a tool, you may choose a helpful or not-helpful rating and optionally send a reason and a note of up to 180 characters. Utilark receives only those feedback fields, the tool address, language, and submission time. The file or text used in the tool is never attached to the feedback.',
+            'A note is private by default. A positive note can be considered for publication only when you separately select the anonymous-publication checkbox. Even then it stays hidden until the Utilark administrator reviews and approves it. No name, email address, IP address, or browser identifier is shown with a published quote.',
+            'Feedback, including approved public quotes, is removed automatically after 180 days unless deleted earlier. Ratings may be shown only as aggregate helpfulness totals once enough responses exist. A keyed one-way value derived from the connection IP address is used temporarily to limit repeated submissions; the original address is not stored in the feedback database.',
+            'Do not put a name, contact information, confidential material, or another person’s information in the short note. To request early removal of a published quote, send the exact quote and tool name through the contact form.',
           ],
         },
         {
@@ -185,9 +194,9 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
       description:
         'Utilark 이용 시 브라우저에서 처리되는 파일, 접속 기록, 광고 및 기타 데이터를 어떻게 다루는지 안내합니다.',
       lead: '현재 제공하는 도구는 사용자가 선택한 파일이나 글을 Utilark로 업로드하지 않습니다.',
-      updated: '2026-08-12',
+      updated: '2026-08-17',
       notice:
-        '이 방침은 문의 폼을 포함한 utilark.app의 Utilark 서비스에 적용됩니다. 브라우저 확장 기능, 내려받은 파일, 외부 사이트에는 각각의 정책이 적용됩니다.',
+        '이 방침은 문의 폼과 도구 의견 폼을 포함한 utilark.app의 Utilark 서비스에 적용됩니다. 브라우저 확장 기능, 내려받은 파일, 외부 사이트에는 각각의 정책이 적용됩니다.',
       sections: [
         {
           heading: '도구에서 사용하는 파일과 글',
@@ -214,6 +223,15 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
             '문의 폼을 사용하면 문의 내용, 종류, 언어, 접수 시각, 처리 상태와 사용자가 선택적으로 제공한 답변용 이메일을 저장합니다. 이메일은 필수가 아닙니다. 민감정보나 비공개 문서는 보내지 마세요.',
             '문의 데이터는 문의 확인과 답변에만 사용합니다. admin.utilark.app의 Utilark 관리자만 확인할 수 있고 Bubblelab 데이터와 분리해 보관하며, 먼저 삭제하지 않더라도 180일 뒤 자동으로 삭제합니다.',
             '오남용 방지를 위해 접속 IP 주소에서 키가 적용된 단방향 값을 만들어 일시적으로 사용합니다. 문의 데이터베이스에 IP 주소 원문은 저장하지 않으며 기간이 지난 요청 제한 기록은 자동 삭제합니다.',
+          ],
+        },
+        {
+          heading: '도구 의견과 공개 사용자 후기',
+          paragraphs: [
+            '도구를 사용한 뒤 도움됨·아쉬움 중 하나를 선택하고, 선택형 사유와 최대 180자의 짧은 의견을 선택적으로 보낼 수 있습니다. Utilark가 받는 것은 이 의견 항목, 사용한 도구 주소, 언어, 접수 시각뿐입니다. 도구에서 처리한 파일이나 입력한 글은 의견에 첨부되지 않습니다.',
+            '작성한 의견은 기본적으로 비공개입니다. 긍정 의견을 작성하고 익명 공개 항목에 별도로 동의한 경우에만 사용자 후기 후보가 됩니다. 동의했더라도 Utilark 관리자가 내용을 직접 확인하고 승인하기 전에는 공개하지 않습니다. 공개 후기에는 이름, 이메일, IP 주소 또는 브라우저 식별자를 붙이지 않습니다.',
+            '승인되어 공개된 후기를 포함한 도구 의견은 먼저 삭제하지 않더라도 180일 뒤 자동으로 삭제합니다. 응답이 충분히 쌓인 경우에만 도움됨 응답 수를 합계 형태로 표시할 수 있습니다. 반복 제출을 제한하기 위해 접속 IP 주소에서 만든 키 적용 단방향 값을 일시적으로 사용하며, 의견 데이터베이스에 IP 주소 원문을 저장하지 않습니다.',
+            '짧은 의견에 이름, 연락처, 대외비 내용 또는 다른 사람의 정보를 적지 마세요. 공개 후기의 조기 삭제를 요청하려면 정확한 문장과 도구 이름을 문의 폼으로 보내주세요.',
           ],
         },
         {
@@ -265,7 +283,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
       title: 'Terms of Use',
       description: 'The basic terms, limitations, and user responsibilities for using Utilark tools.',
       lead: 'Use Utilark only for files and content you are authorized to process.',
-      updated: '2026-08-12',
+      updated: '2026-08-17',
       sections: [
         {
           heading: 'Using the service',
@@ -289,6 +307,12 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
           ],
         },
         {
+          heading: 'Feedback you submit',
+          paragraphs: [
+            'You must have the right to submit a feedback note. Do not include personal, confidential, unlawful, or promotional content. If you opt in to anonymous publication, you give Utilark permission to display that exact note with the relevant tool name while it remains approved. Utilark may decline, unpublish, or delete a note at any time and does not edit a private note into a public endorsement.',
+          ],
+        },
+        {
           heading: 'Availability and warranties',
           paragraphs: [
             'Utilark is provided as available without a promise that every file, browser, or device will work. Features may change, pause, or be removed. To the extent permitted by law, Utilark is not liable for indirect loss caused by use of or inability to use a tool.',
@@ -306,7 +330,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
       title: '이용약관',
       description: 'Utilark 도구 이용에 적용되는 기본 조건, 제한 및 사용자의 책임을 안내합니다.',
       lead: '처리할 권한이 있는 파일과 콘텐츠에만 Utilark를 사용해주세요.',
-      updated: '2026-08-12',
+      updated: '2026-08-17',
       sections: [
         {
           heading: '서비스 이용',
@@ -327,6 +351,12 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
           paragraphs: [
             'Utilark는 대략적인 일간·주간·월간 방문 수를 표시할 수 있습니다. 개인정보 처리방침에 설명한 보호 방식으로 같은 날의 중복 방문을 제외합니다. 주·월 수치는 일별 수치를 더한 값이며, 날짜를 넘어 같은 사용자를 식별한 순사용자 수가 아닙니다. 다른 분석 자료와 차이가 날 수 있고 감사된 공식 수치로 보아서는 안 됩니다.',
             '공개 서비스 이용에는 개인정보 처리방침에 안내한 데이터 처리가 적용됩니다. 현재 브라우저 도구는 계정을 요구하지 않으며, 도구에 넣은 파일과 글은 사용자의 기기에만 머뭅니다.',
+          ],
+        },
+        {
+          heading: '사용자가 제출한 의견',
+          paragraphs: [
+            '제출할 권한이 있는 의견만 작성해야 하며 개인정보, 대외비, 불법 또는 홍보성 내용을 포함해서는 안 됩니다. 익명 공개에 동의하면 승인된 기간 동안 해당 문장을 관련 도구 이름과 함께 표시할 수 있도록 Utilark에 허락하는 것입니다. Utilark는 언제든 후기를 승인하지 않거나, 공개를 중단하거나, 삭제할 수 있으며 비공개 의견을 편집해 공개 추천 문구로 만들지 않습니다.',
           ],
         },
         {

@@ -18,10 +18,13 @@ Private-by-default browser utilities for [utilark.app](https://utilark.app), mai
 - Localized `/en/` and `/ko/` routes with matching policy and help pages
 - Canonical URLs, `hreflang`, Open Graph metadata, JSON-LD, sitemap, and robots.txt
 - Private bilingual contact form with an independent Utilark admin inbox
+- Bilingual per-tool helpfulness feedback with optional, consented anonymous quotes and manual moderation
 - Privacy-preserving 90-day DAU, qualified-visitor, page-view, and excluded-bot totals in Utilark Admin
 - Optional AdSense loading, generated `ads.txt`, and advertising disclosures in both privacy policies
 
 No selected file or text entered into a tool is sent to Utilark. The contact form is the explicit exception: its message and optional reply email are sent to the Utilark Worker and retained for up to 180 days.
+
+Tool feedback is another explicit, narrow exception. Only the rating, selected reason, optional 180-character note, tool slug, locale, and submission time are sent; the file or tool input is never attached. Notes are private by default. A positive note becomes a testimonial candidate only after separate publication consent, remains hidden until an administrator approves it, and is removed after 180 days even if approved. The public home-page section stays absent until at least five real quotes have been approved, and per-tool aggregate helpfulness stays absent until at least ten ratings exist.
 
 Read Aloud has a second exception that does not involve Utilark at all: some browsers generate their higher-quality voices on their own servers, so choosing one sends the text to that vendor. The tool labels every voice as on device or network, orders on-device voices first, and warns before a network voice plays. Both privacy policies describe this.
 
@@ -105,6 +108,8 @@ The production custom domains are:
 Every tool subdomain redirects to a localized page on `utilark.app` rather than serving its own copy, so indexing, link signals, the sitemap, and the AdSense site registration stay on one host. `docs/subdomains.md` has the full map, the redirect rules, and the dashboard steps; `worker/subdomains.js` is the source of truth, and `npm test` fails if it drifts from the pages that were built.
 
 Contact records use a Utilark-only SQLite-backed Durable Object. Tool files and tool text never enter this storage. Records expire after 180 days, and public submissions are rate-limited using an HMAC value instead of storing the source IP address.
+
+The same isolated Durable Object stores tool feedback in a separate table. The administrator can approve, reject, unpublish, or delete testimonial candidates. The public API returns only aggregate rating counts and already-approved anonymous quote text; pending and private feedback never leave the authenticated admin boundary.
 
 Anonymous usage totals use a day-scoped HMAC of the connection IP and user-agent to deduplicate DAU without storing either original value or a cross-day visitor ID. Bot signals and common bot user-agents are excluded, DNT/GPC requests are skipped, and aggregate records expire after 90 days. Collection begins only after deployment and does not backfill earlier traffic.
 

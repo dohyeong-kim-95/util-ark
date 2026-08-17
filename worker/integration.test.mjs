@@ -60,6 +60,29 @@ test('contact submission is persisted and visible only after admin login', async
     const submittedText = await submitted.text();
     assert.equal(submitted.status, 201, submittedText);
 
+    const feedback = await mf.dispatchFetch('https://utilark.app/api/feedback', {
+      method: 'POST',
+      headers: {
+        Origin: 'https://utilark.app',
+        'Content-Type': 'application/json',
+        'CF-Connecting-IP': '203.0.113.12',
+      },
+      body: JSON.stringify({
+        locale: 'en',
+        tool: 'word-counter',
+        helpful: true,
+        reason: 'worked',
+        comment: 'It made checking a cover letter much quicker.',
+        publishConsent: true,
+        website: '',
+      }),
+    });
+    assert.equal(feedback.status, 201, await feedback.text());
+
+    const hiddenQuotes = await mf.dispatchFetch('https://utilark.app/api/feedback/public?locale=en');
+    assert.equal(hiddenQuotes.status, 200);
+    assert.equal((await hiddenQuotes.json()).items.length, 0);
+
     const visitHeaders = {
       'CF-Connecting-IP': '203.0.113.20',
       'User-Agent': 'Mozilla/5.0 Integration Browser',
@@ -80,6 +103,8 @@ test('contact submission is persisted and visible only after admin login', async
 
     const anonymousApi = await mf.dispatchFetch('https://admin.utilark.app/api/contacts');
     assert.equal(anonymousApi.status, 401);
+    const anonymousFeedbackApi = await mf.dispatchFetch('https://admin.utilark.app/api/feedback');
+    assert.equal(anonymousFeedbackApi.status, 401);
 
     const login = await mf.dispatchFetch('https://admin.utilark.app/login', {
       method: 'POST',
@@ -102,6 +127,38 @@ test('contact submission is persisted and visible only after admin login', async
     assert.equal(data.items.length, 1);
     assert.equal(data.items[0].message, 'This is a complete integration test contact message.');
     assert.equal(data.counts.new, 1);
+
+    const feedbackInbox = await mf.dispatchFetch('https://admin.utilark.app/api/feedback', {
+      headers: { Cookie: cookie },
+    });
+    assert.equal(feedbackInbox.status, 200);
+    const feedbackData = await feedbackInbox.json();
+    assert.equal(feedbackData.items.length, 1);
+    assert.equal(feedbackData.items[0].status, 'pending');
+    assert.equal(feedbackData.items[0].publishConsent, true);
+
+    const approved = await mf.dispatchFetch(
+      `https://admin.utilark.app/api/feedback/${feedbackData.items[0].id}`,
+      {
+        method: 'PATCH',
+        headers: {
+          Cookie: cookie,
+          Origin: 'https://admin.utilark.app',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'approved' }),
+      },
+    );
+    assert.equal(approved.status, 200);
+    const publicQuotes = await mf.dispatchFetch('https://utilark.app/api/feedback/public?locale=en&tool=word-counter');
+    assert.equal(publicQuotes.status, 200);
+    const quoteData = await publicQuotes.json();
+    assert.equal(quoteData.approvedTotal, 1);
+    assert.deepEqual(quoteData.summary, { total: 1, helpful: 1 });
+    assert.deepEqual(quoteData.items, [{
+      tool: 'word-counter',
+      quote: 'It made checking a cover letter much quicker.',
+    }]);
 
     const metrics = await waitForAnalytics(mf, cookie, 3);
     assert.equal(metrics.items[0].dau, 2);

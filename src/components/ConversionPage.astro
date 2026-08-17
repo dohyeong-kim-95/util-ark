@@ -6,6 +6,7 @@ import { ui, type Locale } from '../i18n/ui';
 import AdSlot from './AdSlot.astro';
 import ImageConverter from './tools/ImageConverter.astro';
 import InlineText from './InlineText.astro';
+import ToolFeedback from './ToolFeedback.astro';
 
 interface Props {
   conversion: ConversionDefinition;
@@ -46,6 +47,8 @@ const relatedGuides = guidesForTool('image-converter');
   <section class="interactive-panel" aria-label={copy.name}>
     <ImageConverter locale={locale} from={conversion.from} to={conversion.to} />
   </section>
+
+  <ToolFeedback locale={locale} tool={conversion.slug} />
 
   <AdSlot locale={locale} />
 

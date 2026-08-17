@@ -23,6 +23,20 @@ export class ContactStore {
       );
       CREATE INDEX IF NOT EXISTS contacts_created_at ON contacts(created_at DESC);
       CREATE INDEX IF NOT EXISTS contacts_status ON contacts(status, created_at DESC);
+      CREATE TABLE IF NOT EXISTS tool_feedback (
+        id TEXT PRIMARY KEY,
+        created_at INTEGER NOT NULL,
+        locale TEXT NOT NULL,
+        tool TEXT NOT NULL,
+        helpful INTEGER NOT NULL,
+        reason TEXT,
+        comment TEXT,
+        publish_consent INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'private'
+      );
+      CREATE INDEX IF NOT EXISTS tool_feedback_created_at ON tool_feedback(created_at DESC);
+      CREATE INDEX IF NOT EXISTS tool_feedback_status ON tool_feedback(status, created_at DESC);
+      CREATE INDEX IF NOT EXISTS tool_feedback_tool ON tool_feedback(tool, created_at DESC);
       CREATE TABLE IF NOT EXISTS rate_limits (
         scope TEXT NOT NULL,
         visitor_key TEXT NOT NULL,
@@ -55,6 +69,7 @@ export class ContactStore {
 
   purge(now) {
     this.sql.exec('DELETE FROM contacts WHERE created_at < ?', now - RETENTION_MS);
+    this.sql.exec('DELETE FROM tool_feedback WHERE created_at < ?', now - RETENTION_MS);
     this.sql.exec('DELETE FROM rate_limits WHERE window_started_at < ?', now - 24 * 60 * 60 * 1000);
     const cutoff = new Date(now - ANALYTICS_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     this.sql.exec('DELETE FROM analytics_daily WHERE day < ?', cutoff);
@@ -134,6 +149,86 @@ export class ContactStore {
         contact.message,
       );
       return json({ ok: true, id }, { status: 201 });
+    }
+
+    if (url.pathname === '/feedback/submit' && request.method === 'POST') {
+      const body = await request.json().catch(() => null);
+      if (!body?.visitorKey || !body?.feedback) return json({ error: 'invalid submission' }, { status: 400 });
+      const feedback = body.feedback;
+      const rate = this.consumeRateLimit(
+        `feedback-submit:${String(feedback.tool)}`,
+        String(body.visitorKey),
+        1,
+        24 * 60 * 60 * 1000,
+        now,
+      );
+      if (!rate.allowed) {
+        return json({ error: 'rate_limited', retryAfter: rate.retryAfter }, {
+          status: 429,
+          headers: { 'Retry-After': String(rate.retryAfter) },
+        });
+      }
+
+      const id = crypto.randomUUID();
+      const comment = feedback.comment || null;
+      const eligibleQuote = feedback.helpful === true
+        && feedback.publishConsent === true
+        && typeof comment === 'string'
+        && comment.length >= 10;
+      this.sql.exec(
+        `INSERT INTO tool_feedback
+           (id, created_at, locale, tool, helpful, reason, comment, publish_consent, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id,
+        now,
+        feedback.locale,
+        feedback.tool,
+        feedback.helpful ? 1 : 0,
+        feedback.reason || null,
+        comment,
+        feedback.publishConsent ? 1 : 0,
+        eligibleQuote ? 'pending' : 'private',
+      );
+      return json({ ok: true, id, moderation: eligibleQuote ? 'pending' : 'private' }, { status: 201 });
+    }
+
+    if (url.pathname === '/feedback/public' && request.method === 'GET') {
+      const tool = url.searchParams.get('tool') || null;
+      const locale = ['en', 'ko'].includes(url.searchParams.get('locale')) ? url.searchParams.get('locale') : null;
+      const summary = tool
+        ? [...this.sql.exec(
+            `SELECT COUNT(*) AS total, COALESCE(SUM(helpful), 0) AS helpful
+             FROM tool_feedback WHERE tool = ?`,
+            tool,
+          )][0]
+        : [...this.sql.exec(
+            'SELECT COUNT(*) AS total, COALESCE(SUM(helpful), 0) AS helpful FROM tool_feedback',
+          )][0];
+      const approvedTotal = Number([...this.sql.exec(
+        `SELECT COUNT(*) AS count FROM tool_feedback
+         WHERE status = 'approved' AND helpful = 1 AND publish_consent = 1 AND LENGTH(comment) >= 10`,
+      )][0]?.count ?? 0);
+      const clauses = ["status = 'approved'", 'helpful = 1', 'publish_consent = 1', 'LENGTH(comment) >= 10'];
+      const params = [];
+      if (tool) {
+        clauses.push('tool = ?');
+        params.push(tool);
+      }
+      if (locale) {
+        clauses.push('locale = ?');
+        params.push(locale);
+      }
+      const items = [...this.sql.exec(
+        `SELECT tool, comment FROM tool_feedback
+         WHERE ${clauses.join(' AND ')}
+         ORDER BY created_at DESC LIMIT 6`,
+        ...params,
+      )].map((row) => ({ tool: row.tool, quote: row.comment }));
+      return json({
+        summary: { total: Number(summary?.total ?? 0), helpful: Number(summary?.helpful ?? 0) },
+        approvedTotal,
+        items,
+      });
     }
 
     if (url.pathname === '/analytics/record' && request.method === 'POST') {
@@ -270,6 +365,44 @@ export class ContactStore {
       });
     }
 
+    if (url.pathname === '/feedback' && request.method === 'GET') {
+      const requestedStatus = url.searchParams.get('status');
+      const status = ['private', 'pending', 'approved', 'rejected'].includes(requestedStatus) ? requestedStatus : null;
+      const limit = Math.min(200, Math.max(1, Number(url.searchParams.get('limit')) || 100));
+      const rows = status
+        ? [...this.sql.exec(
+            `SELECT id, created_at, locale, tool, helpful, reason, comment, publish_consent, status
+             FROM tool_feedback WHERE status = ? ORDER BY created_at DESC LIMIT ?`,
+            status,
+            limit,
+          )]
+        : [...this.sql.exec(
+            `SELECT id, created_at, locale, tool, helpful, reason, comment, publish_consent, status
+             FROM tool_feedback ORDER BY created_at DESC LIMIT ?`,
+            limit,
+          )];
+      const counts = Object.fromEntries(
+        [...this.sql.exec('SELECT status, COUNT(*) AS count FROM tool_feedback GROUP BY status')]
+          .map((row) => [row.status, row.count]),
+      );
+      return json({
+        items: rows.map((row) => ({
+          ...row,
+          helpful: row.helpful === 1,
+          publishConsent: row.publish_consent === 1,
+          publish_consent: undefined,
+          createdAt: new Date(row.created_at).toISOString(),
+          created_at: undefined,
+        })),
+        counts: {
+          private: counts.private ?? 0,
+          pending: counts.pending ?? 0,
+          approved: counts.approved ?? 0,
+          rejected: counts.rejected ?? 0,
+        },
+      });
+    }
+
     const contactMatch = url.pathname.match(/^\/contacts\/([0-9a-f-]+)$/u);
     if (contactMatch && request.method === 'PATCH') {
       const body = await request.json().catch(() => null);
@@ -280,6 +413,29 @@ export class ContactStore {
 
     if (contactMatch && request.method === 'DELETE') {
       this.sql.exec('DELETE FROM contacts WHERE id = ?', contactMatch[1]);
+      return json({ ok: true });
+    }
+
+    const feedbackMatch = url.pathname.match(/^\/feedback\/([0-9a-f-]+)$/u);
+    if (feedbackMatch && request.method === 'PATCH') {
+      const body = await request.json().catch(() => null);
+      if (!['pending', 'approved', 'rejected'].includes(body?.status)) {
+        return json({ error: 'invalid status' }, { status: 400 });
+      }
+      const row = [...this.sql.exec(
+        'SELECT helpful, comment, publish_consent FROM tool_feedback WHERE id = ?',
+        feedbackMatch[1],
+      )][0];
+      if (!row) return json({ error: 'not found' }, { status: 404 });
+      if (body.status === 'approved' && !(row.helpful === 1 && row.publish_consent === 1 && String(row.comment ?? '').length >= 10)) {
+        return json({ error: 'not publishable' }, { status: 400 });
+      }
+      this.sql.exec('UPDATE tool_feedback SET status = ? WHERE id = ?', body.status, feedbackMatch[1]);
+      return json({ ok: true });
+    }
+
+    if (feedbackMatch && request.method === 'DELETE') {
+      this.sql.exec('DELETE FROM tool_feedback WHERE id = ?', feedbackMatch[1]);
       return json({ ok: true });
     }
 

@@ -4,6 +4,7 @@ import { ui, type Locale } from '../i18n/ui';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ToolCard from './ToolCard.astro';
 import ToolSearch from './ToolSearch.astro';
+import Testimonials from './Testimonials.astro';
 
 interface Props {
   locale: Locale;
@@ -45,6 +46,8 @@ const schema = {
       </div>
     </div>
   </section>
+
+  <Testimonials locale={locale} />
 
   <section class="hero intro-section">
     <div class="shell hero-grid">

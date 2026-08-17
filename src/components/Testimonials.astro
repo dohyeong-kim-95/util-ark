@@ -1,0 +1,77 @@
+---
+import { conversions } from '../data/conversions';
+import { tools } from '../data/tools';
+import type { Locale } from '../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const copy = locale === 'ko'
+  ? {
+      eyebrow: '실제 이용자 의견',
+      title: '직접 써본 분들의 한마디',
+      description: '도구에서 공개에 동의한 의견만 운영자가 확인한 뒤 소개합니다.',
+    }
+  : {
+      eyebrow: 'REAL USER FEEDBACK',
+      title: 'Notes from people who used the tools',
+      description: 'Only comments submitted with publication consent appear here, after a human review.',
+    };
+const entries = [...tools, ...conversions];
+const toolMap = Object.fromEntries(entries.map((entry) => [entry.slug, entry.copy[locale].name]));
+---
+
+<section
+  class="testimonials"
+  data-testimonials
+  data-locale={locale}
+  data-tool-map={JSON.stringify(toolMap)}
+  hidden
+>
+  <div class="shell">
+    <div class="section-heading testimonial-heading">
+      <div>
+        <p class="eyebrow">{copy.eyebrow}</p>
+        <h2>{copy.title}</h2>
+      </div>
+      <p>{copy.description}</p>
+    </div>
+    <div class="testimonial-grid" data-testimonial-list></div>
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-testimonials]:not([data-ready])').forEach((root) => {
+    root.dataset.ready = 'true';
+    const locale = root.dataset.locale === 'ko' ? 'ko' : 'en';
+    const toolMap = JSON.parse(root.dataset.toolMap ?? '{}');
+    const list = root.querySelector<HTMLElement>('[data-testimonial-list]');
+    fetch(`/api/feedback/public?locale=${locale}`, { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((data) => {
+        if (!list || Number(data.approvedTotal ?? 0) < 5 || !Array.isArray(data.items) || !data.items.length) return;
+        const cards = data.items.slice(0, 3).map((item: { tool: string; quote: string }) => {
+          const article = document.createElement('article');
+          article.className = 'testimonial-card';
+          const mark = document.createElement('span');
+          mark.className = 'testimonial-mark';
+          mark.setAttribute('aria-hidden', 'true');
+          mark.textContent = '“';
+          const quote = document.createElement('blockquote');
+          const text = document.createElement('p');
+          text.textContent = item.quote;
+          quote.append(text);
+          const tool = document.createElement('a');
+          tool.href = `/${locale}/${encodeURIComponent(item.tool)}/`;
+          tool.textContent = toolMap[item.tool] ?? item.tool;
+          article.append(mark, quote, tool);
+          return article;
+        });
+        list.replaceChildren(...cards);
+        root.hidden = false;
+      })
+      .catch(() => {});
+  });
+</script>

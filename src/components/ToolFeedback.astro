@@ -1,0 +1,245 @@
+---
+import type { Locale } from '../i18n/ui';
+
+interface Props {
+  locale: Locale;
+  tool: string;
+}
+
+const { locale, tool } = Astro.props;
+const copy = locale === 'ko'
+  ? {
+      title: '이 도구가 도움이 되었나요?',
+      description: '선택한 파일이나 도구 입력값은 보내지 않습니다. 아래에서 직접 적은 의견만 전송됩니다.',
+      yes: '네, 해결했어요',
+      no: '아니요, 아쉬웠어요',
+      reason: '가장 가까운 이유',
+      reasonPlaceholder: '선택하지 않아도 됩니다',
+      comment: '한마디 더 남기기 (선택)',
+      commentPlaceholder: '어떤 상황에서 썼는지, 무엇이 아쉬웠는지 알려주세요.',
+      counter: '자',
+      consent: '이 문장을 익명 사용자 후기로 사이트에 공개해도 좋습니다.',
+      consentNote: '10자 이상인 긍정 의견만 관리자 확인 후 공개될 수 있습니다.',
+      submit: '의견 보내기',
+      sending: '보내는 중…',
+      success: '감사합니다. 의견이 제품 개선에 반영됩니다.',
+      error: '의견을 보내지 못했습니다. 잠시 후 다시 시도해주세요.',
+      consentError: '공개에 동의한 후기는 10자 이상 적어주세요.',
+      reasons: {
+        positive: [
+          ['worked', '필요한 작업을 해결했어요'],
+          ['easy', '사용법이 쉬웠어요'],
+          ['private', '파일을 올리지 않아 안심됐어요'],
+          ['other', '그 밖의 이유'],
+        ],
+        negative: [
+          ['failed', '제대로 작동하지 않았어요'],
+          ['confusing', '사용법을 이해하기 어려웠어요'],
+          ['missing', '필요한 기능이 없었어요'],
+          ['other', '그 밖의 이유'],
+        ],
+      },
+    }
+  : {
+      title: 'Did this tool help?',
+      description: 'Your file and tool input stay private. Only the feedback you type below is sent.',
+      yes: 'Yes, it solved my task',
+      no: 'Not quite',
+      reason: 'Closest reason',
+      reasonPlaceholder: 'You can leave this blank',
+      comment: 'Add a short note (optional)',
+      commentPlaceholder: 'Tell us what you used it for, or what got in the way.',
+      counter: 'characters',
+      consent: 'You may publish this sentence on Utilark as an anonymous user quote.',
+      consentNote: 'Only positive notes of at least 10 characters can be published after review.',
+      submit: 'Send feedback',
+      sending: 'Sending…',
+      success: 'Thank you. Your feedback will help improve the tool.',
+      error: 'We could not send your feedback. Please try again shortly.',
+      consentError: 'A quote needs at least 10 characters before it can be published.',
+      reasons: {
+        positive: [
+          ['worked', 'It completed the task I needed'],
+          ['easy', 'It was easy to use'],
+          ['private', 'I liked keeping the file on my device'],
+          ['other', 'Something else'],
+        ],
+        negative: [
+          ['failed', 'It did not work correctly'],
+          ['confusing', 'The instructions were unclear'],
+          ['missing', 'A feature I needed was missing'],
+          ['other', 'Something else'],
+        ],
+      },
+    };
+---
+
+<section
+  class="tool-feedback"
+  data-tool-feedback
+  data-tool={tool}
+  data-locale={locale}
+  data-copy={JSON.stringify({
+    sending: copy.sending,
+    success: copy.success,
+    error: copy.error,
+    consentError: copy.consentError,
+    summary: locale === 'ko' ? '최근 의견 {total}개 중 {helpful}개가 도움이 됐다고 답했습니다.' : '{helpful} of {total} recent responses found this tool helpful.',
+  })}
+>
+  <div class="feedback-heading">
+    <div>
+      <h2>{copy.title}</h2>
+      <p>{copy.description}</p>
+    </div>
+    <p class="feedback-summary" data-feedback-summary hidden></p>
+  </div>
+
+  <div class="feedback-vote" role="group" aria-label={copy.title}>
+    <button type="button" data-feedback-vote="true" aria-pressed="false">
+      <span aria-hidden="true">↑</span>{copy.yes}
+    </button>
+    <button type="button" data-feedback-vote="false" aria-pressed="false">
+      <span aria-hidden="true">↓</span>{copy.no}
+    </button>
+  </div>
+
+  <form class="feedback-form" data-feedback-form hidden novalidate>
+    <label class="feedback-field">
+      <span>{copy.reason}</span>
+      <select name="reason">
+        <option value="">{copy.reasonPlaceholder}</option>
+        {copy.reasons.positive.map(([value, label]) => (
+          <option value={value} data-sentiment="positive">{label}</option>
+        ))}
+        {copy.reasons.negative.map(([value, label]) => (
+          <option value={value} data-sentiment="negative">{label}</option>
+        ))}
+      </select>
+    </label>
+
+    <label class="feedback-field">
+      <span>{copy.comment}</span>
+      <textarea name="comment" rows="3" maxlength="180" placeholder={copy.commentPlaceholder}></textarea>
+      <small><span data-feedback-count>0</span>/180 {copy.counter}</small>
+    </label>
+
+    <label class="feedback-consent" data-feedback-consent hidden>
+      <input name="publishConsent" type="checkbox" />
+      <span>{copy.consent}<small>{copy.consentNote}</small></span>
+    </label>
+
+    <label class="feedback-honeypot" aria-hidden="true">
+      Website<input name="website" type="text" tabindex="-1" autocomplete="off" />
+    </label>
+
+    <div class="feedback-actions">
+      <button class="button" type="submit">{copy.submit}</button>
+      <p data-feedback-status role="status"></p>
+    </div>
+  </form>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-tool-feedback]:not([data-ready])').forEach((root) => {
+    root.dataset.ready = 'true';
+    const tool = root.dataset.tool ?? '';
+    const locale = root.dataset.locale === 'ko' ? 'ko' : 'en';
+    const copy = JSON.parse(root.dataset.copy ?? '{}');
+    const form = root.querySelector<HTMLFormElement>('[data-feedback-form]');
+    const status = root.querySelector<HTMLElement>('[data-feedback-status]');
+    const summary = root.querySelector<HTMLElement>('[data-feedback-summary]');
+    const consent = root.querySelector<HTMLElement>('[data-feedback-consent]');
+    const textarea = form?.elements.namedItem('comment') as HTMLTextAreaElement | null;
+    const select = form?.elements.namedItem('reason') as HTMLSelectElement | null;
+    const submit = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+    const counter = root.querySelector<HTMLElement>('[data-feedback-count]');
+    let helpful: boolean | null = null;
+
+    const setSentiment = (value: boolean) => {
+      helpful = value;
+      root.querySelectorAll<HTMLButtonElement>('[data-feedback-vote]').forEach((button) => {
+        const selected = button.dataset.feedbackVote === String(value);
+        button.setAttribute('aria-pressed', String(selected));
+      });
+      select?.querySelectorAll<HTMLOptionElement>('[data-sentiment]').forEach((option) => {
+        const available = option.dataset.sentiment === (value ? 'positive' : 'negative');
+        option.disabled = !available;
+        option.hidden = !available;
+      });
+      if (select) select.value = '';
+      if (consent) consent.hidden = !value;
+      if (!value && form) {
+        const publish = form.elements.namedItem('publishConsent') as HTMLInputElement | null;
+        if (publish) publish.checked = false;
+      }
+      if (form) form.hidden = false;
+      status?.replaceChildren();
+    };
+
+    root.querySelectorAll<HTMLButtonElement>('[data-feedback-vote]').forEach((button) => {
+      button.addEventListener('click', () => setSentiment(button.dataset.feedbackVote === 'true'));
+    });
+
+    textarea?.addEventListener('input', () => {
+      if (counter) counter.textContent = String(textarea.value.length);
+    });
+
+    fetch(`/api/feedback/public?tool=${encodeURIComponent(tool)}&locale=${locale}`, { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((data) => {
+        if (!summary || Number(data.summary?.total ?? 0) < 10) return;
+        summary.textContent = String(copy.summary)
+          .replace('{helpful}', Number(data.summary.helpful).toLocaleString(locale))
+          .replace('{total}', Number(data.summary.total).toLocaleString(locale));
+        summary.hidden = false;
+      })
+      .catch(() => {});
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (helpful === null || !submit || !status) return;
+      const comment = textarea?.value.trim() ?? '';
+      const publish = form.elements.namedItem('publishConsent') as HTMLInputElement | null;
+      const publishConsent = helpful && Boolean(publish?.checked);
+      if (publishConsent && comment.length < 10) {
+        status.textContent = copy.consentError;
+        textarea?.focus();
+        return;
+      }
+
+      submit.disabled = true;
+      const original = submit.textContent;
+      submit.textContent = copy.sending;
+      status.textContent = '';
+      try {
+        const response = await fetch('/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            locale,
+            tool,
+            helpful,
+            reason: select?.value ?? '',
+            comment,
+            publishConsent,
+            website: (form.elements.namedItem('website') as HTMLInputElement | null)?.value ?? '',
+          }),
+        });
+        if (!response.ok) throw new Error();
+        root.querySelectorAll<HTMLElement>('.feedback-vote, [data-feedback-form]').forEach((node) => {
+          node.hidden = true;
+        });
+        const done = document.createElement('p');
+        done.className = 'feedback-thanks';
+        done.setAttribute('role', 'status');
+        done.textContent = copy.success;
+        root.append(done);
+      } catch {
+        status.textContent = copy.error;
+        submit.disabled = false;
+        submit.textContent = original;
+      }
+    });
+  });
+</script>

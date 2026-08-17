@@ -60,6 +60,10 @@ const pageShell = (title, body, script = '') => `<!doctype html>
     .badge { padding:.25rem .5rem; border-radius:999px; background:#eee; font-size:.72rem; font-weight:750; }
     .badge-new { background:#fff0b5; }
     .badge-resolved { background:#dcf4e5; }
+    .badge-pending { background:#fff0b5; }
+    .badge-approved { background:#dcf4e5; }
+    .badge-rejected { background:#eee; color:var(--muted); }
+    .badge-private { background:#e8edf7; color:#334b8e; }
     time,.meta { color:var(--muted); font-size:.76rem; }
     .message { margin:1rem 0; line-height:1.7; white-space:pre-wrap; overflow-wrap:anywhere; }
     .email { display:inline-block; margin-top:.2rem; color:#334b8e; font-size:.84rem; overflow-wrap:anywhere; }
@@ -67,6 +71,9 @@ const pageShell = (title, body, script = '') => `<!doctype html>
     .actions button { padding:.45rem .7rem; border:1px solid var(--line); border-radius:.6rem; background:#f8f8f5; font-size:.78rem; }
     .actions .danger { margin-left:auto; color:var(--red); }
     .empty { padding:3rem 1rem; border:1px dashed var(--line); border-radius:1rem; color:var(--muted); text-align:center; }
+    .feedback-admin { margin-bottom:3rem; }
+    .feedback-note { margin:.55rem 0 0; color:var(--muted); font-size:.78rem; line-height:1.6; }
+    .sentiment { font-size:.95rem; }
     @media (max-width:42rem) { .metrics { grid-template-columns:1fr 1fr; } }
     @media (max-width:36rem) { h1 { font-size:clamp(1.9rem,10vw,2.7rem); line-height:1.08; } .dashboard-head { display:block; } .filters { width:100%; margin-top:1rem; } .actions .danger { margin-left:0; } .metric { padding:.85rem; } .exclusion { align-items:flex-start; } }
   </style>
@@ -95,10 +102,18 @@ const dashboardScript = String.raw`
   const copy = {
     category: { bug: '오류 제보', tool: '도구 제안', feedback: '의견', other: '기타' },
     status: { new: '새 문의', read: '확인함', resolved: '처리 완료' },
+    feedbackStatus: { private: '비공개 의견', pending: '승인 대기', approved: '공개 중', rejected: '공개 거절' },
+    reason: {
+      worked: '필요한 작업 해결', easy: '사용하기 쉬움', private: '로컬 처리 선호',
+      failed: '작동 오류', confusing: '사용법이 어려움', missing: '기능 부족', other: '기타',
+    },
   };
   const list = document.getElementById('contacts');
   const statusText = document.getElementById('status');
   const filter = document.getElementById('filter');
+  const feedbackList = document.getElementById('feedback-list');
+  const feedbackStatus = document.getElementById('feedback-status');
+  const feedbackFilter = document.getElementById('feedback-filter');
   const analyticsStatus = document.getElementById('analytics-status');
   const analyticsRows = document.getElementById('analytics-rows');
   const exclusionSwitch = document.getElementById('analytics-exclusion');
@@ -171,6 +186,70 @@ const dashboardScript = String.raw`
         await load();
       } catch (error) {
         statusText.textContent = error.message;
+        remove.disabled = false;
+      }
+    });
+    actions.append(remove);
+    card.append(actions);
+    return card;
+  }
+
+  function addFeedbackAction(container, label, item, nextStatus) {
+    const button = element('button', '', label);
+    button.type = 'button';
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      try {
+        await api('/api/feedback/' + encodeURIComponent(item.id), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: nextStatus }),
+        });
+        await loadFeedback();
+      } catch (error) {
+        feedbackStatus.textContent = error.message;
+        button.disabled = false;
+      }
+    });
+    container.append(button);
+  }
+
+  function renderFeedback(item) {
+    const card = element('article', 'contact');
+    const top = element('div', 'contact-top');
+    top.append(
+      element('span', 'badge badge-' + item.status, copy.feedbackStatus[item.status] || item.status),
+      element('strong', 'sentiment', item.helpful ? '↑ 도움됨' : '↓ 아쉬움'),
+      element('span', 'meta', item.tool),
+      element('span', 'meta', item.locale === 'ko' ? '한국어' : 'English'),
+    );
+    const created = element('time', '', date.format(new Date(item.createdAt)));
+    created.dateTime = item.createdAt;
+    top.append(created);
+    card.append(top);
+    if (item.reason) card.append(element('p', 'feedback-note', '선택 사유 · ' + (copy.reason[item.reason] || item.reason)));
+    card.append(element('p', 'message', item.comment || '추가로 작성한 의견이 없습니다.'));
+    if (item.publishConsent) card.append(element('span', 'badge badge-pending', '익명 공개 동의'));
+    const actions = element('div', 'actions');
+    if (item.publishConsent && item.helpful && item.comment && item.status !== 'approved') {
+      addFeedbackAction(actions, '후기로 승인', item, 'approved');
+    }
+    if (item.status !== 'rejected' && item.status !== 'private') {
+      addFeedbackAction(actions, '공개 거절', item, 'rejected');
+    }
+    if (item.publishConsent && item.status !== 'pending') {
+      addFeedbackAction(actions, '승인 대기로', item, 'pending');
+    }
+    const remove = element('button', 'danger', '영구 삭제');
+    remove.type = 'button';
+    remove.addEventListener('click', async () => {
+      if (!confirm('이 의견을 영구 삭제할까요? 되돌릴 수 없습니다.')) return;
+      remove.disabled = true;
+      try {
+        await api('/api/feedback/' + encodeURIComponent(item.id), { method: 'DELETE' });
+        await loadFeedback();
+      } catch (error) {
+        feedbackStatus.textContent = error.message;
         remove.disabled = false;
       }
     });
@@ -256,7 +335,25 @@ const dashboardScript = String.raw`
     }
   }
 
+  async function loadFeedback() {
+    feedbackStatus.textContent = '도구 의견을 불러오는 중…';
+    const query = feedbackFilter.value ? '?status=' + encodeURIComponent(feedbackFilter.value) : '';
+    try {
+      const data = await api('/api/feedback' + query);
+      for (const name of ['private', 'pending', 'approved', 'rejected']) {
+        document.getElementById('feedback-' + name).textContent = Number(data.counts[name] || 0).toLocaleString('ko-KR');
+      }
+      feedbackList.replaceChildren(...data.items.map(renderFeedback));
+      if (!data.items.length) feedbackList.append(element('p', 'empty', '해당 도구 의견이 없습니다.'));
+      feedbackStatus.textContent = '최근 도구 의견 ' + data.items.length.toLocaleString('ko-KR') + '건';
+    } catch (error) {
+      feedbackList.replaceChildren(element('p', 'empty', error.message));
+      feedbackStatus.textContent = '도구 의견을 불러오지 못했습니다.';
+    }
+  }
+
   filter.addEventListener('change', load);
+  feedbackFilter.addEventListener('change', loadFeedback);
   exclusionSwitch.addEventListener('click', async () => {
     const excluded = exclusionSwitch.dataset.excluded !== 'true';
     exclusionSwitch.disabled = true;
@@ -275,6 +372,7 @@ const dashboardScript = String.raw`
   });
   loadExclusion();
   loadAnalytics();
+  loadFeedback();
   load();
 `;
 
@@ -311,6 +409,31 @@ export const dashboardPage = () => pageShell(
           <tbody id="analytics-rows"></tbody>
         </table>
       </div>
+    </section>
+    <section class="feedback-admin" aria-labelledby="feedback-title">
+      <div class="dashboard-head">
+        <div>
+          <h2 id="feedback-title" class="section-title">도구 의견과 사용자 후기</h2>
+          <p class="feedback-note">공개 동의를 받은 긍정 의견도 자동으로 노출하지 않습니다. 개인정보·광고성 문구·과장 표현이 없는지 직접 확인한 뒤 승인하세요.</p>
+          <div class="counts" aria-label="도구 의견 상태별 건수">
+            <span class="count">비공개 <strong id="feedback-private">–</strong></span>
+            <span class="count">승인 대기 <strong id="feedback-pending">–</strong></span>
+            <span class="count">공개 중 <strong id="feedback-approved">–</strong></span>
+            <span class="count">공개 거절 <strong id="feedback-rejected">–</strong></span>
+          </div>
+        </div>
+        <label class="filters">상태
+          <select id="feedback-filter">
+            <option value="">전체</option>
+            <option value="pending">승인 대기</option>
+            <option value="approved">공개 중</option>
+            <option value="private">비공개 의견</option>
+            <option value="rejected">공개 거절</option>
+          </select>
+        </label>
+      </div>
+      <p id="feedback-status" role="status"></p>
+      <div class="list" id="feedback-list" aria-live="polite"></div>
     </section>
     <div class="dashboard-head">
       <div>

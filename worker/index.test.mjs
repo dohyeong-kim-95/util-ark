@@ -21,6 +21,17 @@ const contactRequest = (body, headers = {}) => new Request('https://utilark.app/
   body: JSON.stringify(body),
 });
 
+const feedbackRequest = (body, headers = {}) => new Request('https://utilark.app/api/feedback', {
+  method: 'POST',
+  headers: {
+    Origin: 'https://utilark.app',
+    'Content-Type': 'application/json',
+    'CF-Connecting-IP': '203.0.113.18',
+    ...headers,
+  },
+  body: JSON.stringify(body),
+});
+
 test('valid contact submissions are normalized and sent to Utilark storage', async () => {
   let stored;
   const env = {
@@ -67,6 +78,58 @@ test('contact endpoint rejects cross-origin and invalid submissions', async () =
     locale: 'en', category: 'bug', message: 'A sufficiently detailed report', consent: true,
   }, { Origin: 'https://example.com' }), env);
   assert.equal(crossOrigin.status, 403);
+});
+
+test('tool feedback sends only normalized feedback fields and an anonymous rate-limit key', async () => {
+  let stored;
+  const env = {
+    ADMIN_SESSION_SECRET: 'test-session-secret-value',
+    CONTACTS: namespace(async (request) => {
+      stored = await request.json();
+      return Response.json({ ok: true, id: 'feedback-id', moderation: 'pending' }, { status: 201 });
+    }),
+    ASSETS: { fetch: () => new Response('asset') },
+  };
+  const response = await worker.fetch(feedbackRequest({
+    locale: 'ko',
+    tool: 'word-counter',
+    helpful: true,
+    reason: 'easy',
+    comment: '자기소개서 글자 수를 확인할 때 편리했습니다.',
+    publishConsent: true,
+    website: '',
+    ignoredToolInput: 'this must not be forwarded',
+  }), env);
+
+  assert.equal(response.status, 201);
+  assert.deepEqual(stored.feedback, {
+    locale: 'ko',
+    tool: 'word-counter',
+    helpful: true,
+    reason: 'easy',
+    comment: '자기소개서 글자 수를 확인할 때 편리했습니다.',
+    publishConsent: true,
+  });
+  assert.equal(typeof stored.visitorKey, 'string');
+  assert.equal(stored.visitorKey.includes('203.0.113.18'), false);
+});
+
+test('tool feedback rejects unknown tools, invalid publication consent, and cross-origin posts', async () => {
+  const env = {
+    ADMIN_SESSION_SECRET: 'test-session-secret-value',
+    CONTACTS: namespace(() => Response.json({ ok: true })),
+    ASSETS: { fetch: () => new Response('asset') },
+  };
+  const base = {
+    locale: 'en', helpful: true, reason: 'worked', comment: 'This was useful for my task.', publishConsent: false,
+  };
+  assert.equal((await worker.fetch(feedbackRequest({ ...base, tool: 'not-a-tool' }), env)).status, 400);
+  assert.equal((await worker.fetch(feedbackRequest({
+    ...base, tool: 'word-counter', helpful: false, publishConsent: true,
+  }), env)).status, 400);
+  assert.equal((await worker.fetch(feedbackRequest({ ...base, tool: 'word-counter' }, {
+    Origin: 'https://example.com',
+  }), env)).status, 403);
 });
 
 test('public HTML visits are anonymized before analytics storage and bots omit visitor keys', async () => {
@@ -155,6 +218,7 @@ test('admin login issues an HttpOnly session and opens the inbox', async () => {
   const dashboardBody = await dashboard.text();
   assert.match(dashboardBody, /접속 현황/u);
   assert.match(dashboardBody, /이 기기 방문자 수 합계 제외/u);
+  assert.match(dashboardBody, /도구 의견과 사용자 후기/u);
   assert.match(dashboardBody, /문의함/u);
 
   const exclusion = await worker.fetch(new Request('https://admin.utilark.app/api/analytics/exclusion', {

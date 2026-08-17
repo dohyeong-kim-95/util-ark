@@ -4,7 +4,7 @@ import {
 } from './analytics.js';
 import { ContactStore } from './contact-store.js';
 import { preferredLocale } from './locale.js';
-import { legacyToolPath, resolveHost, subdomainRedirect } from './subdomains.js';
+import { legacyToolPath, resolveHost, subdomainRedirect, TOOL_SUBDOMAINS } from './subdomains.js';
 import {
   anonymousVisitorKey,
   declaredBodyFits,
@@ -22,8 +22,13 @@ export { ContactStore };
 const ADMIN_COOKIE = 'utilark_admin';
 const ANALYTICS_EXCLUSION_COOKIE = 'utilark_notrack';
 const CONTACT_MAX_BYTES = 8 * 1024;
+const FEEDBACK_MAX_BYTES = 4 * 1024;
 const NAVER_VERIFICATION_FILE = /^\/naver[0-9a-z]+\.html$/u;
 const categories = new Set(['bug', 'tool', 'feedback', 'other']);
+const feedbackReasons = new Set(['worked', 'easy', 'private', 'failed', 'confusing', 'missing', 'other']);
+const positiveFeedbackReasons = new Set(['worked', 'easy', 'private', 'other']);
+const negativeFeedbackReasons = new Set(['failed', 'confusing', 'missing', 'other']);
+const feedbackTools = new Set(Object.values(TOOL_SUBDOMAINS).map((entry) => entry.tool).filter(Boolean));
 
 const contactStub = (env) => env.CONTACTS.get(env.CONTACTS.idFromName('global'));
 
@@ -101,6 +106,59 @@ async function handleContact(request, env) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ visitorKey, contact: { locale, category, email, message } }),
+  });
+  return new Response(response.body, { status: response.status, headers: response.headers });
+}
+
+async function handleFeedback(request, env) {
+  if (request.method !== 'POST') {
+    return jsonResponse({ error: 'method_not_allowed' }, { status: 405, headers: { Allow: 'POST' } });
+  }
+  if (!env.CONTACTS || !env.ADMIN_SESSION_SECRET) {
+    return jsonResponse({ error: 'feedback_unavailable' }, { status: 503 });
+  }
+  if (!sameOriginMutation(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
+  if (!declaredBodyFits(request, FEEDBACK_MAX_BYTES)) return jsonResponse({ error: 'request_too_large' }, { status: 413 });
+  if (!(request.headers.get('Content-Type') ?? '').toLowerCase().startsWith('application/json')) {
+    return jsonResponse({ error: 'json_required' }, { status: 415 });
+  }
+
+  const raw = await request.text();
+  if (new TextEncoder().encode(raw).byteLength > FEEDBACK_MAX_BYTES) {
+    return jsonResponse({ error: 'request_too_large' }, { status: 413 });
+  }
+  const body = (() => { try { return JSON.parse(raw); } catch { return null; } })();
+  if (!body) return jsonResponse({ error: 'invalid_json' }, { status: 400 });
+  if (String(body.website ?? '').trim()) return jsonResponse({ ok: true }, { status: 202 });
+
+  const locale = body.locale === 'ko' ? 'ko' : body.locale === 'en' ? 'en' : null;
+  const tool = feedbackTools.has(body.tool) ? body.tool : null;
+  const helpful = typeof body.helpful === 'boolean' ? body.helpful : null;
+  const reason = body.reason === '' || body.reason == null
+    ? ''
+    : feedbackReasons.has(body.reason) ? body.reason : null;
+  const comment = String(body.comment ?? '').trim();
+  const publishConsent = body.publishConsent === true;
+  if (
+    !locale
+    || !tool
+    || helpful === null
+    || reason === null
+    || (reason && !(helpful ? positiveFeedbackReasons : negativeFeedbackReasons).has(reason))
+    || comment.length > 180
+    || (publishConsent && (!helpful || comment.length < 10))
+  ) {
+    return jsonResponse({ error: 'invalid_fields' }, { status: 400 });
+  }
+
+  const visitorKey = await anonymousVisitorKey(request, env.ADMIN_SESSION_SECRET);
+  const response = await contactStub(env).fetch('https://contacts.internal/feedback/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      visitorKey,
+      feedback: { locale, tool, helpful, reason, comment, publishConsent },
+    }),
   });
   return new Response(response.body, { status: response.status, headers: response.headers });
 }
@@ -190,6 +248,12 @@ async function handleAdmin(request, env, url) {
     return contactStub(env).fetch(internal);
   }
 
+  if (url.pathname === '/api/feedback' && request.method === 'GET') {
+    const internal = new URL('https://contacts.internal/feedback');
+    if (url.searchParams.get('status')) internal.searchParams.set('status', url.searchParams.get('status'));
+    return contactStub(env).fetch(internal);
+  }
+
   if (url.pathname === '/api/analytics' && request.method === 'GET') {
     return contactStub(env).fetch('https://contacts.internal/analytics?days=30');
   }
@@ -213,6 +277,22 @@ async function handleAdmin(request, env, url) {
   if (match && ['PATCH', 'DELETE'].includes(request.method)) {
     if (!sameOriginMutation(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
     const target = `https://contacts.internal/contacts/${encodeURIComponent(match[1])}`;
+    if (request.method === 'DELETE') return contactStub(env).fetch(target, { method: 'DELETE' });
+    if (!declaredBodyFits(request, 1024) || !(request.headers.get('Content-Type') ?? '').startsWith('application/json')) {
+      return jsonResponse({ error: 'invalid_request' }, { status: 400 });
+    }
+    const body = await request.text();
+    return contactStub(env).fetch(target, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    });
+  }
+
+  const feedbackMatch = url.pathname.match(/^\/api\/feedback\/([0-9a-f-]+)$/u);
+  if (feedbackMatch && ['PATCH', 'DELETE'].includes(request.method)) {
+    if (!sameOriginMutation(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
+    const target = `https://contacts.internal/feedback/${encodeURIComponent(feedbackMatch[1])}`;
     if (request.method === 'DELETE') return contactStub(env).fetch(target, { method: 'DELETE' });
     if (!declaredBodyFits(request, 1024) || !(request.headers.get('Content-Type') ?? '').startsWith('application/json')) {
       return jsonResponse({ error: 'invalid_request' }, { status: 400 });
@@ -269,6 +349,20 @@ export default {
       response = localeRedirect(request, url);
     }
     else if (url.pathname === '/api/contact') response = await handleContact(request, env);
+    else if (url.pathname === '/api/feedback') response = await handleFeedback(request, env);
+    else if (url.pathname === '/api/feedback/public' && request.method === 'GET' && env.CONTACTS) {
+      const internal = new URL('https://contacts.internal/feedback/public');
+      const tool = url.searchParams.get('tool');
+      const locale = url.searchParams.get('locale');
+      if ((tool && !feedbackTools.has(tool)) || (locale && locale !== 'en' && locale !== 'ko')) {
+        response = jsonResponse({ error: 'invalid_query' }, { status: 400 });
+      }
+      else {
+        if (tool && feedbackTools.has(tool)) internal.searchParams.set('tool', tool);
+        if (locale === 'en' || locale === 'ko') internal.searchParams.set('locale', locale);
+        response = await contactStub(env).fetch(internal);
+      }
+    }
     else if (url.pathname === '/api/analytics/qualify' && request.method === 'POST') {
       response = await recordQualifiedVisit(request, env);
     }

@@ -7,6 +7,7 @@ import { ui } from '../i18n/ui';
 import AdSlot from './AdSlot.astro';
 import InlineText from './InlineText.astro';
 import ToolCard from './ToolCard.astro';
+import ToolFeedback from './ToolFeedback.astro';
 import ImageConverter from './tools/ImageConverter.astro';
 import ImageCrop from './tools/ImageCrop.astro';
 import ImageToPdf from './tools/ImageToPdf.astro';
@@ -71,6 +72,8 @@ const pairPages = tool.slug === 'image-converter' ? conversions : [];
   <section class="interactive-panel" aria-label={copy.name}>
     <InteractiveTool locale={locale} />
   </section>
+
+  <ToolFeedback locale={locale} tool={tool.slug} />
 
   <AdSlot locale={locale} />
 
