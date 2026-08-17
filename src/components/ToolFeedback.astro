@@ -84,7 +84,7 @@ const copy = locale === 'ko'
     success: copy.success,
     error: copy.error,
     consentError: copy.consentError,
-    summary: locale === 'ko' ? '최근 의견 {total}개 중 {helpful}개가 도움이 됐다고 답했습니다.' : '{helpful} of {total} recent responses found this tool helpful.',
+    summary: locale === 'ko' ? '최근 {total}개 의견 · 도움됨 {helpful}개' : '{helpful} of {total} recent responses marked helpful',
   })}
 >
   <div class="feedback-heading">
@@ -199,7 +199,7 @@ const copy = locale === 'ko'
     form?.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (helpful === null || !submit || !status) return;
-      const comment = textarea?.value.trim() ?? '';
+      const comment = textarea?.value.replace(/\s+/gu, ' ').trim() ?? '';
       const publish = form.elements.namedItem('publishConsent') as HTMLInputElement | null;
       const publishConsent = helpful && Boolean(publish?.checked);
       if (publishConsent && comment.length < 10) {

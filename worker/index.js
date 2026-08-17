@@ -29,6 +29,7 @@ const feedbackReasons = new Set(['worked', 'easy', 'private', 'failed', 'confusi
 const positiveFeedbackReasons = new Set(['worked', 'easy', 'private', 'other']);
 const negativeFeedbackReasons = new Set(['failed', 'confusing', 'missing', 'other']);
 const feedbackTools = new Set(Object.values(TOOL_SUBDOMAINS).map((entry) => entry.tool).filter(Boolean));
+const normalizeFeedbackComment = (value) => String(value ?? '').replace(/\s+/gu, ' ').trim();
 
 const contactStub = (env) => env.CONTACTS.get(env.CONTACTS.idFromName('global'));
 
@@ -137,7 +138,10 @@ async function handleFeedback(request, env) {
   const reason = body.reason === '' || body.reason == null
     ? ''
     : feedbackReasons.has(body.reason) ? body.reason : null;
-  const comment = String(body.comment ?? '').trim();
+  // Feedback is a short note, not a long-form message. Keeping it on one
+  // logical line prevents pasted line breaks from becoming accidental gaps in
+  // the moderation inbox or a published testimonial.
+  const comment = normalizeFeedbackComment(body.comment);
   const publishConsent = body.publishConsent === true;
   if (
     !locale

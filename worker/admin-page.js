@@ -50,30 +50,31 @@ const pageShell = (title, body, script = '') => `<!doctype html>
     th { color:var(--muted); font-size:.72rem; }
     tbody tr:last-child td { border-bottom:0; }
     .counts { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1rem; }
-    .count { padding:.45rem .7rem; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--muted); font-size:.8rem; }
+    .count { padding:.45rem .7rem; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--muted); font-size:.8rem; white-space:nowrap; }
     .count strong { color:var(--ink); }
     .filters { width:10rem; }
     #status { min-height:1.5rem; color:var(--muted); font-size:.85rem; }
     .list { display:grid; gap:.85rem; margin-top:1rem; }
     .contact { padding:1.15rem; border:1px solid var(--line); border-radius:1rem; background:var(--surface); }
     .contact-top { display:flex; flex-wrap:wrap; align-items:center; gap:.45rem .75rem; }
-    .badge { padding:.25rem .5rem; border-radius:999px; background:#eee; font-size:.72rem; font-weight:750; }
+    .badge { padding:.25rem .5rem; border-radius:999px; background:#eee; font-size:.72rem; font-weight:750; white-space:nowrap; }
     .badge-new { background:#fff0b5; }
     .badge-resolved { background:#dcf4e5; }
     .badge-pending { background:#fff0b5; }
     .badge-approved { background:#dcf4e5; }
     .badge-rejected { background:#eee; color:var(--muted); }
     .badge-private { background:#e8edf7; color:#334b8e; }
-    time,.meta { color:var(--muted); font-size:.76rem; }
+    time,.meta { color:var(--muted); font-size:.76rem; white-space:nowrap; }
     .message { margin:1rem 0; line-height:1.7; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .feedback-message { white-space:normal; }
     .email { display:inline-block; margin-top:.2rem; color:#334b8e; font-size:.84rem; overflow-wrap:anywhere; }
     .actions { display:flex; flex-wrap:wrap; gap:.45rem; margin-top:1rem; padding-top:.8rem; border-top:1px solid var(--line); }
-    .actions button { padding:.45rem .7rem; border:1px solid var(--line); border-radius:.6rem; background:#f8f8f5; font-size:.78rem; }
+    .actions button { padding:.45rem .7rem; border:1px solid var(--line); border-radius:.6rem; background:#f8f8f5; font-size:.78rem; white-space:nowrap; }
     .actions .danger { margin-left:auto; color:var(--red); }
     .empty { padding:3rem 1rem; border:1px dashed var(--line); border-radius:1rem; color:var(--muted); text-align:center; }
     .feedback-admin { margin-bottom:3rem; }
     .feedback-note { margin:.55rem 0 0; color:var(--muted); font-size:.78rem; line-height:1.6; }
-    .sentiment { font-size:.95rem; }
+    .sentiment { font-size:.95rem; white-space:nowrap; }
     @media (max-width:42rem) { .metrics { grid-template-columns:1fr 1fr; } }
     @media (max-width:36rem) { h1 { font-size:clamp(1.9rem,10vw,2.7rem); line-height:1.08; } .dashboard-head { display:block; } .filters { width:100%; margin-top:1rem; } .actions .danger { margin-left:0; } .metric { padding:.85rem; } .exclusion { align-items:flex-start; } }
   </style>
@@ -228,7 +229,7 @@ const dashboardScript = String.raw`
     top.append(created);
     card.append(top);
     if (item.reason) card.append(element('p', 'feedback-note', '선택 사유 · ' + (copy.reason[item.reason] || item.reason)));
-    card.append(element('p', 'message', item.comment || '추가로 작성한 의견이 없습니다.'));
+    card.append(element('p', 'message feedback-message', item.comment || '추가로 작성한 의견이 없습니다.'));
     if (item.publishConsent) card.append(element('span', 'badge badge-pending', '익명 공개 동의'));
     const actions = element('div', 'actions');
     if (item.publishConsent && item.helpful && item.comment && item.status !== 'approved') {

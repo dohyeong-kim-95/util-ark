@@ -95,7 +95,7 @@ test('tool feedback sends only normalized feedback fields and an anonymous rate-
     tool: 'word-counter',
     helpful: true,
     reason: 'easy',
-    comment: '자기소개서 글자 수를 확인할 때 편리했습니다.',
+    comment: '  자기소개서 글자 수를\n확인할 때\t편리했습니다.  ',
     publishConsent: true,
     website: '',
     ignoredToolInput: 'this must not be forwarded',

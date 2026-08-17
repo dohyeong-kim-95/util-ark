@@ -1,5 +1,6 @@
 const RETENTION_MS = 180 * 24 * 60 * 60 * 1000;
 const ANALYTICS_RETENTION_DAYS = 90;
+const normalizeFeedbackComment = (value) => String(value ?? '').replace(/\s+/gu, ' ').trim();
 
 const json = (data, init = {}) => {
   const headers = new Headers(init.headers);
@@ -170,7 +171,7 @@ export class ContactStore {
       }
 
       const id = crypto.randomUUID();
-      const comment = feedback.comment || null;
+      const comment = normalizeFeedbackComment(feedback.comment) || null;
       const eligibleQuote = feedback.helpful === true
         && feedback.publishConsent === true
         && typeof comment === 'string'
@@ -223,7 +224,7 @@ export class ContactStore {
          WHERE ${clauses.join(' AND ')}
          ORDER BY created_at DESC LIMIT 6`,
         ...params,
-      )].map((row) => ({ tool: row.tool, quote: row.comment }));
+      )].map((row) => ({ tool: row.tool, quote: normalizeFeedbackComment(row.comment) }));
       return json({
         summary: { total: Number(summary?.total ?? 0), helpful: Number(summary?.helpful ?? 0) },
         approvedTotal,
@@ -388,6 +389,7 @@ export class ContactStore {
       return json({
         items: rows.map((row) => ({
           ...row,
+          comment: row.comment == null ? null : normalizeFeedbackComment(row.comment),
           helpful: row.helpful === 1,
           publishConsent: row.publish_consent === 1,
           publish_consent: undefined,
@@ -427,7 +429,7 @@ export class ContactStore {
         feedbackMatch[1],
       )][0];
       if (!row) return json({ error: 'not found' }, { status: 404 });
-      if (body.status === 'approved' && !(row.helpful === 1 && row.publish_consent === 1 && String(row.comment ?? '').length >= 10)) {
+      if (body.status === 'approved' && !(row.helpful === 1 && row.publish_consent === 1 && normalizeFeedbackComment(row.comment).length >= 10)) {
         return json({ error: 'not publishable' }, { status: 400 });
       }
       this.sql.exec('UPDATE tool_feedback SET status = ? WHERE id = ?', body.status, feedbackMatch[1]);

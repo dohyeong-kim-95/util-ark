@@ -72,7 +72,7 @@ test('contact submission is persisted and visible only after admin login', async
         tool: 'word-counter',
         helpful: true,
         reason: 'worked',
-        comment: 'It made checking a cover letter much quicker.',
+        comment: 'It made checking a cover\nletter much quicker.',
         publishConsent: true,
         website: '',
       }),
