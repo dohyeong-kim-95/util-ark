@@ -65,6 +65,20 @@ export class ContactStore {
         PRIMARY KEY (day, visitor_key)
       );
       CREATE INDEX IF NOT EXISTS analytics_qualified_day ON analytics_qualified(day);
+      -- One funnel step for one visitor on one day, for one tool. The primary
+      -- key is the dedupe: a visitor who reselects a file or refreshes the
+      -- page still counts once per step per day, the same rule the DAU and
+      -- qualified-visit tables already use. No filename, image data, or
+      -- result file is ever in reach of this table — only which step of
+      -- which tool's funnel happened.
+      CREATE TABLE IF NOT EXISTS tool_events (
+        day TEXT NOT NULL,
+        tool TEXT NOT NULL,
+        event TEXT NOT NULL,
+        visitor_key TEXT NOT NULL,
+        PRIMARY KEY (day, tool, event, visitor_key)
+      );
+      CREATE INDEX IF NOT EXISTS tool_events_tool_day ON tool_events(tool, day);
     `);
   }
 
@@ -76,6 +90,7 @@ export class ContactStore {
     this.sql.exec('DELETE FROM analytics_daily WHERE day < ?', cutoff);
     this.sql.exec('DELETE FROM analytics_visitors WHERE day < ?', cutoff);
     this.sql.exec('DELETE FROM analytics_qualified WHERE day < ?', cutoff);
+    this.sql.exec('DELETE FROM tool_events WHERE day < ?', cutoff);
   }
 
   consumeRateLimit(scope, visitorKey, limit, windowMs, now) {
@@ -273,6 +288,56 @@ export class ContactStore {
       );
       this.purge(now);
       return json({ ok: true }, { status: 202 });
+    }
+
+    if (url.pathname === '/analytics/tool-event' && request.method === 'POST') {
+      const body = await request.json().catch(() => null);
+      const day = typeof body?.day === 'string' && /^\d{4}-\d{2}-\d{2}$/u.test(body.day) ? body.day : null;
+      const tool = typeof body?.tool === 'string' && body.tool ? body.tool : null;
+      const event = typeof body?.event === 'string' && body.event ? body.event : null;
+      if (!day || !tool || !event || !body?.visitorKey) {
+        return json({ error: 'invalid tool event' }, { status: 400 });
+      }
+      this.sql.exec(
+        'INSERT OR IGNORE INTO tool_events (day, tool, event, visitor_key) VALUES (?, ?, ?, ?)',
+        day,
+        tool,
+        event,
+        String(body.visitorKey),
+      );
+      return json({ ok: true }, { status: 202 });
+    }
+
+    if (url.pathname === '/analytics/tool-funnel' && request.method === 'GET') {
+      const tool = url.searchParams.get('tool');
+      if (!tool) return json({ error: 'tool required' }, { status: 400 });
+      const days = Math.min(90, Math.max(1, Number(url.searchParams.get('days')) || 30));
+      const today = new Date(now).toISOString().slice(0, 10);
+      const firstDay = new Date(now - (days - 1) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const counts = {};
+      for (const row of this.sql.exec(
+        `SELECT day, event, COUNT(*) AS count FROM tool_events
+         WHERE tool = ? AND day BETWEEN ? AND ?
+         GROUP BY day, event`,
+        tool,
+        firstDay,
+        today,
+      )) {
+        (counts[row.day] ??= {})[row.event] = Number(row.count);
+      }
+      const items = [];
+      for (let offset = 0; offset < days; offset += 1) {
+        const day = new Date(now - offset * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const dayCounts = counts[day] ?? {};
+        items.push({
+          day,
+          view: dayCounts.view ?? 0,
+          selected: dayCounts.selected ?? 0,
+          compressed: dayCounts.compressed ?? 0,
+          downloaded: dayCounts.downloaded ?? 0,
+        });
+      }
+      return json({ tool, items });
     }
 
     if (url.pathname === '/analytics' && request.method === 'GET') {

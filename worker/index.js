@@ -21,6 +21,13 @@ export { ContactStore };
 
 const ADMIN_COOKIE = 'utilark_admin';
 const ANALYTICS_EXCLUSION_COOKIE = 'utilark_notrack';
+// Tools with a dedicated usage funnel in the admin dashboard, beyond the
+// sitewide page-view count every page already gets. Add a slug here (and a
+// matching section in admin-page.js) to extend the same funnel to another
+// tool without a schema change — `tool_events` is already generic.
+const TOOL_FUNNEL_TOOLS = new Set(['image-compress']);
+const TOOL_FUNNEL_EVENTS = new Set(['selected', 'compressed', 'downloaded']);
+const TOOL_PAGE_PATH = /^\/(?:en|ko)\/([a-z0-9-]+)\/?$/u;
 const CONTACT_MAX_BYTES = 8 * 1024;
 const FEEDBACK_MAX_BYTES = 4 * 1024;
 const NAVER_VERIFICATION_FILE = /^\/naver[0-9a-z]+\.html$/u;
@@ -211,6 +218,54 @@ async function recordPageView(request, env) {
   if (!response.ok) throw new Error(`analytics record failed: ${response.status}`);
 }
 
+/**
+ * The "view" step of a tool's funnel. Recorded the same way as the sitewide
+ * page view it rides alongside — server-side, on the same GET that already
+ * qualifies as a trackable page view — so a tool's funnel never depends on
+ * its own client script having loaded.
+ */
+async function recordToolView(request, env, tool) {
+  if (likelyBot(request) || privacyOptOut(request) || trackingExcluded(request)) return;
+  const day = analyticsDay();
+  const visitorKey = await dailyVisitorKey(request, env.ADMIN_SESSION_SECRET, day);
+  await contactStub(env).fetch('https://contacts.internal/analytics/tool-event', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ day, tool, event: 'view', visitorKey }),
+  });
+}
+
+/**
+ * The remaining funnel steps ("selected", "compressed", "downloaded") only a
+ * visitor's own browser can know happened, so they arrive as a beacon from
+ * the tool's script — same transport and the same exclusions as the
+ * page-qualify beacon in BaseLayout.astro.
+ */
+async function recordToolFunnelEvent(request, env) {
+  if (!env.CONTACTS || !env.ADMIN_SESSION_SECRET) return jsonResponse({ ok: false }, { status: 503 });
+  const fetchSite = request.headers.get('Sec-Fetch-Site');
+  const sameOrigin = fetchSite === 'same-origin' || sameOriginMutation(request);
+  if (!sameOrigin) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
+  if (!declaredBodyFits(request, 512)) return jsonResponse({ error: 'request_too_large' }, { status: 413 });
+
+  const body = await request.json().catch(() => null);
+  const tool = TOOL_FUNNEL_TOOLS.has(body?.tool) ? body.tool : null;
+  const event = TOOL_FUNNEL_EVENTS.has(body?.event) ? body.event : null;
+  if (!tool || !event) return jsonResponse({ error: 'invalid_fields' }, { status: 400 });
+  if (likelyBot(request) || privacyOptOut(request) || trackingExcluded(request)) {
+    return jsonResponse({ ok: true }, { status: 202 });
+  }
+
+  const day = analyticsDay();
+  const visitorKey = await dailyVisitorKey(request, env.ADMIN_SESSION_SECRET, day);
+  const response = await contactStub(env).fetch('https://contacts.internal/analytics/tool-event', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ day, tool, event, visitorKey }),
+  });
+  return new Response(response.body, { status: response.status, headers: response.headers });
+}
+
 async function handleAdmin(request, env, url) {
   if (!adminConfigured(env)) return html(unavailablePage(), 503);
   const session = parseCookies(request)[ADMIN_COOKIE];
@@ -260,6 +315,12 @@ async function handleAdmin(request, env, url) {
 
   if (url.pathname === '/api/analytics' && request.method === 'GET') {
     return contactStub(env).fetch('https://contacts.internal/analytics?days=30');
+  }
+
+  if (url.pathname === '/api/analytics/tool-funnel' && request.method === 'GET') {
+    const tool = url.searchParams.get('tool');
+    if (!TOOL_FUNNEL_TOOLS.has(tool)) return jsonResponse({ error: 'invalid_tool' }, { status: 400 });
+    return contactStub(env).fetch(`https://contacts.internal/analytics/tool-funnel?tool=${encodeURIComponent(tool)}&days=30`);
   }
 
   if (url.pathname === '/api/analytics/exclusion' && request.method === 'GET') {
@@ -370,6 +431,9 @@ export default {
     else if (url.pathname === '/api/analytics/qualify' && request.method === 'POST') {
       response = await recordQualifiedVisit(request, env);
     }
+    else if (url.pathname === '/api/analytics/tool-event' && request.method === 'POST' && env.CONTACTS) {
+      response = await recordToolFunnelEvent(request, env);
+    }
     else if (url.pathname === '/api/analytics/public' && request.method === 'GET' && env.CONTACTS) {
       response = await contactStub(env).fetch('https://contacts.internal/analytics/public');
     }
@@ -382,6 +446,13 @@ export default {
       const task = recordPageView(request, env).catch((error) => console.error(error));
       if (ctx?.waitUntil) ctx.waitUntil(task);
       else await task;
+
+      const toolSlug = TOOL_PAGE_PATH.exec(url.pathname)?.[1];
+      if (toolSlug && TOOL_FUNNEL_TOOLS.has(toolSlug)) {
+        const viewTask = recordToolView(request, env, toolSlug).catch((error) => console.error(error));
+        if (ctx?.waitUntil) ctx.waitUntil(viewTask);
+        else await viewTask;
+      }
     }
     return withSecurityHeaders(response);
   },

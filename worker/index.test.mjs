@@ -357,3 +357,143 @@ test('qualified visits honour the same exclusions as page views', async () => {
   assert.equal(foreign.status, 403);
   assert.equal(calls, 0);
 });
+
+test('a tool funnel beacon is stored with a derived key and no file details', async () => {
+  const recorded = [];
+  const env = {
+    ADMIN_SESSION_SECRET: 'test-session-secret-value',
+    CONTACTS: namespace(async (request) => {
+      recorded.push({ path: new URL(request.url).pathname, body: await request.json() });
+      return Response.json({ ok: true }, { status: 202 });
+    }),
+    ASSETS: { fetch: () => new Response('asset') },
+  };
+  const beacon = (body, headers = {}) => new Request('https://utilark.app/api/analytics/tool-event', {
+    method: 'POST',
+    headers: {
+      'Sec-Fetch-Site': 'same-origin',
+      'Content-Type': 'application/json',
+      'CF-Connecting-IP': '203.0.113.55',
+      'User-Agent': 'Mozilla/5.0 Reader',
+      ...headers,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const response = await worker.fetch(beacon({ tool: 'image-compress', event: 'selected' }), env);
+  assert.equal(response.status, 202);
+  assert.equal(recorded.length, 1);
+  assert.equal(recorded[0].path, '/analytics/tool-event');
+  assert.equal(recorded[0].body.tool, 'image-compress');
+  assert.equal(recorded[0].body.event, 'selected');
+  assert.match(recorded[0].body.day, /^\d{4}-\d{2}-\d{2}$/u);
+  assert.equal(typeof recorded[0].body.visitorKey, 'string');
+  assert.equal(recorded[0].body.visitorKey.includes('203.0.113.55'), false);
+  // No field carries a filename, dimensions, or file content — only which
+  // funnel step happened.
+  assert.deepEqual(Object.keys(recorded[0].body).sort(), ['day', 'event', 'tool', 'visitorKey']);
+
+  // The same visitor on the same day resolves to the same key, so the store
+  // can deduplicate a refresh or a re-selection without storing anything new.
+  await worker.fetch(beacon({ tool: 'image-compress', event: 'selected' }), env);
+  assert.equal(recorded[1].body.visitorKey, recorded[0].body.visitorKey);
+});
+
+test('a tool funnel beacon rejects an unknown tool or step and stays inert for excluded visits', async () => {
+  let calls = 0;
+  const env = {
+    ADMIN_SESSION_SECRET: 'test-session-secret-value',
+    CONTACTS: namespace(() => { calls += 1; return Response.json({ ok: true }, { status: 202 }); }),
+    ASSETS: { fetch: () => new Response('asset') },
+  };
+  const beacon = (body, headers = {}) => new Request('https://utilark.app/api/analytics/tool-event', {
+    method: 'POST',
+    headers: {
+      'Sec-Fetch-Site': 'same-origin',
+      'Content-Type': 'application/json',
+      'User-Agent': 'Mozilla/5.0 Reader',
+      ...headers,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const unknownTool = await worker.fetch(beacon({ tool: 'unicorn-tool', event: 'selected' }), env);
+  assert.equal(unknownTool.status, 400);
+  const unknownEvent = await worker.fetch(beacon({ tool: 'image-compress', event: 'opened' }), env);
+  assert.equal(unknownEvent.status, 400);
+  assert.equal(calls, 0);
+
+  for (const headers of [
+    { DNT: '1' },
+    { 'Sec-GPC': '1' },
+    { Cookie: 'utilark_notrack=1' },
+    { 'User-Agent': 'Googlebot/2.1' },
+  ]) {
+    const response = await worker.fetch(beacon({ tool: 'image-compress', event: 'downloaded' }, headers), env);
+    assert.equal(response.status, 202, JSON.stringify(headers));
+  }
+  assert.equal(calls, 0, 'no excluded event should reach storage');
+
+  const foreign = await worker.fetch(new Request('https://utilark.app/api/analytics/tool-event', {
+    method: 'POST',
+    headers: { 'Sec-Fetch-Site': 'cross-site', Origin: 'https://example.com', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tool: 'image-compress', event: 'downloaded' }),
+  }), env);
+  assert.equal(foreign.status, 403);
+  assert.equal(calls, 0);
+});
+
+test('visiting a tool with a funnel records a view step alongside the page view, and other pages do not', async () => {
+  const recorded = [];
+  const env = {
+    ADMIN_SESSION_SECRET: 'test-session-secret-value',
+    CONTACTS: namespace(async (request) => {
+      recorded.push({ path: new URL(request.url).pathname, body: await request.json().catch(() => null) });
+      return Response.json({ ok: true }, { status: 201 });
+    }),
+    ASSETS: { fetch: () => new Response('<h1>Utilark</h1>', { headers: { 'Content-Type': 'text/html' } }) },
+  };
+  const headers = { 'CF-Connecting-IP': '203.0.113.61', 'User-Agent': 'Mozilla/5.0 Human', 'Sec-Fetch-Dest': 'document' };
+
+  await worker.fetch(new Request('https://utilark.app/en/image-compress/', { headers }), env);
+  const toolEvents = recorded.filter((entry) => entry.path === '/analytics/tool-event');
+  assert.equal(toolEvents.length, 1);
+  assert.equal(toolEvents[0].body.tool, 'image-compress');
+  assert.equal(toolEvents[0].body.event, 'view');
+
+  recorded.length = 0;
+  await worker.fetch(new Request('https://utilark.app/en/about/', { headers }), env);
+  assert.equal(recorded.filter((entry) => entry.path === '/analytics/tool-event').length, 0);
+});
+
+test('the admin tool-funnel endpoint only proxies known tools', async () => {
+  let internalPath;
+  const env = {
+    ADMIN_ID: 'admin',
+    ADMIN_PASSWORD: 'correct horse battery staple',
+    ADMIN_SESSION_SECRET: 'another-long-test-session-secret',
+    CONTACTS: namespace((request) => {
+      const url = new URL(request.url);
+      if (url.pathname === '/rate-limit') return Response.json({ allowed: true });
+      internalPath = url.pathname + url.search;
+      return Response.json({ tool: 'image-compress', items: [] });
+    }),
+  };
+  const login = await worker.fetch(new Request('https://admin.utilark.app/login', {
+    method: 'POST',
+    headers: { Origin: 'https://admin.utilark.app' },
+    body: new URLSearchParams({ id: 'admin', password: 'correct horse battery staple' }),
+  }), env);
+  const cookie = login.headers.get('Set-Cookie').split(';', 1)[0];
+
+  const ok = await worker.fetch(new Request('https://admin.utilark.app/api/analytics/tool-funnel?tool=image-compress', {
+    headers: { Cookie: cookie },
+  }), env);
+  assert.equal(ok.status, 200);
+  assert.equal(internalPath, '/analytics/tool-funnel?tool=image-compress&days=30');
+
+  const unknown = await worker.fetch(new Request('https://admin.utilark.app/api/analytics/tool-funnel?tool=made-up', {
+    headers: { Cookie: cookie },
+  }), env);
+  assert.equal(unknown.status, 400);
+});

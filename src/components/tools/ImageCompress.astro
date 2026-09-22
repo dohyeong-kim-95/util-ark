@@ -96,6 +96,9 @@ const labels = locale === 'ko'
 
 <script>
   import { formatBytes } from '../../lib/media-plan';
+  import { trackToolEvent } from '../../lib/tool-analytics';
+
+  const TOOL = 'image-compress';
 
   const root = document.querySelector<HTMLElement>('.compress-tool');
   if (root) {
@@ -128,6 +131,7 @@ const labels = locale === 'ko'
       resetResult();
       if (fitButton) fitButton.disabled = !file;
       say('');
+      if (file) trackToolEvent(TOOL, 'selected');
     });
 
     targetSelect?.addEventListener('change', () => {
@@ -239,6 +243,7 @@ const labels = locale === 'ko'
         if ('close' in bitmap && typeof bitmap.close === 'function') bitmap.close();
 
         result = { blob: outcome.blob, extension };
+        trackToolEvent(TOOL, 'compressed');
 
         if (facts) {
           const targetText = formatBytes(targetBytes, locale);
@@ -269,6 +274,7 @@ const labels = locale === 'ko'
       anchor.download = `${base}-compressed.${result.extension}`;
       anchor.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      trackToolEvent(TOOL, 'downloaded');
       say(copy.done);
     });
   }

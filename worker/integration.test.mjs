@@ -194,3 +194,91 @@ test('contact submission is persisted and visible only after admin login', async
     await mf.dispose();
   }
 });
+
+test('the image-compress funnel records a page view plus deduplicated steps and reads back in the admin dashboard', async () => {
+  const mf = new Miniflare({
+    compatibilityDate: '2026-07-17',
+    modules: true,
+    modulesRules: [{ type: 'ESModule', include: ['**/*.js'], fallthrough: true }],
+    scriptPath: resolve(projectRoot, 'worker/index.js'),
+    durableObjects: { CONTACTS: { className: 'ContactStore', useSQLite: true } },
+    serviceBindings: {
+      ASSETS: () => new Response('<!doctype html><title>Utilark</title>', {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      }),
+    },
+    bindings: {
+      ADMIN_ID: 'admin',
+      ADMIN_PASSWORD: 'integration-test-password',
+      ADMIN_SESSION_SECRET: 'integration-test-session-secret-value',
+    },
+  });
+
+  try {
+    const visitHeaders = {
+      'CF-Connecting-IP': '203.0.113.70',
+      'User-Agent': 'Mozilla/5.0 Integration Browser',
+      'Sec-Fetch-Dest': 'document',
+    };
+
+    // Visiting the tool page records its "view" step automatically, alongside
+    // the sitewide page view every page already gets.
+    await mf.dispatchFetch('https://utilark.app/en/image-compress/', { headers: visitHeaders });
+
+    const beacon = (event) => mf.dispatchFetch('https://utilark.app/api/analytics/tool-event', {
+      method: 'POST',
+      headers: { ...visitHeaders, 'Sec-Fetch-Site': 'same-origin', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool: 'image-compress', event }),
+    });
+
+    // The same visitor firing "selected" twice (a reselect, or a refresh)
+    // must still land as one for the day.
+    assert.equal((await beacon('selected')).status, 202);
+    assert.equal((await beacon('selected')).status, 202);
+    assert.equal((await beacon('compressed')).status, 202);
+    assert.equal((await beacon('downloaded')).status, 202);
+
+    // A second, distinct visitor also selects a photo but never finishes.
+    await mf.dispatchFetch('https://utilark.app/api/analytics/tool-event', {
+      method: 'POST',
+      headers: {
+        'CF-Connecting-IP': '203.0.113.71',
+        'User-Agent': 'Mozilla/5.0 Second Visitor',
+        'Sec-Fetch-Site': 'same-origin',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ tool: 'image-compress', event: 'selected' }),
+    });
+
+    const login = await mf.dispatchFetch('https://admin.utilark.app/login', {
+      method: 'POST',
+      redirect: 'manual',
+      headers: {
+        Origin: 'https://admin.utilark.app',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ id: 'admin', password: 'integration-test-password' }).toString(),
+    });
+    assert.equal(login.status, 303);
+    const cookie = login.headers.get('Set-Cookie').split(';', 1)[0];
+
+    const funnel = await mf.dispatchFetch('https://admin.utilark.app/api/analytics/tool-funnel?tool=image-compress', {
+      headers: { Cookie: cookie },
+    });
+    assert.equal(funnel.status, 200);
+    const funnelData = await funnel.json();
+    assert.equal(funnelData.tool, 'image-compress');
+    const today = funnelData.items[0];
+    assert.equal(today.view, 1);
+    assert.equal(today.selected, 2, 'two distinct visitors selecting once each, the repeat deduplicated');
+    assert.equal(today.compressed, 1);
+    assert.equal(today.downloaded, 1);
+
+    const unknownTool = await mf.dispatchFetch('https://admin.utilark.app/api/analytics/tool-funnel?tool=made-up', {
+      headers: { Cookie: cookie },
+    });
+    assert.equal(unknownTool.status, 400);
+  } finally {
+    await mf.dispose();
+  }
+});

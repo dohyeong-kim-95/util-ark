@@ -117,6 +117,8 @@ const dashboardScript = String.raw`
   const feedbackFilter = document.getElementById('feedback-filter');
   const analyticsStatus = document.getElementById('analytics-status');
   const analyticsRows = document.getElementById('analytics-rows');
+  const compressStatus = document.getElementById('compress-funnel-status');
+  const compressRows = document.getElementById('compress-funnel-rows');
   const exclusionSwitch = document.getElementById('analytics-exclusion');
   const exclusionState = document.getElementById('exclusion-state');
   const date = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Seoul' });
@@ -298,6 +300,33 @@ const dashboardScript = String.raw`
     }
   }
 
+  async function loadToolFunnel() {
+    compressStatus.textContent = '사용 현황을 불러오는 중…';
+    try {
+      const data = await api('/api/analytics/tool-funnel?tool=image-compress');
+      const today = data.items[0] || { view: 0, selected: 0, compressed: 0, downloaded: 0 };
+      document.getElementById('compress-today-view').textContent = number(today.view);
+      document.getElementById('compress-today-selected').textContent = number(today.selected);
+      document.getElementById('compress-today-compressed').textContent = number(today.compressed);
+      document.getElementById('compress-today-downloaded').textContent = number(today.downloaded);
+      compressRows.replaceChildren(...data.items.map((item) => {
+        const row = document.createElement('tr');
+        row.append(
+          element('td', '', day.format(new Date(item.day + 'T00:00:00Z'))),
+          element('td', '', number(item.view)),
+          element('td', '', number(item.selected)),
+          element('td', '', number(item.compressed)),
+          element('td', '', number(item.downloaded)),
+        );
+        return row;
+      }));
+      compressStatus.textContent = 'UTC 기준 · 최근 30일';
+    } catch (error) {
+      compressRows.replaceChildren();
+      compressStatus.textContent = error.message;
+    }
+  }
+
   function renderExclusion(excluded) {
     exclusionSwitch.dataset.excluded = String(excluded);
     exclusionSwitch.setAttribute('aria-checked', String(excluded));
@@ -373,6 +402,7 @@ const dashboardScript = String.raw`
   });
   loadExclusion();
   loadAnalytics();
+  loadToolFunnel();
   loadFeedback();
   load();
 `;
@@ -408,6 +438,23 @@ export const dashboardPage = () => pageShell(
         <table>
           <thead><tr><th scope="col">날짜</th><th scope="col">DAU</th><th scope="col">유효</th><th scope="col">페이지뷰</th><th scope="col">제외 봇</th></tr></thead>
           <tbody id="analytics-rows"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="analytics" aria-labelledby="compress-funnel-title">
+      <h2 id="compress-funnel-title" class="section-title">Image Compressor 사용 현황</h2>
+      <p class="section-note">BUILD #001 실험 지표입니다. 파일명·이미지 내용·원본이나 결과 파일은 저장하지 않으며, 같은 방문자가 하루 안에 같은 단계를 여러 번 밟아도 하루 1회로만 집계합니다. 접속 현황과 같은 봇·DNT/GPC·집계 제외 기준을 적용합니다.</p>
+      <div class="metrics">
+        <div class="metric"><span>오늘 페이지뷰</span><strong id="compress-today-view">–</strong></div>
+        <div class="metric"><span>오늘 이미지 선택</span><strong id="compress-today-selected">–</strong></div>
+        <div class="metric"><span>오늘 압축 성공</span><strong id="compress-today-compressed">–</strong></div>
+        <div class="metric"><span>오늘 다운로드</span><strong id="compress-today-downloaded">–</strong></div>
+      </div>
+      <p id="compress-funnel-status" class="section-note" role="status"></p>
+      <div class="analytics-table">
+        <table>
+          <thead><tr><th scope="col">날짜</th><th scope="col">페이지뷰</th><th scope="col">이미지 선택</th><th scope="col">압축 성공</th><th scope="col">다운로드</th></tr></thead>
+          <tbody id="compress-funnel-rows"></tbody>
         </table>
       </div>
     </section>
