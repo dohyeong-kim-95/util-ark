@@ -58,6 +58,14 @@ const labels = locale === 'ko'
     <span>{labels.hint}</span>
   </label>
 
+  <div class="file-preview" data-preview hidden>
+    <img data-preview-image alt="" />
+    <div>
+      <strong data-preview-name></strong>
+      <small data-preview-size></small>
+    </div>
+  </div>
+
   <div class="option-grid">
     <label>
       <span>{labels.target}</span>
@@ -113,12 +121,34 @@ const labels = locale === 'ko'
     const facts = root.querySelector<HTMLElement>('[data-facts]');
     const downloadRow = root.querySelector<HTMLElement>('[data-download-row]');
     const status = root.querySelector<HTMLElement>('.action-status');
+    const preview = root.querySelector<HTMLElement>('[data-preview]');
+    const previewImage = root.querySelector<HTMLImageElement>('[data-preview-image]');
+    const previewName = root.querySelector<HTMLElement>('[data-preview-name]');
+    const previewSize = root.querySelector<HTMLElement>('[data-preview-size]');
 
     let file: File | null = null;
     let result: { blob: Blob; extension: string } | null = null;
+    let previewUrl = '';
 
     const say = (message: string) => { if (status) status.textContent = message; };
     const row = (term: string, value: string) => `<div><dt>${term}</dt><dd>${value}</dd></div>`;
+
+    // A thumbnail of the exact file the browser received is the only real
+    // confirmation that the right photo made it in — a filename alone can't
+    // rule out picking the wrong file from a folder of similar shots.
+    const showPreview = (source: File) => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = URL.createObjectURL(source);
+      if (previewImage) previewImage.src = previewUrl;
+      if (previewName) previewName.textContent = source.name;
+      if (previewSize) previewSize.textContent = formatBytes(source.size, locale);
+      if (preview) preview.hidden = false;
+    };
+    const hidePreview = () => {
+      if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = ''; }
+      if (preview) preview.hidden = true;
+      if (previewImage) previewImage.removeAttribute('src');
+    };
 
     const resetResult = () => {
       result = null;
@@ -131,7 +161,12 @@ const labels = locale === 'ko'
       resetResult();
       if (fitButton) fitButton.disabled = !file;
       say('');
-      if (file) trackToolEvent(TOOL, 'selected');
+      if (file) {
+        showPreview(file);
+        trackToolEvent(TOOL, 'selected');
+      } else {
+        hidePreview();
+      }
     });
 
     targetSelect?.addEventListener('change', () => {
