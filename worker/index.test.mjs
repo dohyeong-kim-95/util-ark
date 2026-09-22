@@ -300,7 +300,7 @@ test('a qualified visit is recorded from a beacon and stores no new identifier',
     }),
     ASSETS: { fetch: () => new Response('asset') },
   };
-  const beacon = (headers = {}) => new Request('https://utilark.app/api/analytics/qualify', {
+  const beacon = (headers = {}) => new Request('https://utilark.app/api/usage/qualify', {
     method: 'POST',
     headers: {
       'Sec-Fetch-Site': 'same-origin',
@@ -333,7 +333,7 @@ test('qualified visits honour the same exclusions as page views', async () => {
     CONTACTS: namespace(() => { calls += 1; return Response.json({ ok: true }, { status: 202 }); }),
     ASSETS: { fetch: () => new Response('asset') },
   };
-  const beacon = (headers) => new Request('https://utilark.app/api/analytics/qualify', {
+  const beacon = (headers) => new Request('https://utilark.app/api/usage/qualify', {
     method: 'POST',
     headers: { 'Sec-Fetch-Site': 'same-origin', 'User-Agent': 'Mozilla/5.0 Reader', ...headers },
   });
@@ -350,7 +350,7 @@ test('qualified visits honour the same exclusions as page views', async () => {
   assert.equal(calls, 0, 'no excluded visit should reach storage');
 
   // A cross-origin post is refused outright rather than counted.
-  const foreign = await worker.fetch(new Request('https://utilark.app/api/analytics/qualify', {
+  const foreign = await worker.fetch(new Request('https://utilark.app/api/usage/qualify', {
     method: 'POST',
     headers: { 'Sec-Fetch-Site': 'cross-site', Origin: 'https://example.com' },
   }), env);
@@ -371,7 +371,7 @@ test('a beacon from a browser with no Fetch Metadata support (Safari) is still r
     CONTACTS: namespace(() => { calls += 1; return Response.json({ ok: true }, { status: 202 }); }),
     ASSETS: { fetch: () => new Response('asset') },
   };
-  const safariBeacon = await worker.fetch(new Request('https://utilark.app/api/analytics/qualify', {
+  const safariBeacon = await worker.fetch(new Request('https://utilark.app/api/usage/qualify', {
     method: 'POST',
     headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15' },
   }), env);
@@ -389,7 +389,7 @@ test('a tool funnel beacon is stored with a derived key and no file details', as
     }),
     ASSETS: { fetch: () => new Response('asset') },
   };
-  const beacon = (body, headers = {}) => new Request('https://utilark.app/api/analytics/tool-event', {
+  const beacon = (body, headers = {}) => new Request('https://utilark.app/api/usage/event', {
     method: 'POST',
     headers: {
       'Sec-Fetch-Site': 'same-origin',
@@ -427,7 +427,7 @@ test('a tool funnel beacon rejects an unknown tool or step and stays inert for e
     CONTACTS: namespace(() => { calls += 1; return Response.json({ ok: true }, { status: 202 }); }),
     ASSETS: { fetch: () => new Response('asset') },
   };
-  const beacon = (body, headers = {}) => new Request('https://utilark.app/api/analytics/tool-event', {
+  const beacon = (body, headers = {}) => new Request('https://utilark.app/api/usage/event', {
     method: 'POST',
     headers: {
       'Sec-Fetch-Site': 'same-origin',
@@ -455,7 +455,7 @@ test('a tool funnel beacon rejects an unknown tool or step and stays inert for e
   }
   assert.equal(calls, 0, 'no excluded event should reach storage');
 
-  const foreign = await worker.fetch(new Request('https://utilark.app/api/analytics/tool-event', {
+  const foreign = await worker.fetch(new Request('https://utilark.app/api/usage/event', {
     method: 'POST',
     headers: { 'Sec-Fetch-Site': 'cross-site', Origin: 'https://example.com', 'Content-Type': 'application/json' },
     body: JSON.stringify({ tool: 'image-compress', event: 'downloaded' }),
@@ -475,7 +475,7 @@ test('a tool funnel beacon from a browser with no Fetch Metadata support (Safari
     CONTACTS: namespace(() => { calls += 1; return Response.json({ ok: true }, { status: 202 }); }),
     ASSETS: { fetch: () => new Response('asset') },
   };
-  const response = await worker.fetch(new Request('https://utilark.app/api/analytics/tool-event', {
+  const response = await worker.fetch(new Request('https://utilark.app/api/usage/event', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

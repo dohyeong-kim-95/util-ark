@@ -185,7 +185,11 @@ const schemas = [
           window.clearTimeout(timer);
           INTERACTIONS.forEach((type) => window.removeEventListener(type, qualify));
           document.removeEventListener('visibilitychange', onVisibility);
-          const url = '/api/analytics/qualify';
+          // Not under /api/analytics/ — that substring is exactly what generic
+          // ad-block and tracking-protection filter lists match on, first-party
+          // or not, and a beacon a filter list silently eats never reaches the
+          // server at all.
+          const url = '/api/usage/qualify';
           if (navigator.sendBeacon) {
             navigator.sendBeacon(url, new Blob(['{}'], { type: 'application/json' }));
             return;

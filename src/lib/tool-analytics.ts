@@ -10,14 +10,20 @@
  * "compressed", "downloaded"), never anything about the file itself —
  * no name, no dimensions, no image data.
  */
+// Not under /api/analytics/ — that substring is exactly what generic
+// ad-block and tracking-protection filter lists match on, first-party or
+// not, so a beacon sent there can be silently eaten by the visitor's own
+// browser before it ever reaches the server. See worker/index.js.
+const ENDPOINT = '/api/usage/event';
+
 export function trackToolEvent(tool: string, event: string): void {
   try {
     const payload = JSON.stringify({ tool, event });
     if (navigator.sendBeacon) {
-      navigator.sendBeacon('/api/analytics/tool-event', new Blob([payload], { type: 'application/json' }));
+      navigator.sendBeacon(ENDPOINT, new Blob([payload], { type: 'application/json' }));
       return;
     }
-    fetch('/api/analytics/tool-event', {
+    fetch(ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: payload,

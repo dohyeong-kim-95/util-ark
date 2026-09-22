@@ -44,7 +44,7 @@ test('state-changing requests require the exact origin', () => {
 });
 
 test('a beacon is judged same-origin by whichever signal is present, and same-origin when neither is', () => {
-  const post = (headers) => new Request('https://utilark.app/api/analytics/qualify', { method: 'POST', headers });
+  const post = (headers) => new Request('https://utilark.app/api/usage/qualify', { method: 'POST', headers });
 
   // Chromium: Sec-Fetch-Site is authoritative even without Origin.
   assert.equal(likelySameOriginBeacon(post({ 'Sec-Fetch-Site': 'same-origin' })), true);

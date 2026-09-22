@@ -1,6 +1,6 @@
 /**
  * Manual production smoke test for the Image Compressor funnel beacon
- * (`/api/analytics/tool-event` in worker/index.js) and the tool page view it
+ * (`/api/usage/event` in worker/index.js) and the tool page view it
  * rides alongside. Not part of `npm test` — it makes real requests against a
  * live deployment and each accepted call adds one real "selected" event to
  * that day's funnel count (deduplicated per visitor per day, so re-running
@@ -67,7 +67,7 @@ async function main() {
   };
 
   for (const [label, headers] of Object.entries(profiles)) {
-    const response = await fetch(`${baseUrl}/api/analytics/tool-event`, {
+    const response = await fetch(`${baseUrl}/api/usage/event`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ tool: 'image-compress', event: 'selected' }),
@@ -77,7 +77,7 @@ async function main() {
 
   // 3. A genuinely cross-origin beacon must still be rejected — the fix for
   //    #2 must not have widened who is allowed to post.
-  const foreign = await fetch(`${baseUrl}/api/analytics/tool-event`, {
+  const foreign = await fetch(`${baseUrl}/api/usage/event`, {
     method: 'POST',
     headers: { Origin: 'https://example.com', 'Sec-Fetch-Site': 'cross-site', 'Content-Type': 'application/json' },
     body: JSON.stringify({ tool: 'image-compress', event: 'selected' }),

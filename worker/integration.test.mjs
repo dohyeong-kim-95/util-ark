@@ -225,7 +225,7 @@ test('the image-compress funnel records a page view plus deduplicated steps and 
     // the sitewide page view every page already gets.
     await mf.dispatchFetch('https://utilark.app/en/image-compress/', { headers: visitHeaders });
 
-    const beacon = (event) => mf.dispatchFetch('https://utilark.app/api/analytics/tool-event', {
+    const beacon = (event) => mf.dispatchFetch('https://utilark.app/api/usage/event', {
       method: 'POST',
       headers: { ...visitHeaders, 'Sec-Fetch-Site': 'same-origin', 'Content-Type': 'application/json' },
       body: JSON.stringify({ tool: 'image-compress', event }),
@@ -239,7 +239,7 @@ test('the image-compress funnel records a page view plus deduplicated steps and 
     assert.equal((await beacon('downloaded')).status, 202);
 
     // A second, distinct visitor also selects a photo but never finishes.
-    await mf.dispatchFetch('https://utilark.app/api/analytics/tool-event', {
+    await mf.dispatchFetch('https://utilark.app/api/usage/event', {
       method: 'POST',
       headers: {
         'CF-Connecting-IP': '203.0.113.71',

@@ -421,10 +421,18 @@ export default {
         response = await contactStub(env).fetch(internal);
       }
     }
-    else if (url.pathname === '/api/analytics/qualify' && request.method === 'POST') {
+    // These two write beacons live outside /api/analytics/ on purpose: a
+    // path containing "analytics" is exactly the pattern generic ad-block
+    // and tracking-protection filter lists match on, first-party or not, so
+    // a real visit's beacon can be silently dropped by the visitor's own
+    // browser before it ever reaches this Worker — no header or CORS fix
+    // here can compensate for a request that never left the client. The
+    // read-only endpoints below stay under /api/analytics/ since blocking
+    // those only blanks a number on screen rather than losing data.
+    else if (url.pathname === '/api/usage/qualify' && request.method === 'POST') {
       response = await recordQualifiedVisit(request, env);
     }
-    else if (url.pathname === '/api/analytics/tool-event' && request.method === 'POST' && env.CONTACTS) {
+    else if (url.pathname === '/api/usage/event' && request.method === 'POST' && env.CONTACTS) {
       response = await recordToolFunnelEvent(request, env);
     }
     else if (url.pathname === '/api/analytics/public' && request.method === 'GET' && env.CONTACTS) {
