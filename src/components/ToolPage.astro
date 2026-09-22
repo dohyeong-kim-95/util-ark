@@ -8,6 +8,7 @@ import AdSlot from './AdSlot.astro';
 import InlineText from './InlineText.astro';
 import ToolCard from './ToolCard.astro';
 import ToolFeedback from './ToolFeedback.astro';
+import ImageCompress from './tools/ImageCompress.astro';
 import ImageConverter from './tools/ImageConverter.astro';
 import ImageCrop from './tools/ImageCrop.astro';
 import ImageToPdf from './tools/ImageToPdf.astro';
@@ -30,6 +31,7 @@ const copy = tool.copy[locale];
 const components = {
   'image-converter': ImageConverter,
   'image-crop': ImageCrop,
+  'image-compress': ImageCompress,
   'image-to-pdf': ImageToPdf,
   'read-aloud': ReadAloud,
   'mp4-to-mp3': VideoToMp3,

@@ -23,7 +23,7 @@ export type ToolCopy = {
 
 export type ToolDefinition = {
   slug:
-    | 'image-converter' | 'image-crop' | 'image-to-pdf' | 'read-aloud'
+    | 'image-converter' | 'image-crop' | 'image-compress' | 'image-to-pdf' | 'read-aloud'
     | 'mp4-to-mp3' | 'mp4-to-gif' | 'word-counter' | 'merge-pdf'
     | 'split-pdf' | 'pdf-to-image' | 'ladder';
   icon: string;
@@ -181,6 +181,83 @@ export const tools: ToolDefinition[] = [
           {
             question: '화질이 떨어지나요?',
             answer: 'PNG는 무손실로 유지됩니다. JPG와 WebP는 저장할 때 다시 압축되므로, 한 번 자른 파일을 또 자르지 말고 원본에서 자르세요.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    slug: 'image-compress',
+    icon: '⇊',
+    accent: '#f2a65a',
+    copy: {
+      en: {
+        name: 'Image Compressor',
+        titleTag: 'Image Compressor - Resize to Target KB Free | Utilark',
+        short: 'Shrink a photo to a target file size like 100KB or 200KB.',
+        description:
+          'Free image compressor that shrinks a photo to a target size in KB — 100KB, 200KB, 500KB, or a size you set — entirely in your browser.',
+        keywords: ['image compressor', 'compress image to 100kb', 'reduce image size to 200kb', 'photo size reducer'],
+        intro: [
+          'Pick a target size and press fit-to-target: the tool searches for the highest quality that still fits under it, lowering the JPG or WebP quality first and only shrinking the picture\'s dimensions if quality alone cannot reach the target. The result shows the final size, dimensions, and format before you download.',
+          'This is built for forms that state a hard limit rather than a vague "smaller, please" — a passport application, a job portal, a government site that rejects anything over 100KB or 1MB.',
+        ],
+        steps: [
+          'Choose a photo.',
+          'Pick a target size — a preset like 100KB, or type your own — and an output format.',
+          'Press fit-to-target, check the result, then download.',
+        ],
+        faq: [
+          {
+            question: 'Can it always hit the exact target?',
+            answer: 'It gets as close as possible without going over, by searching through quality settings rather than guessing once. A photo with a lot of fine detail may need its dimensions reduced too if quality alone cannot reach a very small target — the result panel says so when it happens.',
+          },
+          {
+            question: 'Is my photo uploaded?',
+            answer: 'No. The search for the right quality runs entirely in your browser, trying encodes locally until one fits, and the file is never sent to Utilark.',
+          },
+          {
+            question: 'JPG or WebP for the smallest file?',
+            answer: 'WebP usually reaches the same target size at higher visible quality. Choose JPG when the destination — an old form, a printer, a government upload — does not accept WebP.',
+          },
+          {
+            question: 'Why did the resolution change and not just the quality?',
+            answer: 'A busy, detailed photo needs more data to look clean at any given quality than a simple one does. When even the lowest usable quality still exceeds the target, the tool reduces the pixel dimensions next, which is a bigger visual change than a quality drop, so it is used only as a last resort — and the result panel marks the file as resized.',
+          },
+        ],
+      },
+      ko: {
+        name: '이미지 용량 줄이기',
+        titleTag: '이미지 압축 - 사진 용량 KB 맞추기 무료 | Utilark',
+        short: '사진을 100KB, 200KB처럼 원하는 용량 이하로 줄입니다.',
+        description:
+          '무료 이미지 압축기입니다. 100KB, 200KB, 500KB 또는 직접 입력한 용량 이하로 사진을 줄이며, 전 과정이 브라우저에서 처리됩니다.',
+        keywords: ['이미지 압축', '사진 용량 줄이기', '사진 100kb로 줄이기', '이미지 kb 맞추기'],
+        intro: [
+          '목표 용량을 정하고 조건에 맞추기를 누르면, 그 용량을 넘지 않는 선에서 가장 좋은 화질을 찾습니다. 먼저 화질을 낮춰보고, 그래도 목표에 못 미치면 그때만 사진 크기(해상도)를 줄입니다. 내려받기 전에 최종 용량·해상도·형식을 확인할 수 있습니다.',
+          '"적당히 줄여줘"가 아니라 정확한 상한이 있는 상황을 위한 도구입니다 — 여권 신청, 채용 사이트, 100KB나 1MB를 넘으면 거절하는 정부 사이트 같은 곳입니다.',
+        ],
+        steps: [
+          '사진을 한 장 선택합니다.',
+          '목표 용량(사전 설정 또는 직접 입력)과 저장 형식을 고릅니다.',
+          '조건에 맞추기를 누르고 결과를 확인한 뒤 내려받습니다.',
+        ],
+        faq: [
+          {
+            question: '정확히 목표 용량에 맞출 수 있나요?',
+            answer: '단순히 한 번 찍어 맞추는 것이 아니라 화질을 단계적으로 낮춰가며 넘지 않는 선에서 가장 가까운 값을 찾습니다. 디테일이 많은 사진은 아주 작은 목표에서 화질만으로 부족할 수 있는데, 그럴 때만 크기(해상도)도 함께 줄이고 결과 화면에 표시합니다.',
+          },
+          {
+            question: '사진이 업로드되나요?',
+            answer: '아니요. 알맞은 화질을 찾는 과정 전체가 브라우저 안에서 여러 번 시도하며 진행되고, 파일은 Utilark로 전송되지 않습니다.',
+          },
+          {
+            question: 'JPG와 WebP 중 무엇이 더 작게 나오나요?',
+            answer: '같은 목표 용량이면 WebP가 대체로 화질이 더 좋게 나옵니다. 오래된 양식이나 인쇄소, 정부 업로드처럼 WebP를 받지 않는 곳이라면 JPG를 고르세요.',
+          },
+          {
+            question: '해상도까지 줄어드는 이유는 무엇인가요?',
+            answer: '디테일이 많고 복잡한 사진은 같은 화질에서도 더 많은 데이터가 필요합니다. 화질을 최저로 낮춰도 목표 용량을 넘으면 그다음 단계로 해상도를 줄이는데, 이는 눈에 더 잘 띄는 변화라 정말 필요할 때만 쓰며 결과 화면에 표시됩니다.',
           },
         ],
       },

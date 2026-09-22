@@ -1,0 +1,275 @@
+---
+import type { Locale } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const labels = locale === 'ko'
+  ? {
+      pick: '사진 선택',
+      hint: 'JPG, PNG, WebP · 한 장씩 처리합니다',
+      target: '목표 용량',
+      custom: '직접 입력 (KB)',
+      format: '저장 형식',
+      fit: '조건에 맞추기',
+      download: '다운로드',
+      empty: '먼저 사진을 선택해주세요.',
+      working: '조건을 맞추는 중…',
+      fitted: '내려받을 준비가 됐습니다.',
+      done: '내려받았습니다.',
+      failed: '처리하지 못했습니다.',
+      size: '파일 크기',
+      dimensions: '해상도',
+      formatLabel: '형식',
+      targetLabel: '목표',
+      metYes: '충족',
+      metNo: '목표 초과',
+      resizedNote: '화질만으로 목표에 도달하지 못해 해상도도 함께 줄였습니다.',
+    }
+  : {
+      pick: 'Choose a photo',
+      hint: 'JPG, PNG, or WebP · one photo at a time',
+      target: 'Target size',
+      custom: 'Custom (KB)',
+      format: 'Save as',
+      fit: 'Fit to target',
+      download: 'Download',
+      empty: 'Choose a photo first.',
+      working: 'Fitting to target…',
+      fitted: 'Ready to download.',
+      done: 'Downloaded.',
+      failed: 'Could not process that photo.',
+      size: 'File size',
+      dimensions: 'Dimensions',
+      formatLabel: 'Format',
+      targetLabel: 'Target',
+      metYes: 'Met',
+      metNo: 'Over target',
+      resizedNote: 'Quality alone could not reach the target, so the dimensions were also reduced.',
+    };
+---
+
+<div class="compress-tool" data-locale={locale} data-copy={JSON.stringify(labels)}>
+  <label class="drop-zone">
+    <input type="file" accept="image/jpeg,image/png,image/webp" />
+    <strong>{labels.pick}</strong>
+    <span>{labels.hint}</span>
+  </label>
+
+  <div class="option-grid">
+    <label>
+      <span>{labels.target}</span>
+      <select data-option="target">
+        <option value="100">100 KB</option>
+        <option value="200" selected>200 KB</option>
+        <option value="500">500 KB</option>
+        <option value="1000">1 MB</option>
+        <option value="custom">{labels.custom}</option>
+      </select>
+    </label>
+    <label data-custom-row hidden>
+      <span>{labels.custom}</span>
+      <input data-option="custom-kb" type="number" min="10" max="20000" step="10" value="200" inputmode="numeric" />
+    </label>
+    <label>
+      <span>{labels.format}</span>
+      <select data-option="format">
+        <option value="image/jpeg">JPG</option>
+        <option value="image/webp" selected>WebP</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="tool-actions">
+    <button type="button" class="primary" data-action="fit" disabled>{labels.fit}</button>
+    <span class="action-status" role="status"></span>
+  </div>
+
+  <dl class="media-facts" data-facts hidden></dl>
+
+  <div class="tool-actions" data-download-row hidden>
+    <button type="button" class="primary" data-action="download">{labels.download}</button>
+  </div>
+</div>
+
+<script>
+  import { formatBytes } from '../../lib/media-plan';
+
+  const root = document.querySelector<HTMLElement>('.compress-tool');
+  if (root) {
+    const copy = JSON.parse(root.dataset.copy || '{}') as Record<string, string>;
+    const locale = root.dataset.locale || 'en';
+    const input = root.querySelector<HTMLInputElement>('input[type="file"]');
+    const targetSelect = root.querySelector<HTMLSelectElement>('[data-option="target"]');
+    const customRow = root.querySelector<HTMLElement>('[data-custom-row]');
+    const customInput = root.querySelector<HTMLInputElement>('[data-option="custom-kb"]');
+    const formatSelect = root.querySelector<HTMLSelectElement>('[data-option="format"]');
+    const fitButton = root.querySelector<HTMLButtonElement>('[data-action="fit"]');
+    const facts = root.querySelector<HTMLElement>('[data-facts]');
+    const downloadRow = root.querySelector<HTMLElement>('[data-download-row]');
+    const status = root.querySelector<HTMLElement>('.action-status');
+
+    let file: File | null = null;
+    let result: { blob: Blob; extension: string } | null = null;
+
+    const say = (message: string) => { if (status) status.textContent = message; };
+    const row = (term: string, value: string) => `<div><dt>${term}</dt><dd>${value}</dd></div>`;
+
+    const resetResult = () => {
+      result = null;
+      if (facts) { facts.hidden = true; facts.innerHTML = ''; }
+      if (downloadRow) downloadRow.hidden = true;
+    };
+
+    input?.addEventListener('change', () => {
+      file = input.files?.[0] ?? null;
+      resetResult();
+      if (fitButton) fitButton.disabled = !file;
+      say('');
+    });
+
+    targetSelect?.addEventListener('change', () => {
+      if (customRow) customRow.hidden = targetSelect.value !== 'custom';
+    });
+
+    const decode = async (source: File) => {
+      // A phone photo carries an EXIF rotation tag whose default handling
+      // varies by browser, so ask for it explicitly — otherwise a portrait
+      // photo is measured and encoded on its side.
+      if ('createImageBitmap' in window) {
+        return createImageBitmap(source, { imageOrientation: 'from-image' })
+          .catch(() => createImageBitmap(source));
+      }
+      return new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        const url = URL.createObjectURL(source);
+        image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
+        image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
+        image.src = url;
+      });
+    };
+
+    const encodeAt = (
+      bitmap: ImageBitmap | HTMLImageElement,
+      mime: string,
+      quality: number,
+      longestEdge: number,
+    ) => {
+      const width = 'width' in bitmap ? bitmap.width : 0;
+      const height = 'height' in bitmap ? bitmap.height : 0;
+      const factor = Math.min(1, longestEdge / Math.max(width, height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(width * factor));
+      canvas.height = Math.max(1, Math.round(height * factor));
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('canvas');
+      if (mime === 'image/jpeg') {
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      context.drawImage(bitmap as CanvasImageSource, 0, 0, canvas.width, canvas.height);
+      return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mime, quality))
+        .then((blob) => (blob ? { blob, width: canvas.width, height: canvas.height } : null));
+    };
+
+    /**
+     * Searches quality first, at the image's own size, because a quality drop
+     * is the smaller visual change. Only when the lowest usable quality still
+     * misses the target does the longest edge shrink and the search run
+     * again — a bigger change, so it is a fallback rather than a first move.
+     */
+    const compressToTarget = async (
+      bitmap: ImageBitmap | HTMLImageElement,
+      mime: string,
+      targetBytes: number,
+    ) => {
+      const width = 'width' in bitmap ? bitmap.width : 0;
+      const height = 'height' in bitmap ? bitmap.height : 0;
+      const nativeEdge = Math.max(width, height, 1);
+      const minEdge = 200;
+      let edge = nativeEdge;
+      let resized = false;
+
+      for (let pass = 0; pass < 6; pass += 1) {
+        let lo = 0.05;
+        let hi = 0.92;
+        let best = await encodeAt(bitmap, mime, hi, edge);
+        if (!best || best.blob.size > targetBytes) {
+          best = null;
+          for (let step = 0; step < 7; step += 1) {
+            const quality = (lo + hi) / 2;
+            const attempt = await encodeAt(bitmap, mime, quality, edge);
+            if (attempt && attempt.blob.size <= targetBytes) { best = attempt; lo = quality; }
+            else { hi = quality; }
+          }
+        }
+        if (best) return { ...best, resized, met: true };
+        if (edge <= minEdge) {
+          const fallback = await encodeAt(bitmap, mime, 0.05, edge);
+          if (!fallback) throw new Error('encode');
+          return { ...fallback, resized: true, met: fallback.blob.size <= targetBytes };
+        }
+        edge = Math.max(minEdge, Math.round(edge * 0.8));
+        resized = true;
+      }
+      throw new Error('encode');
+    };
+
+    fitButton?.addEventListener('click', async () => {
+      if (!file || !fitButton) {
+        say(copy.empty);
+        return;
+      }
+      fitButton.disabled = true;
+      resetResult();
+      say(copy.working);
+
+      const targetKb = targetSelect?.value === 'custom'
+        ? Number(customInput?.value ?? 200)
+        : Number(targetSelect?.value ?? 200);
+      const targetBytes = Math.max(1, targetKb) * 1024;
+      const mime = formatSelect?.value ?? 'image/webp';
+      const extension = mime === 'image/jpeg' ? 'jpg' : 'webp';
+
+      try {
+        const bitmap = await decode(file);
+        const outcome = await compressToTarget(bitmap, mime, targetBytes);
+        if ('close' in bitmap && typeof bitmap.close === 'function') bitmap.close();
+
+        result = { blob: outcome.blob, extension };
+
+        if (facts) {
+          const targetText = formatBytes(targetBytes, locale);
+          const metText = outcome.met ? copy.metYes : copy.metNo;
+          facts.innerHTML =
+            row(copy.size, formatBytes(outcome.blob.size, locale)) +
+            row(copy.dimensions, `${outcome.width} × ${outcome.height}px`) +
+            row(copy.formatLabel, extension.toUpperCase()) +
+            row(copy.targetLabel, `${metText} (≤ ${targetText})`) +
+            (outcome.resized ? `<div class="media-note"><dt></dt><dd>${copy.resizedNote}</dd></div>` : '');
+          facts.hidden = false;
+        }
+        if (downloadRow) downloadRow.hidden = false;
+        say(copy.fitted);
+      } catch {
+        say(copy.failed);
+      } finally {
+        fitButton.disabled = false;
+      }
+    });
+
+    root.querySelector('[data-action="download"]')?.addEventListener('click', () => {
+      if (!result || !file) return;
+      const base = file.name.replace(/\.[^.]+$/u, '') || 'image';
+      const url = URL.createObjectURL(result.blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `${base}-compressed.${result.extension}`;
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      say(copy.done);
+    });
+  }
+</script>

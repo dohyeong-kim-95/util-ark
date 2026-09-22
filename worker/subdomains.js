@@ -18,6 +18,7 @@ export const ADMIN_HOST = `admin.${APEX_HOST}`;
 export const TOOL_SUBDOMAINS = {
   imageconvert: { tool: 'image-converter' },
   imagecrop: { tool: 'image-crop' },
+  imagecompress: { tool: 'image-compress' },
   img2pdf: { tool: 'image-to-pdf' },
   mergepdf: { tool: 'merge-pdf' },
   splitpdf: { tool: 'split-pdf' },
