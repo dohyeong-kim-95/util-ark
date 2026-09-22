@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   issueSession,
+  likelySameOriginBeacon,
   sameOriginMutation,
   sign,
   validSession,
@@ -40,6 +41,21 @@ test('state-changing requests require the exact origin', () => {
     method: 'POST',
     headers: { Origin: 'https://example.com', 'Sec-Fetch-Site': 'cross-site' },
   })), false);
+});
+
+test('a beacon is judged same-origin by whichever signal is present, and same-origin when neither is', () => {
+  const post = (headers) => new Request('https://utilark.app/api/analytics/qualify', { method: 'POST', headers });
+
+  // Chromium: Sec-Fetch-Site is authoritative even without Origin.
+  assert.equal(likelySameOriginBeacon(post({ 'Sec-Fetch-Site': 'same-origin' })), true);
+  assert.equal(likelySameOriginBeacon(post({ 'Sec-Fetch-Site': 'cross-site' })), false);
+  // A browser that only sends Origin (no Fetch Metadata support) is judged by it.
+  assert.equal(likelySameOriginBeacon(post({ Origin: 'https://utilark.app' })), true);
+  assert.equal(likelySameOriginBeacon(post({ Origin: 'https://example.com' })), false);
+  // Safari/WebKit ships neither header for a same-origin sendBeacon call —
+  // the case that was silently dropping real visits — so absence of any
+  // signal must be accepted rather than rejected.
+  assert.equal(likelySameOriginBeacon(post({})), true);
 });
 
 test('analytics keys deduplicate only matching visitors on the same day', async () => {

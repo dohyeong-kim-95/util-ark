@@ -73,6 +73,27 @@ export function sameOriginMutation(request) {
   return !fetchSite || fetchSite === 'same-origin';
 }
 
+/**
+ * A same-origin check loose enough for a fire-and-forget analytics beacon
+ * (sendBeacon, or its keepalive-fetch fallback), where rejecting a real
+ * visitor silently loses a metric and accepting a forged one only lets an
+ * attacker inflate a count they could already inflate by visiting for real.
+ * `sameOriginMutation` fails closed when `Origin` is missing, which state
+ * -changing endpoints want — but Chromium is the only engine that reliably
+ * sends `Sec-Fetch-Site`, and WebKit (Safari) has never shipped Fetch
+ * Metadata headers at all, so a same-origin beacon from Safari or an older
+ * Firefox can legitimately arrive with neither header set. Only an
+ * explicit cross-origin signal disqualifies a request here; the absence of
+ * any signal is treated as same-origin.
+ */
+export function likelySameOriginBeacon(request) {
+  const fetchSite = request.headers.get('Sec-Fetch-Site');
+  if (fetchSite) return fetchSite === 'same-origin';
+  const origin = request.headers.get('Origin');
+  if (origin) return origin === new URL(request.url).origin;
+  return true;
+}
+
 export function declaredBodyFits(request, maximumBytes) {
   const declared = request.headers.get('Content-Length');
   return !declared || (Number.isFinite(Number(declared)) && Number(declared) <= maximumBytes);

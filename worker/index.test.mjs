@@ -358,6 +358,27 @@ test('qualified visits honour the same exclusions as page views', async () => {
   assert.equal(calls, 0);
 });
 
+// Regression: WebKit (Safari) has never shipped Sec-Fetch-Site, and does not
+// reliably send Origin on a same-origin sendBeacon POST either, so a real
+// visit from Safari (or an older Firefox) can carry neither header. The
+// beacon used to require one of the two and silently dropped that visit —
+// this is the production report that a full view→download run from such a
+// browser recorded nothing in Admin.
+test('a beacon from a browser with no Fetch Metadata support (Safari) is still recorded', async () => {
+  let calls = 0;
+  const env = {
+    ADMIN_SESSION_SECRET: 'test-session-secret-value',
+    CONTACTS: namespace(() => { calls += 1; return Response.json({ ok: true }, { status: 202 }); }),
+    ASSETS: { fetch: () => new Response('asset') },
+  };
+  const safariBeacon = await worker.fetch(new Request('https://utilark.app/api/analytics/qualify', {
+    method: 'POST',
+    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15' },
+  }), env);
+  assert.equal(safariBeacon.status, 202);
+  assert.equal(calls, 1);
+});
+
 test('a tool funnel beacon is stored with a derived key and no file details', async () => {
   const recorded = [];
   const env = {
@@ -441,6 +462,29 @@ test('a tool funnel beacon rejects an unknown tool or step and stays inert for e
   }), env);
   assert.equal(foreign.status, 403);
   assert.equal(calls, 0);
+});
+
+// Same production regression as the qualify beacon, for the funnel steps a
+// visitor's own browser has to report: selected/compressed/downloaded were
+// silently dropped for a browser that sends neither Sec-Fetch-Site nor
+// Origin on a same-origin sendBeacon POST (Safari, and some Firefox builds).
+test('a tool funnel beacon from a browser with no Fetch Metadata support (Safari) is still recorded', async () => {
+  let calls = 0;
+  const env = {
+    ADMIN_SESSION_SECRET: 'test-session-secret-value',
+    CONTACTS: namespace(() => { calls += 1; return Response.json({ ok: true }, { status: 202 }); }),
+    ASSETS: { fetch: () => new Response('asset') },
+  };
+  const response = await worker.fetch(new Request('https://utilark.app/api/analytics/tool-event', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15',
+    },
+    body: JSON.stringify({ tool: 'image-compress', event: 'selected' }),
+  }), env);
+  assert.equal(response.status, 202);
+  assert.equal(calls, 1);
 });
 
 test('visiting a tool with a funnel records a view step alongside the page view, and other pages do not', async () => {

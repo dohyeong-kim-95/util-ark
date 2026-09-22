@@ -11,7 +11,8 @@
     "preview": "astro preview",
     "check": "astro check",
     "test": "npm run check && npm run build && node scripts/check-built-seo.mjs && node --test worker/*.test.mjs test/*.test.mts",
-    "prebuild": "node scripts/sync-pdf-assets.mjs"
+    "prebuild": "node scripts/sync-pdf-assets.mjs",
+    "verify:funnel": "node scripts/verify-tool-funnel.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",

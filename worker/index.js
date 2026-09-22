@@ -10,6 +10,7 @@ import {
   declaredBodyFits,
   issueSession,
   jsonResponse,
+  likelySameOriginBeacon,
   parseCookies,
   safeCredentialMatch,
   sameOriginMutation,
@@ -187,13 +188,7 @@ async function handleFeedback(request, env) {
  */
 async function recordQualifiedVisit(request, env) {
   if (!env.CONTACTS || !env.ADMIN_SESSION_SECRET) return jsonResponse({ ok: false }, { status: 503 });
-  // sendBeacon does not always carry an Origin header, and Sec-Fetch-Site is
-  // set by the browser rather than by script, so either one proves same origin.
-  // A forged call could only inflate the caller's own visit, which they could
-  // do by visiting anyway.
-  const fetchSite = request.headers.get('Sec-Fetch-Site');
-  const sameOrigin = fetchSite === 'same-origin' || sameOriginMutation(request);
-  if (!sameOrigin) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
+  if (!likelySameOriginBeacon(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
   if (likelyBot(request) || privacyOptOut(request) || trackingExcluded(request)) {
     return jsonResponse({ ok: true }, { status: 202 });
   }
@@ -243,9 +238,7 @@ async function recordToolView(request, env, tool) {
  */
 async function recordToolFunnelEvent(request, env) {
   if (!env.CONTACTS || !env.ADMIN_SESSION_SECRET) return jsonResponse({ ok: false }, { status: 503 });
-  const fetchSite = request.headers.get('Sec-Fetch-Site');
-  const sameOrigin = fetchSite === 'same-origin' || sameOriginMutation(request);
-  if (!sameOrigin) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
+  if (!likelySameOriginBeacon(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
   if (!declaredBodyFits(request, 512)) return jsonResponse({ error: 'request_too_large' }, { status: 413 });
 
   const body = await request.json().catch(() => null);
