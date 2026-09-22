@@ -265,6 +265,13 @@ const dashboardScript = String.raw`
     return Number(value || 0).toLocaleString('ko-KR');
   }
 
+  // Undefined rather than 0% when the step before it never happened — a
+  // denominator of zero says "no data yet", not "nobody converted".
+  function rate(numerator, denominator) {
+    if (!denominator) return '–';
+    return Math.round((numerator / denominator) * 100) + '%';
+  }
+
   async function loadAnalytics() {
     analyticsStatus.textContent = '접속 통계를 불러오는 중…';
     try {
@@ -309,6 +316,10 @@ const dashboardScript = String.raw`
       document.getElementById('compress-today-selected').textContent = number(today.selected);
       document.getElementById('compress-today-compressed').textContent = number(today.compressed);
       document.getElementById('compress-today-downloaded').textContent = number(today.downloaded);
+      document.getElementById('compress-today-rate-selected').textContent = rate(today.selected, today.view);
+      document.getElementById('compress-today-rate-compressed').textContent = rate(today.compressed, today.selected);
+      document.getElementById('compress-today-rate-downloaded').textContent = rate(today.downloaded, today.compressed);
+      document.getElementById('compress-today-rate-overall').textContent = rate(today.downloaded, today.view);
       compressRows.replaceChildren(...data.items.map((item) => {
         const row = document.createElement('tr');
         row.append(
@@ -317,6 +328,10 @@ const dashboardScript = String.raw`
           element('td', '', number(item.selected)),
           element('td', '', number(item.compressed)),
           element('td', '', number(item.downloaded)),
+          element('td', '', rate(item.selected, item.view)),
+          element('td', '', rate(item.compressed, item.selected)),
+          element('td', '', rate(item.downloaded, item.compressed)),
+          element('td', '', rate(item.downloaded, item.view)),
         );
         return row;
       }));
@@ -449,11 +464,27 @@ export const dashboardPage = () => pageShell(
         <div class="metric"><span>오늘 이미지 선택</span><strong id="compress-today-selected">–</strong></div>
         <div class="metric"><span>오늘 압축 성공</span><strong id="compress-today-compressed">–</strong></div>
         <div class="metric"><span>오늘 다운로드</span><strong id="compress-today-downloaded">–</strong></div>
+        <div class="metric"><span>선택율 (선택/조회)</span><strong id="compress-today-rate-selected">–</strong></div>
+        <div class="metric"><span>압축율 (성공/선택)</span><strong id="compress-today-rate-compressed">–</strong></div>
+        <div class="metric"><span>다운로드율 (다운로드/성공)</span><strong id="compress-today-rate-downloaded">–</strong></div>
+        <div class="metric"><span>전체 전환율 (다운로드/조회)</span><strong id="compress-today-rate-overall">–</strong></div>
       </div>
       <p id="compress-funnel-status" class="section-note" role="status"></p>
       <div class="analytics-table">
         <table>
-          <thead><tr><th scope="col">날짜</th><th scope="col">페이지뷰</th><th scope="col">이미지 선택</th><th scope="col">압축 성공</th><th scope="col">다운로드</th></tr></thead>
+          <thead>
+            <tr>
+              <th scope="col">날짜</th>
+              <th scope="col">페이지뷰</th>
+              <th scope="col">이미지 선택</th>
+              <th scope="col">압축 성공</th>
+              <th scope="col">다운로드</th>
+              <th scope="col">선택율</th>
+              <th scope="col">압축율</th>
+              <th scope="col">다운로드율</th>
+              <th scope="col">전체 전환율</th>
+            </tr>
+          </thead>
           <tbody id="compress-funnel-rows"></tbody>
         </table>
       </div>
