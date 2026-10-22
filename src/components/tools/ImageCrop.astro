@@ -24,6 +24,7 @@ const labels = locale === 'ko'
       empty: '먼저 이미지를 선택해주세요.',
       done: '잘라낸 이미지를 내려받았습니다.',
       failed: '이미지를 자르지 못했습니다.',
+      webpUnsupported: '이 브라우저는 WebP로 저장할 수 없어 JPG로 내려받았습니다.',
       size: '선택 영역',
       moveHandle: '선택 영역 조절',
       change: '다른 이미지 선택',
@@ -47,6 +48,7 @@ const labels = locale === 'ko'
       empty: 'Choose an image first.',
       done: 'Your cropped image has been downloaded.',
       failed: 'Could not crop the image.',
+      webpUnsupported: 'This browser cannot save WebP, so the crop was downloaded as JPG.',
       size: 'Selection',
       moveHandle: 'Adjust selection',
       change: 'Choose a different image',
@@ -60,6 +62,7 @@ const labels = locale === 'ko'
   data-empty={labels.empty}
   data-done={labels.done}
   data-failed={labels.failed}
+  data-webp-unsupported={labels.webpUnsupported}
   data-original={labels.original}
   data-snapped={labels.snapped}
 >
@@ -121,6 +124,8 @@ const labels = locale === 'ko'
 </div>
 
 <script>
+  import { encodeCanvas, extensionFor } from '../../lib/canvas-encode';
+
   const root = document.querySelector<HTMLElement>('.crop-tool');
   if (root) {
     const input = root.querySelector<HTMLInputElement>('input[type="file"]');
@@ -429,17 +434,22 @@ const labels = locale === 'ko'
           0, 0, canvas.width, canvas.height,
         );
         const type = source.type === 'image/png' ? 'image/png' : source.type;
-        const blob = await new Promise<Blob | null>((resolve) =>
-          canvas.toBlob(resolve, type, 0.92));
-        if (!blob) throw new Error('encode');
-        const url = URL.createObjectURL(blob);
+        const encoded = await encodeCanvas(canvas, type, 0.92);
+        if (!encoded) throw new Error('encode');
+        const url = URL.createObjectURL(encoded.blob);
         const link = document.createElement('a');
         const dot = source.name.lastIndexOf('.');
+        const base = dot > 0 ? source.name.slice(0, dot) : source.name;
+        let extension = dot > 0 ? source.name.slice(dot) : '';
+        if (encoded.fellBack) extension = `.${extensionFor(encoded.type)}`;
         link.href = url;
-        link.download = `${dot > 0 ? source.name.slice(0, dot) : source.name}-crop${
-          dot > 0 ? source.name.slice(dot) : ''}`;
+        link.download = `${base}-crop${extension}`;
         link.click();
         URL.revokeObjectURL(url);
+        if (encoded.fellBack) {
+          if (status) status.textContent = root.dataset.webpUnsupported ?? '';
+          return;
+        }
         if (status) status.textContent = root.dataset.done ?? '';
       } catch {
         if (status) status.textContent = root.dataset.failed ?? '';

@@ -26,6 +26,7 @@ const labels = locale === 'ko'
       working: '변환 중…',
       done: '개 파일을 변환했습니다.',
       failed: '변환하지 못한 파일이 있습니다.',
+      webpUnsupported: '이 브라우저는 WebP로 저장할 수 없어 JPG로 저장했습니다.',
       remove: '삭제',
     }
   : {
@@ -38,6 +39,7 @@ const labels = locale === 'ko'
       working: 'Converting…',
       done: ' files converted.',
       failed: 'Some files could not be converted.',
+      webpUnsupported: 'This browser cannot save WebP, so the files were saved as JPG.',
       remove: 'Remove',
     };
 ---
@@ -48,6 +50,7 @@ const labels = locale === 'ko'
   data-working={labels.working}
   data-done={labels.done}
   data-failed={labels.failed}
+  data-webp-unsupported={labels.webpUnsupported}
   data-remove={labels.remove}
 >
   <label class="drop-zone">
@@ -82,6 +85,8 @@ const labels = locale === 'ko'
 </div>
 
 <script>
+  import { encodeCanvas, extensionFor } from '../../lib/canvas-encode';
+
   const root = document.querySelector<HTMLElement>('.converter-tool');
   if (root) {
     const input = root.querySelector<HTMLInputElement>('input[type="file"]');
@@ -160,9 +165,9 @@ const labels = locale === 'ko'
       }
       context.drawImage(image, 0, 0);
       if ('close' in image && typeof image.close === 'function') image.close();
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mime, outputQuality));
-      if (!blob) throw new Error('encode');
-      return blob;
+      const encoded = await encodeCanvas(canvas, mime, outputQuality);
+      if (!encoded) throw new Error('encode');
+      return encoded;
     };
     const download = (blob: Blob, filename: string) => {
       const url = URL.createObjectURL(blob);
@@ -181,16 +186,18 @@ const labels = locale === 'ko'
       if (button) button.disabled = true;
       if (status) status.textContent = root.dataset.working ?? '';
       const mime = format?.value ?? 'image/webp';
-      const extension = mime === 'image/jpeg' ? 'jpg' : mime.split('/')[1];
       let converted = 0;
+      let fellBack = false;
       try {
         for (const file of files) {
-          const blob = await convertFile(file, mime, Number(quality?.value ?? 85) / 100);
+          const encoded = await convertFile(file, mime, Number(quality?.value ?? 85) / 100);
+          if (encoded.fellBack) fellBack = true;
           const base = file.name.replace(/\.[^.]+$/u, '') || 'image';
-          download(blob, `${base}.${extension}`);
+          download(encoded.blob, `${base}.${extensionFor(encoded.type)}`);
           converted += 1;
         }
-        if (status) status.textContent = `${converted}${root.dataset.done ?? ''}`;
+        const notice = fellBack ? ` ${root.dataset.webpUnsupported ?? ''}` : '';
+        if (status) status.textContent = `${converted}${root.dataset.done ?? ''}${notice}`;
       } catch {
         if (status) status.textContent = root.dataset.failed ?? '';
       } finally {

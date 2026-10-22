@@ -27,6 +27,7 @@ const labels = locale === 'ko'
       metYes: '충족',
       metNo: '목표 초과',
       resizedNote: '화질만으로 목표에 도달하지 못해 해상도도 함께 줄였습니다.',
+      webpUnsupported: '이 브라우저는 WebP로 저장할 수 없어 JPG로 저장합니다.',
     }
   : {
       pick: 'Choose a photo',
@@ -48,6 +49,7 @@ const labels = locale === 'ko'
       metYes: 'Met',
       metNo: 'Over target',
       resizedNote: 'Quality alone could not reach the target, so the dimensions were also reduced.',
+      webpUnsupported: 'This browser cannot save WebP, so the photo is saved as JPG.',
     };
 ---
 
@@ -103,6 +105,7 @@ const labels = locale === 'ko'
 </div>
 
 <script>
+  import { canEncodeWebp, encodeCanvas, extensionFor } from '../../lib/canvas-encode';
   import { formatBytes } from '../../lib/media-plan';
   import { trackToolEvent } from '../../lib/tool-analytics';
 
@@ -125,6 +128,13 @@ const labels = locale === 'ko'
     const previewImage = root.querySelector<HTMLImageElement>('[data-preview-image]');
     const previewName = root.querySelector<HTMLElement>('[data-preview-name]');
     const previewSize = root.querySelector<HTMLElement>('[data-preview-size]');
+
+    // Safari and every iOS browser cannot write WebP, so the default there is JPG.
+    if (formatSelect && !canEncodeWebp()) {
+      formatSelect.value = 'image/jpeg';
+      const webpOption = formatSelect.querySelector<HTMLOptionElement>('option[value="image/webp"]');
+      if (webpOption) webpOption.disabled = true;
+    }
 
     let file: File | null = null;
     let result: { blob: Blob; extension: string } | null = null;
@@ -209,8 +219,8 @@ const labels = locale === 'ko'
         context.fillRect(0, 0, canvas.width, canvas.height);
       }
       context.drawImage(bitmap as CanvasImageSource, 0, 0, canvas.width, canvas.height);
-      return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mime, quality))
-        .then((blob) => (blob ? { blob, width: canvas.width, height: canvas.height } : null));
+      return encodeCanvas(canvas, mime, quality)
+        .then((encoded) => (encoded ? { ...encoded, width: canvas.width, height: canvas.height } : null));
     };
 
     /**
@@ -269,14 +279,14 @@ const labels = locale === 'ko'
         ? Number(customInput?.value ?? 200)
         : Number(targetSelect?.value ?? 200);
       const targetBytes = Math.max(1, targetKb) * 1024;
-      const mime = formatSelect?.value ?? 'image/webp';
-      const extension = mime === 'image/jpeg' ? 'jpg' : 'webp';
+      const mime = formatSelect?.value ?? 'image/jpeg';
 
       try {
         const bitmap = await decode(file);
         const outcome = await compressToTarget(bitmap, mime, targetBytes);
         if ('close' in bitmap && typeof bitmap.close === 'function') bitmap.close();
 
+        const extension = extensionFor(outcome.type);
         result = { blob: outcome.blob, extension };
         trackToolEvent(TOOL, 'compressed');
 
@@ -288,7 +298,8 @@ const labels = locale === 'ko'
             row(copy.dimensions, `${outcome.width} × ${outcome.height}px`) +
             row(copy.formatLabel, extension.toUpperCase()) +
             row(copy.targetLabel, `${metText} (≤ ${targetText})`) +
-            (outcome.resized ? `<div class="media-note"><dt></dt><dd>${copy.resizedNote}</dd></div>` : '');
+            (outcome.resized ? `<div class="media-note"><dt></dt><dd>${copy.resizedNote}</dd></div>` : '') +
+            (outcome.fellBack ? `<div class="media-note"><dt></dt><dd>${copy.webpUnsupported}</dd></div>` : '');
           facts.hidden = false;
         }
         if (downloadRow) downloadRow.hidden = false;
