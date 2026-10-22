@@ -33,7 +33,14 @@ export async function openPdf(data: ArrayBuffer): Promise<PdfDocument> {
   const workerUrl = (await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')).default;
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
-  const loading = pdfjs.getDocument({ data, cMapUrl: '/cmaps/', cMapPacked: true });
+  const loading = pdfjs.getDocument({
+    data,
+    cMapUrl: '/cmaps/',
+    cMapPacked: true,
+    // JBIG2, CCITT fax and JPEG 2000 images — what scanners write — decode only
+    // through these files. Without them a scanned page draws as blank white.
+    wasmUrl: '/pdfjs/wasm/',
+  });
 
   let pdf;
   try {

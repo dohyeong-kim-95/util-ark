@@ -13,3 +13,4 @@ Thumbs.db
 
 # Copied from pdfjs-dist at build time (scripts/sync-pdf-assets.mjs).
 public/cmaps/
+public/pdfjs/
