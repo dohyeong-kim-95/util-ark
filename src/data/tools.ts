@@ -927,7 +927,7 @@ export const tools: ToolDefinition[] = [
         keywords: ['ladder game', 'ghost leg', 'amidakuji', 'random assignment'],
         intro: [
           'Write the names along the top and the outcomes along the bottom, then build a ladder. Tapping a name traces the line down so everyone can watch the path instead of trusting a number generator.',
-          'The ladder is drawn so that no two rungs sit side by side on the same row, which keeps every branch a real choice, and so that every gap between columns is used at least once, which stops a line from dropping straight to its own starting slot.',
+          'Each build first draws a random assignment in which every name is equally likely to reach every outcome, then places rungs that lead to it, plus pairs that cancel out so the ladder is not easy to read at a glance. No two rungs sit side by side on the same row, so every branch is a real choice.',
           'Useful for settling who buys coffee, picking a presentation order, or splitting chores.',
         ],
         steps: [
@@ -939,7 +939,7 @@ export const tools: ToolDefinition[] = [
         faq: [
           {
             question: 'Is the result actually random?',
-            answer: 'The rungs are placed with the browser\'s random number generator each time you build. Nothing about the order of names changes the odds.',
+            answer: 'Yes. Each build uses the browser\'s random number generator to pick one of all possible assignments with equal probability, and the rungs are drawn to match it. Every name has the same chance of reaching every outcome, so the order of names, or which slot holds the prize, changes nothing.',
           },
           {
             question: 'Can two people land on the same outcome?',
@@ -964,7 +964,7 @@ export const tools: ToolDefinition[] = [
         keywords: ['사다리타기', '사다리 게임', '순서 정하기', '내기 정하기'],
         intro: [
           '위에는 이름, 아래에는 결과를 적고 사다리를 만드세요. 이름을 누르면 선이 내려가는 경로를 그려주기 때문에, 숫자만 툭 나오는 방식과 달리 결과가 어떻게 정해졌는지 다 같이 볼 수 있습니다.',
-          '같은 줄에 가로칸이 나란히 붙지 않도록 놓아 갈림길이 항상 진짜 선택이 되게 하고, 열 사이 간격을 최소 한 번씩 쓰게 해서 어떤 줄도 제자리로 내려오지 않게 만듭니다.',
+          '사다리를 만들 때마다 먼저 모든 이름이 모든 결과에 같은 확률로 닿는 배정을 무작위로 뽑고, 그 배정대로 이어지도록 가로칸을 놓습니다. 결과를 바꾸지 않는 가로칸 쌍도 섞어 넣어 한눈에 읽히지 않게 합니다. 같은 줄에 가로칸이 나란히 붙지 않으므로 갈림길은 항상 진짜 선택입니다.',
           '커피 내기, 발표 순서 정하기, 집안일 나누기에 쓰기 좋습니다.',
         ],
         steps: [
@@ -976,7 +976,7 @@ export const tools: ToolDefinition[] = [
         faq: [
           {
             question: '결과가 정말 무작위인가요?',
-            answer: '사다리를 만들 때마다 브라우저의 난수로 가로칸을 새로 놓습니다. 이름을 어떤 순서로 적든 확률은 달라지지 않습니다.',
+            answer: '네. 사다리를 만들 때마다 브라우저의 난수로 가능한 모든 배정 중 하나를 같은 확률로 고르고, 그 배정에 맞게 가로칸을 그립니다. 모든 이름이 모든 결과에 같은 확률로 닿으므로 이름을 어떤 순서로 적든, 당첨을 어느 칸에 두든 확률은 달라지지 않습니다.',
           },
           {
             question: '두 사람이 같은 결과에 걸릴 수 있나요?',

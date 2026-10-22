@@ -104,6 +104,8 @@ const ordinal = locale === 'ko'
 </div>
 
 <script>
+  import { makeLadder } from '../../lib/ladder';
+
   const NS = 'http://www.w3.org/2000/svg';
   const MIN = 2;
   const MAX = 8;
@@ -136,36 +138,11 @@ const ordinal = locale === 'ko'
       (prizes[index] || '').trim() || `${index + 1}${text('slotSuffix')}`;
     const color = (index: number) => `hsl(${(index * 360) / people + 12} 68% 44%)`;
 
-    const shuffledRows = () => {
-      const order = Array.from({ length: rows }, (_, i) => i);
-      for (let i = order.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [order[i], order[j]] = [order[j], order[i]];
-      }
-      return order;
-    };
-
-    /* 가로칸이 이웃하면 갈림길이 사라지므로 바로 옆 칸이 이미 있으면 건너뛴다. */
+    /* 결과(순열)를 먼저 균등하게 뽑고 그 결과대로 가로칸을 놓는다 — src/lib/ladder.ts 참고. */
     const makeRungs = () => {
-      rows = Math.max(7, people + 4);
-      rungs = new Set();
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < people - 1; c++) {
-          if (rungs.has(`${r}:${c - 1}`)) continue;
-          if (Math.random() < 0.42) rungs.add(`${r}:${c}`);
-        }
-      }
-      // 한 번도 쓰이지 않은 세로 간격이 있으면 제자리로 내려오는 줄이 생긴다.
-      for (let c = 0; c < people - 1; c++) {
-        let used = false;
-        for (let r = 0; r < rows && !used; r++) used = rungs.has(`${r}:${c}`);
-        if (used) continue;
-        for (const r of shuffledRows()) {
-          if (rungs.has(`${r}:${c - 1}`) || rungs.has(`${r}:${c + 1}`)) continue;
-          rungs.add(`${r}:${c}`);
-          break;
-        }
-      }
+      const ladder = makeLadder(people);
+      rows = ladder.rows;
+      rungs = ladder.rungs;
     };
 
     const columnX = (column: number) => (width * (column + 0.5)) / people;
