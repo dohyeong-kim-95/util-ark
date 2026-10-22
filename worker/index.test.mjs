@@ -80,6 +80,27 @@ test('contact endpoint rejects cross-origin and invalid submissions', async () =
   assert.equal(crossOrigin.status, 403);
 });
 
+test('a 4,000-character Hangul contact message fits the body limit', async () => {
+  let stored;
+  const env = {
+    ADMIN_SESSION_SECRET: 'test-session-secret-value',
+    CONTACTS: namespace(async (request) => {
+      stored = await request.json();
+      return Response.json({ ok: true, id: 'contact-id' }, { status: 201 });
+    }),
+    ASSETS: { fetch: () => new Response('asset') },
+  };
+  // Hangul is 3 bytes in UTF-8, so the form's 4,000-character maximum is ~12KB of JSON.
+  const message = '가'.repeat(4000);
+
+  const response = await worker.fetch(contactRequest({
+    locale: 'ko', category: 'feedback', message, website: '', consent: true,
+  }), env);
+
+  assert.equal(response.status, 201);
+  assert.equal(stored.contact.message.length, 4000);
+});
+
 test('tool feedback sends only normalized feedback fields and an anonymous rate-limit key', async () => {
   let stored;
   const env = {

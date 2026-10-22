@@ -29,7 +29,9 @@ const ANALYTICS_EXCLUSION_COOKIE = 'utilark_notrack';
 const TOOL_FUNNEL_TOOLS = new Set(['image-compress']);
 const TOOL_FUNNEL_EVENTS = new Set(['selected', 'compressed', 'downloaded']);
 const TOOL_PAGE_PATH = /^\/(?:en|ko)\/([a-z0-9-]+)\/?$/u;
-const CONTACT_MAX_BYTES = 8 * 1024;
+// The form allows 4,000 characters; Hangul is 3 bytes in UTF-8 (4 for emoji),
+// so 16KB covers a full message plus the JSON envelope.
+const CONTACT_MAX_BYTES = 16 * 1024;
 const FEEDBACK_MAX_BYTES = 4 * 1024;
 const NAVER_VERIFICATION_FILE = /^\/naver[0-9a-z]+\.html$/u;
 const categories = new Set(['bug', 'tool', 'feedback', 'other']);
