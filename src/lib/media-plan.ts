@@ -44,11 +44,12 @@ export const decodedBytes = (seconds: number, sampleRate: number, channels: numb
 /**
  * Checked from the container's own length before the file is read or decoded,
  * since by the time `decodeAudioData` returns, the memory is already spent.
- * The channel count is not known yet, so this assumes stereo at 48kHz — the
- * common case — and the exact check after decoding still catches the rest.
+ * The channel count is not known yet, so this assumes the cheapest case — mono
+ * at the rate the decoder will output — and refuses only what could not fit
+ * even then. The exact check after decoding catches the rest.
  */
-export const tooLongToDecode = (seconds: number): boolean =>
-  decodedBytes(seconds, 48000, 2) > MAX_DECODED_BYTES;
+export const tooLongToDecode = (seconds: number, sampleRate: number): boolean =>
+  decodedBytes(seconds, sampleRate, 1) > MAX_DECODED_BYTES;
 
 /**
  * Media events are not guaranteed to fire: a decoder can stall mid-seek, and

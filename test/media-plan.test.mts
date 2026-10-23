@@ -179,8 +179,20 @@ test('sizes read the way people write them', () => {
 /* ---------- guards before the expensive work ---------- */
 
 test('a long file is refused from its length, before decoding', () => {
-  assert.equal(tooLongToDecode(60), false);
-  assert.equal(tooLongToDecode(60 * 60), true);
+  assert.equal(tooLongToDecode(60, 48000), false);
+  assert.equal(tooLongToDecode(60 * 60, 48000), true);
+});
+
+test('the length check before decoding never refuses what mono could still fit', () => {
+  // Twenty minutes is past the stereo limit but well inside the mono one, and
+  // the channel count is not known until after decoding.
+  assert.ok(20 * 60 > maxAudioSeconds(48000, 2));
+  assert.equal(tooLongToDecode(20 * 60, 48000), false);
+  assert.equal(tooLongToDecode(maxAudioSeconds(48000, 1), 48000), false);
+  assert.equal(tooLongToDecode(maxAudioSeconds(48000, 1) + 1, 48000), true);
+  // At 44.1kHz the same memory holds longer, and the check follows the rate.
+  assert.equal(tooLongToDecode(maxAudioSeconds(44100, 1), 44100), false);
+  assert.equal(tooLongToDecode(maxAudioSeconds(44100, 1), 48000), true);
 });
 
 test('a media wait that never settles becomes an error', async () => {

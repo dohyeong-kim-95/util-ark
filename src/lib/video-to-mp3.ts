@@ -79,13 +79,14 @@ export async function decodeAudio(file: File): Promise<AudioBuffer> {
   const Context = window.AudioContext ?? (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Context) throw new MediaError('unreadable', 'This browser has no Web Audio support.');
 
-  const headerSeconds = await readDuration(file);
-  if (Number.isFinite(headerSeconds) && tooLongToDecode(headerSeconds)) {
-    throw new MediaError('too-long', 'The audio is too long to decode in one piece.');
-  }
-
   const context = new Context();
   try {
+    // decodeAudioData resamples to the context's rate, so that is the rate the
+    // decoded size depends on.
+    const headerSeconds = await readDuration(file);
+    if (Number.isFinite(headerSeconds) && tooLongToDecode(headerSeconds, context.sampleRate)) {
+      throw new MediaError('too-long', 'The audio is too long to decode in one piece.');
+    }
     // Read here and handed straight to the decoder, which detaches it, so the
     // file is held once rather than copied.
     const buffer = await context.decodeAudioData(await file.arrayBuffer());
