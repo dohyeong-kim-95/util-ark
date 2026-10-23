@@ -339,3 +339,73 @@ test('admin login answers 401 to a wrong password, 429 per address, and 429 for 
     await mf.dispose();
   }
 });
+
+const contactFrom = (mf, address) => mf.dispatchFetch('https://utilark.app/api/contact', {
+  method: 'POST',
+  headers: { Origin: 'https://utilark.app', 'Content-Type': 'application/json', 'CF-Connecting-IP': address },
+  body: JSON.stringify({ locale: 'en', category: 'bug', message: 'A sufficiently detailed report', consent: true }),
+});
+
+const feedbackFrom = (mf, address, tool = 'word-counter') => mf.dispatchFetch('https://utilark.app/api/feedback', {
+  method: 'POST',
+  headers: { Origin: 'https://utilark.app', 'Content-Type': 'application/json', 'CF-Connecting-IP': address },
+  body: JSON.stringify({ locale: 'en', tool, helpful: true, reason: 'worked', comment: '', publishConsent: false }),
+});
+
+test('contact submissions are limited per address and across all addresses per day', async () => {
+  const mf = startWorker();
+  try {
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      const response = await contactFrom(mf, '198.51.100.1');
+      assert.equal(response.status, 201, await response.text());
+    }
+    const sixth = await contactFrom(mf, '198.51.100.1');
+    await sixth.text();
+    assert.equal(sixth.status, 429);
+    assert.ok(Number(sixth.headers.get('Retry-After')) > 0);
+
+    // 5 accepted so far; 39 more addresses sending 5 each reach the 200 a day.
+    for (let host = 2; host <= 40; host += 1) {
+      for (let attempt = 1; attempt <= 5; attempt += 1) {
+        const response = await contactFrom(mf, `198.51.100.${host}`);
+        await response.text();
+        assert.equal(response.status, 201, `address ${host}, attempt ${attempt}`);
+      }
+    }
+    const overCap = await contactFrom(mf, '198.51.100.200');
+    await overCap.text();
+    assert.equal(overCap.status, 429, 'a new address is refused once the daily cap is reached');
+  } finally {
+    await mf.dispose();
+  }
+});
+
+test('feedback allows a few notes per shared address and stops at a daily cap', async () => {
+  const mf = startWorker();
+  try {
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const response = await feedbackFrom(mf, '198.51.100.1');
+      assert.equal(response.status, 201, await response.text());
+    }
+    const fourth = await feedbackFrom(mf, '198.51.100.1');
+    await fourth.text();
+    assert.equal(fourth.status, 429, 'the fourth note on one tool from one address is refused');
+    const otherTool = await feedbackFrom(mf, '198.51.100.1', 'merge-pdf');
+    await otherTool.text();
+    assert.equal(otherTool.status, 201, 'the limit is per tool');
+
+    // 4 accepted; 49 addresses × 4 (3 + 1 on another tool) = 196 more reach 200.
+    for (let host = 2; host <= 50; host += 1) {
+      for (const tool of ['word-counter', 'word-counter', 'word-counter', 'merge-pdf']) {
+        const response = await feedbackFrom(mf, `198.51.100.${host}`, tool);
+        await response.text();
+        assert.equal(response.status, 201, `address ${host}, ${tool}`);
+      }
+    }
+    const overCap = await feedbackFrom(mf, '198.51.100.200');
+    await overCap.text();
+    assert.equal(overCap.status, 429, 'a new address is refused once the daily cap is reached');
+  } finally {
+    await mf.dispose();
+  }
+});

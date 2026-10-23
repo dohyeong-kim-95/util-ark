@@ -1,5 +1,18 @@
 const RETENTION_MS = 180 * 24 * 60 * 60 * 1000;
 const ANALYTICS_RETENTION_DAYS = 90;
+const DAY_MS = 24 * 60 * 60 * 1000;
+// IP limits stop one sender; these stop many senders together, so a flood from
+// rotating addresses fills at most a day's worth of the inbox.
+const CONTACTS_PER_DAY = 200;
+const FEEDBACK_PER_DAY = 200;
+// A few per address, not one: an office or school shares one public address,
+// and the second person there should not be refused.
+const FEEDBACK_PER_ADDRESS_PER_TOOL_PER_DAY = 3;
+
+const rateLimited = (rate) => json({ error: 'rate_limited', retryAfter: rate.retryAfter }, {
+  status: 429,
+  headers: { 'Retry-After': String(rate.retryAfter) },
+});
 const normalizeFeedbackComment = (value) => String(value ?? '').replace(/\s+/gu, ' ').trim();
 
 const json = (data, init = {}) => {
@@ -145,12 +158,9 @@ export class ContactStore {
       const body = await request.json().catch(() => null);
       if (!body?.visitorKey || !body?.contact) return json({ error: 'invalid submission' }, { status: 400 });
       const rate = this.consumeRateLimit('contact-submit', String(body.visitorKey), 5, 15 * 60 * 1000, now);
-      if (!rate.allowed) {
-        return json({ error: 'rate_limited', retryAfter: rate.retryAfter }, {
-          status: 429,
-          headers: { 'Retry-After': String(rate.retryAfter) },
-        });
-      }
+      if (!rate.allowed) return rateLimited(rate);
+      const globalRate = this.consumeRateLimit('contact-submit-global', 'global', CONTACTS_PER_DAY, DAY_MS, now);
+      if (!globalRate.allowed) return rateLimited(globalRate);
 
       const contact = body.contact;
       const id = crypto.randomUUID();
@@ -174,16 +184,13 @@ export class ContactStore {
       const rate = this.consumeRateLimit(
         `feedback-submit:${String(feedback.tool)}`,
         String(body.visitorKey),
-        1,
-        24 * 60 * 60 * 1000,
+        FEEDBACK_PER_ADDRESS_PER_TOOL_PER_DAY,
+        DAY_MS,
         now,
       );
-      if (!rate.allowed) {
-        return json({ error: 'rate_limited', retryAfter: rate.retryAfter }, {
-          status: 429,
-          headers: { 'Retry-After': String(rate.retryAfter) },
-        });
-      }
+      if (!rate.allowed) return rateLimited(rate);
+      const globalRate = this.consumeRateLimit('feedback-submit-global', 'global', FEEDBACK_PER_DAY, DAY_MS, now);
+      if (!globalRate.allowed) return rateLimited(globalRate);
 
       const id = crypto.randomUUID();
       const comment = normalizeFeedbackComment(feedback.comment) || null;
