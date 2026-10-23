@@ -7,7 +7,9 @@ on:
 
 concurrency:
   group: utilark-production
-  cancel-in-progress: true
+  # A second push waits for the running deploy instead of cancelling it
+  # midway through `wrangler deploy`.
+  cancel-in-progress: false
 
 permissions:
   contents: read
