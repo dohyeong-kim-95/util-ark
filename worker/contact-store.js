@@ -14,7 +14,8 @@ const CONTACTS_PER_ADDRESS_PER_DAY = 10;
 const FEEDBACK_PER_ADDRESS_PER_DAY = 20;
 // The visitor key is address + user-agent, so one address cycling user-agents
 // could add a "visitor" per request to the totals the home page publishes.
-// High enough for a household or an office behind one address.
+// High enough for a household or an office behind one address. The admin
+// dashboard reads the same tables, so its DAU is capped the same way.
 const NEW_VISITORS_PER_ADDRESS_PER_DAY = 50;
 
 const rateLimited = (rate) => json({ error: 'rate_limited', retryAfter: rate.retryAfter }, {
