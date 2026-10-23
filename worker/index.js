@@ -7,11 +7,11 @@ import { preferredLocale } from './locale.js';
 import { legacyToolPath, resolveHost, subdomainRedirect, TOOL_SUBDOMAINS } from './subdomains.js';
 import {
   anonymousVisitorKey,
-  declaredBodyFits,
   issueSession,
   jsonResponse,
   likelySameOriginBeacon,
   parseCookies,
+  readBodyWithin,
   safeCredentialMatch,
   sameOriginMutation,
   validSession,
@@ -90,15 +90,12 @@ async function handleContact(request, env) {
     return jsonResponse({ error: 'contact_unavailable' }, { status: 503 });
   }
   if (!sameOriginMutation(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
-  if (!declaredBodyFits(request, CONTACT_MAX_BYTES)) return jsonResponse({ error: 'request_too_large' }, { status: 413 });
   if (!(request.headers.get('Content-Type') ?? '').toLowerCase().startsWith('application/json')) {
     return jsonResponse({ error: 'json_required' }, { status: 415 });
   }
 
-  const raw = await request.text();
-  if (new TextEncoder().encode(raw).byteLength > CONTACT_MAX_BYTES) {
-    return jsonResponse({ error: 'request_too_large' }, { status: 413 });
-  }
+  const raw = await readBodyWithin(request, CONTACT_MAX_BYTES);
+  if (raw === null) return jsonResponse({ error: 'request_too_large' }, { status: 413 });
   const body = (() => { try { return JSON.parse(raw); } catch { return null; } })();
   if (!body) return jsonResponse({ error: 'invalid_json' }, { status: 400 });
   if (String(body.website ?? '').trim()) return jsonResponse({ ok: true }, { status: 202 });
@@ -129,15 +126,12 @@ async function handleFeedback(request, env) {
     return jsonResponse({ error: 'feedback_unavailable' }, { status: 503 });
   }
   if (!sameOriginMutation(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
-  if (!declaredBodyFits(request, FEEDBACK_MAX_BYTES)) return jsonResponse({ error: 'request_too_large' }, { status: 413 });
   if (!(request.headers.get('Content-Type') ?? '').toLowerCase().startsWith('application/json')) {
     return jsonResponse({ error: 'json_required' }, { status: 415 });
   }
 
-  const raw = await request.text();
-  if (new TextEncoder().encode(raw).byteLength > FEEDBACK_MAX_BYTES) {
-    return jsonResponse({ error: 'request_too_large' }, { status: 413 });
-  }
+  const raw = await readBodyWithin(request, FEEDBACK_MAX_BYTES);
+  if (raw === null) return jsonResponse({ error: 'request_too_large' }, { status: 413 });
   const body = (() => { try { return JSON.parse(raw); } catch { return null; } })();
   if (!body) return jsonResponse({ error: 'invalid_json' }, { status: 400 });
   if (String(body.website ?? '').trim()) return jsonResponse({ ok: true }, { status: 202 });
@@ -241,9 +235,10 @@ async function recordToolView(request, env, tool) {
 async function recordToolFunnelEvent(request, env) {
   if (!env.CONTACTS || !env.ADMIN_SESSION_SECRET) return jsonResponse({ ok: false }, { status: 503 });
   if (!likelySameOriginBeacon(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
-  if (!declaredBodyFits(request, 512)) return jsonResponse({ error: 'request_too_large' }, { status: 413 });
+  const raw = await readBodyWithin(request, 512);
+  if (raw === null) return jsonResponse({ error: 'request_too_large' }, { status: 413 });
 
-  const body = await request.json().catch(() => null);
+  const body = (() => { try { return JSON.parse(raw); } catch { return null; } })();
   const tool = TOOL_FUNNEL_TOOLS.has(body?.tool) ? body.tool : null;
   const event = TOOL_FUNNEL_EVENTS.has(body?.event) ? body.event : null;
   if (!tool || !event) return jsonResponse({ error: 'invalid_fields' }, { status: 400 });
@@ -268,12 +263,15 @@ async function handleAdmin(request, env, url) {
   const secure = url.protocol === 'https:';
 
   if (url.pathname === '/login' && request.method === 'POST') {
-    if (!sameOriginMutation(request) || !declaredBodyFits(request, 4096)) return html(loginPage(true), 403);
+    if (!sameOriginMutation(request)) return html(loginPage(true), 403);
+    const raw = await readBodyWithin(request, 4096);
+    if (raw === null) return html(loginPage(true), 413);
     const rate = await consumeRateLimit(request, env, { scope: 'admin-login', limit: 5, windowMs: 15 * 60 * 1000 });
     if (!rate.allowed) {
       return html(loginPage(true), rate.unavailable ? 503 : 429);
     }
-    const form = await request.formData().catch(() => null);
+    // The login form posts application/x-www-form-urlencoded.
+    const form = new URLSearchParams(raw);
     const [idMatches, passwordMatches] = await Promise.all([
       safeCredentialMatch(env.ADMIN_SESSION_SECRET, form?.get('id'), env.ADMIN_ID),
       safeCredentialMatch(env.ADMIN_SESSION_SECRET, form?.get('password'), env.ADMIN_PASSWORD),
@@ -323,10 +321,10 @@ async function handleAdmin(request, env, url) {
   }
 
   if (url.pathname === '/api/analytics/exclusion' && request.method === 'POST') {
-    if (!sameOriginMutation(request) || !declaredBodyFits(request, 1024)) {
-      return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
-    }
-    const body = await request.json().catch(() => null);
+    if (!sameOriginMutation(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
+    const raw = await readBodyWithin(request, 1024);
+    if (raw === null) return jsonResponse({ error: 'request_too_large' }, { status: 413 });
+    const body = (() => { try { return JSON.parse(raw); } catch { return null; } })();
     if (typeof body?.excluded !== 'boolean') return jsonResponse({ error: 'invalid_request' }, { status: 400 });
     return jsonResponse({ excluded: body.excluded }, {
       headers: { 'Set-Cookie': analyticsExclusionCookie(body.excluded, secure) },
@@ -338,10 +336,11 @@ async function handleAdmin(request, env, url) {
     if (!sameOriginMutation(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
     const target = `https://contacts.internal/contacts/${encodeURIComponent(match[1])}`;
     if (request.method === 'DELETE') return contactStub(env).fetch(target, { method: 'DELETE' });
-    if (!declaredBodyFits(request, 1024) || !(request.headers.get('Content-Type') ?? '').startsWith('application/json')) {
+    if (!(request.headers.get('Content-Type') ?? '').startsWith('application/json')) {
       return jsonResponse({ error: 'invalid_request' }, { status: 400 });
     }
-    const body = await request.text();
+    const body = await readBodyWithin(request, 1024);
+    if (body === null) return jsonResponse({ error: 'request_too_large' }, { status: 413 });
     return contactStub(env).fetch(target, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -354,10 +353,11 @@ async function handleAdmin(request, env, url) {
     if (!sameOriginMutation(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
     const target = `https://contacts.internal/feedback/${encodeURIComponent(feedbackMatch[1])}`;
     if (request.method === 'DELETE') return contactStub(env).fetch(target, { method: 'DELETE' });
-    if (!declaredBodyFits(request, 1024) || !(request.headers.get('Content-Type') ?? '').startsWith('application/json')) {
+    if (!(request.headers.get('Content-Type') ?? '').startsWith('application/json')) {
       return jsonResponse({ error: 'invalid_request' }, { status: 400 });
     }
-    const body = await request.text();
+    const body = await readBodyWithin(request, 1024);
+    if (body === null) return jsonResponse({ error: 'request_too_large' }, { status: 413 });
     return contactStub(env).fetch(target, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

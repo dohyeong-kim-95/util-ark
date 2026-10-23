@@ -562,3 +562,57 @@ test('the admin tool-funnel endpoint only proxies known tools', async () => {
   }), env);
   assert.equal(unknown.status, 400);
 });
+
+// A chunked request carries no Content-Length, so a limit that only reads the
+// header lets any size through. The body has to be counted as it arrives.
+const chunkedBody = (text) => new ReadableStream({
+  start(controller) {
+    controller.enqueue(new TextEncoder().encode(text));
+    controller.close();
+  },
+});
+
+test('bodies without a Content-Length are still held to the size limit', async () => {
+  let calls = 0;
+  const env = {
+    ADMIN_ID: 'admin',
+    ADMIN_PASSWORD: 'correct horse battery staple',
+    ADMIN_SESSION_SECRET: 'test-session-secret-value',
+    CONTACTS: namespace(() => { calls += 1; return Response.json({ allowed: true }, { status: 202 }); }),
+    ASSETS: { fetch: () => new Response('asset') },
+  };
+
+  const funnel = await worker.fetch(new Request('https://utilark.app/api/usage/event', {
+    method: 'POST',
+    headers: { 'Sec-Fetch-Site': 'same-origin', 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0' },
+    body: chunkedBody(JSON.stringify({ tool: 'image-compress', event: 'selected', padding: 'x'.repeat(2000) })),
+    duplex: 'half',
+  }), env);
+  assert.equal(funnel.status, 413);
+
+  const contact = await worker.fetch(new Request('https://utilark.app/api/contact', {
+    method: 'POST',
+    headers: { Origin: 'https://utilark.app', 'Content-Type': 'application/json' },
+    body: chunkedBody(JSON.stringify({ locale: 'ko', category: 'bug', message: '가'.repeat(6000), consent: true })),
+    duplex: 'half',
+  }), env);
+  assert.equal(contact.status, 413);
+
+  const login = await worker.fetch(new Request('https://admin.utilark.app/login', {
+    method: 'POST',
+    headers: { Origin: 'https://admin.utilark.app', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: chunkedBody(`id=admin&password=${'x'.repeat(5000)}`),
+    duplex: 'half',
+  }), env);
+  assert.equal(login.status, 413);
+  assert.equal(calls, 0, 'an oversized body never reaches storage');
+
+  // A small chunked body is still accepted.
+  const small = await worker.fetch(new Request('https://utilark.app/api/usage/event', {
+    method: 'POST',
+    headers: { 'Sec-Fetch-Site': 'same-origin', 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0' },
+    body: chunkedBody(JSON.stringify({ tool: 'image-compress', event: 'selected' })),
+    duplex: 'half',
+  }), env);
+  assert.equal(small.status, 202);
+});

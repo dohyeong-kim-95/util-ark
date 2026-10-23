@@ -99,6 +99,32 @@ export function declaredBodyFits(request, maximumBytes) {
   return !declared || (Number.isFinite(Number(declared)) && Number(declared) <= maximumBytes);
 }
 
+/**
+ * Reads a request body as text, giving up as soon as it passes the limit.
+ * `Content-Length` alone is not enough: a chunked request carries no length, so
+ * the bytes have to be counted as they arrive. Returns null when the body is
+ * too large.
+ */
+export async function readBodyWithin(request, maximumBytes) {
+  if (!declaredBodyFits(request, maximumBytes)) return null;
+  if (!request.body) return '';
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder();
+  let total = 0;
+  let text = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maximumBytes) {
+      await reader.cancel();
+      return null;
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+  return text + decoder.decode();
+}
+
 export async function anonymousVisitorKey(request, secret) {
   const address = request.headers.get('CF-Connecting-IP') ?? 'local-development';
   return sign(secret, `visitor:${address}`);
