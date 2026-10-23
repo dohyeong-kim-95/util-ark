@@ -5,6 +5,7 @@ Private-by-default browser utilities for [utilark.app](https://utilark.app), mai
 ## Included in the first release
 
 - Image converter: JPG, PNG, and WebP conversion in the browser, split into a page per directed pair
+- Image compressor: a photo shrunk to a target file size such as 100KB or 200KB, entirely in the browser
 - Image cropper with square, 4:3, 16:9, A4, and both Korean ID photo ratios (30x40mm and 35x45mm)
 - Photos to PDF, sized down before embedding so the result can be emailed
 - Read Aloud: browser speech synthesis with on-device voices preferred and network voices flagged, reading pasted text, a PDF's text layer, or a Word document
@@ -19,7 +20,7 @@ Private-by-default browser utilities for [utilark.app](https://utilark.app), mai
 - Canonical URLs, `hreflang`, Open Graph metadata, JSON-LD, sitemap, and robots.txt
 - Private bilingual contact form with an independent Utilark admin inbox
 - Bilingual per-tool helpfulness feedback with optional, consented anonymous quotes and manual moderation
-- Privacy-preserving 90-day DAU, qualified-visitor, page-view, and excluded-bot totals in Utilark Admin
+- Privacy-preserving 90-day DAU, qualified-visitor, page-view, and excluded-bot totals in Utilark Admin, plus a step-by-step usage funnel for the image compressor
 - Optional AdSense loading, generated `ads.txt`, and advertising disclosures in both privacy policies
 
 No selected file or text entered into a tool is sent to Utilark. The contact form is the explicit exception: its message and optional reply email are sent to the Utilark Worker and retained for up to 180 days.
@@ -116,6 +117,8 @@ The same isolated Durable Object stores tool feedback in a separate table. The a
 Anonymous usage totals use a day-scoped HMAC of the connection IP and user-agent to deduplicate DAU without storing either original value or a cross-day visitor ID. Bot signals and common bot user-agents are excluded, DNT/GPC requests are skipped, and aggregate records expire after 90 days. Because the key includes the user-agent, one address could otherwise add a visitor per request by changing it, so a single address can add at most 50 new visitors a day to the DAU and qualified totals; that cap is enforced with a second day-scoped HMAC of the address alone, kept in the rate-limit table for the day. The published numbers are still estimates that a determined sender with many addresses can inflate. Collection begins only after deployment and does not backfill earlier traffic.
 
 Utilark Admin shows qualified visitors beside total DAU. A visit qualifies once the page has been visible for three seconds or the visitor has tapped, typed, or scrolled; something that only fetched the HTML lands in DAU but never here, so the gap between the two numbers is how much of the traffic was real. The qualifying beacon carries no body and is keyed by the same daily one-way value as the page view, so nothing further is stored — unlike the per-browser UUID this idea came from, which would break the promise of no cross-day identifier.
+
+The image compressor also reports a usage funnel to Utilark Admin: whether a visitor opened the page, selected an image, finished a compression, and downloaded the result. Opening is recorded with the page view; the other three steps are sent by the page as a beacon whose body names only the tool and the step. Each step is stored at most once per visitor per day under the same daily one-way key as the page view, with no filename, dimensions, file size, or image data, and is deleted after 90 days like the other analytics. The same bot, DNT/GPC, and admin-exclusion rules apply. The tools that report a funnel are listed in `TOOL_FUNNEL_TOOLS` in `worker/index.js`, and adding one needs the same privacy review as any other analytics.
 
 The localized home-page footer publishes Today, Week, and Month visitor-day totals. Week and Month are sums of daily deduplicated counts, not cross-day unique-user figures. Authenticated admins can set a five-year, domain-wide HttpOnly exclusion cookie so their current browser is omitted from future counts.
 
