@@ -71,8 +71,14 @@ test('an empty archive is refused rather than written', () => {
 
 test('a name that would escape the archive is refused, not quietly rewritten', () => {
   // Renaming someone's file without saying so is worse than declining.
-  for (const name of ['../escape.png', '/absolute.png', 'sub\\dir.png', '']) {
+  for (const name of ['../escape.png', 'pages/../../escape.png', '/absolute.png', 'sub\\dir.png', '']) {
     assert.throws(() => writeZip([{ name, bytes: bytes('x') }]), /name/u, `accepted "${name}"`);
+  }
+});
+
+test('dots inside an ordinary file name are not mistaken for climbing out', () => {
+  for (const name of ['견적서...pdf', 'v1..2.pdf', 'pages/report..final-1.png']) {
+    assert.doesNotThrow(() => writeZip([{ name, bytes: bytes('x') }]), `refused "${name}"`);
   }
 });
 
