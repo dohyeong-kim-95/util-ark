@@ -36,7 +36,9 @@ const naverVerification = import.meta.env.PUBLIC_NAVER_SITE_VERIFICATION?.trim()
       const links = document.querySelectorAll<HTMLAnchorElement>('[data-language]');
       links.forEach((link) => link.addEventListener('click', () => {
         const language = link.dataset.language ?? 'en';
-        localStorage.setItem('utilark-language', language);
+        // Storage can be blocked (private modes, site-data settings); the cookie
+        // below still carries the choice, so a failure here is not fatal.
+        try { localStorage.setItem('utilark-language', language); } catch { /* storage blocked */ }
         const secure = location.protocol === 'https:' ? '; Secure' : '';
         // Scoped to the whole domain so the short tool addresses open in the chosen language.
         const scope = /(^|\.)utilark\.app$/.test(location.hostname) ? '; Domain=utilark.app' : '';
@@ -45,7 +47,8 @@ const naverVerification = import.meta.env.PUBLIC_NAVER_SITE_VERIFICATION?.trim()
         document.cookie = `utilark_lang=${language}; Path=/; Max-Age=31536000; SameSite=Lax${scope}${secure}`;
       }));
 
-      const saved = localStorage.getItem('utilark-language');
+      let saved: string | null = null;
+      try { saved = localStorage.getItem('utilark-language'); } catch { /* storage blocked */ }
       const language = saved === 'en' || saved === 'ko'
         ? saved
         : navigator.language.toLowerCase().startsWith('ko') ? 'ko' : 'en';

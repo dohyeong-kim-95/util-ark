@@ -166,7 +166,9 @@ const schemas = [
         link.addEventListener('click', () => {
           const language = link.dataset.language;
           if (!language) return;
-          localStorage.setItem('utilark-language', language);
+          // Storage can be blocked (private modes, site-data settings); the
+          // cookie below still carries the choice, so this must not throw.
+          try { localStorage.setItem('utilark-language', language); } catch { /* storage blocked */ }
           const secure = location.protocol === 'https:' ? '; Secure' : '';
           // Scoped to the whole domain so the short tool addresses open in the chosen language.
           const scope = /(^|\.)utilark\.app$/.test(location.hostname) ? '; Domain=utilark.app' : '';
