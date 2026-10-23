@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { dashboardPage } from './admin-page.js';
 import worker from './index.js';
 
 const namespace = (handler) => ({
@@ -615,4 +616,35 @@ test('bodies without a Content-Length are still held to the size limit', async (
     duplex: 'half',
   }), env);
   assert.equal(small.status, 202);
+});
+
+test('a reply email cannot smuggle extra mailto headers into the admin reply link', async () => {
+  let calls = 0;
+  const env = {
+    ADMIN_SESSION_SECRET: 'test-session-secret-value',
+    CONTACTS: namespace(() => { calls += 1; return Response.json({ ok: true }, { status: 201 }); }),
+    ASSETS: { fetch: () => new Response('asset') },
+  };
+  for (const email of ['a@b.co?cc=attacker@example.com', 'a@b.co&body=hi', 'a@b.co,attacker@example.com']) {
+    const response = await worker.fetch(contactRequest({
+      locale: 'en', category: 'bug', email, message: 'A sufficiently detailed report', consent: true,
+    }), env);
+    assert.equal(response.status, 400, email);
+  }
+  assert.equal(calls, 0);
+
+  const plain = await worker.fetch(contactRequest({
+    locale: 'en', category: 'bug', email: 'first.last+tag@example.co.kr', message: 'A sufficiently detailed report', consent: true,
+  }), env);
+  assert.equal(plain.status, 201);
+});
+
+// Contact messages and feedback notes are attacker-controlled text. The admin
+// dashboard stays safe only while it draws them with textContent.
+test('the admin dashboard never renders stored text as HTML', () => {
+  const page = dashboardPage();
+  for (const sink of ['innerHTML', 'outerHTML', 'insertAdjacentHTML', 'document.write']) {
+    assert.equal(page.includes(sink), false, sink);
+  }
+  assert.match(page, /encodeURIComponent\(item\.email\)/u);
 });

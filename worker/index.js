@@ -104,7 +104,9 @@ async function handleContact(request, env) {
   const category = categories.has(body.category) ? body.category : null;
   const email = String(body.email ?? '').trim();
   const message = String(body.message ?? '').trim();
-  const emailValid = !email || (email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email));
+  // The admin inbox turns this into a mailto: link, where `?` and `&` would
+  // start extra headers such as cc or body. Real addresses do not need them.
+  const emailValid = !email || (email.length <= 254 && /^[^\s@?&#,;:<>"]+@[^\s@?&#,;:<>"]+\.[^\s@?&#,;:<>"]+$/u.test(email));
   if (!locale || !category || !emailValid || message.length < 10 || message.length > 4000 || body.consent !== true) {
     return jsonResponse({ error: 'invalid_fields' }, { status: 400 });
   }

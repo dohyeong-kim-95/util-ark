@@ -172,7 +172,9 @@ const dashboardScript = String.raw`
     card.append(top, element('p', 'message', item.message));
     if (item.email) {
       const email = element('a', 'email', item.email);
-      email.href = 'mailto:' + item.email;
+      // Encoded so an address stored before validation tightened cannot add
+      // cc or body headers to the reply.
+      email.href = 'mailto:' + encodeURIComponent(item.email).replace('%40', '@');
       card.append(email);
     }
     const actions = element('div', 'actions');
