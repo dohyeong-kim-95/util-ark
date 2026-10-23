@@ -53,6 +53,15 @@ const redirect = (location, headers = {}) => new Response(null, {
   headers: { Location: location, ...headers },
 });
 
+/**
+ * The secret behind every anonymized key: rate limits, daily visitor keys.
+ * Kept apart from the session secret when ANALYTICS_SECRET is set, so rotating
+ * ADMIN_SESSION_SECRET to sign everyone out does not also reset the day's
+ * visitor deduplication and rate-limit windows. Falls back to the session
+ * secret so a deployment without the new secret keeps working.
+ */
+const anonymizationSecret = (env) => env.ANALYTICS_SECRET || env.ADMIN_SESSION_SECRET;
+
 const adminConfigured = (env) => Boolean(env.ADMIN_ID && env.ADMIN_PASSWORD && env.ADMIN_SESSION_SECRET);
 
 const adminCookie = (token, secure = true) =>
@@ -71,7 +80,7 @@ const analyticsExclusionCookie = (excluded, secure = true) =>
   `${ANALYTICS_EXCLUSION_COOKIE}=${excluded ? '1' : ''}; Path=/; HttpOnly; Max-Age=${excluded ? 157680000 : 0}; SameSite=Lax; Domain=utilark.app${secure ? '; Secure' : ''}`;
 
 async function consumeRateLimit(request, env, options) {
-  const secret = env.ADMIN_SESSION_SECRET;
+  const secret = anonymizationSecret(env);
   if (!secret) return { allowed: false, unavailable: true };
   const visitorKey = await anonymousVisitorKey(request, secret);
   const response = await contactStub(env).fetch('https://contacts.internal/rate-limit', {
@@ -86,7 +95,7 @@ async function handleContact(request, env) {
   if (request.method !== 'POST') {
     return jsonResponse({ error: 'method_not_allowed' }, { status: 405, headers: { Allow: 'POST' } });
   }
-  if (!env.CONTACTS || !env.ADMIN_SESSION_SECRET) {
+  if (!env.CONTACTS || !anonymizationSecret(env)) {
     return jsonResponse({ error: 'contact_unavailable' }, { status: 503 });
   }
   if (!sameOriginMutation(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
@@ -111,7 +120,7 @@ async function handleContact(request, env) {
     return jsonResponse({ error: 'invalid_fields' }, { status: 400 });
   }
 
-  const visitorKey = await anonymousVisitorKey(request, env.ADMIN_SESSION_SECRET);
+  const visitorKey = await anonymousVisitorKey(request, anonymizationSecret(env));
   const response = await contactStub(env).fetch('https://contacts.internal/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -124,7 +133,7 @@ async function handleFeedback(request, env) {
   if (request.method !== 'POST') {
     return jsonResponse({ error: 'method_not_allowed' }, { status: 405, headers: { Allow: 'POST' } });
   }
-  if (!env.CONTACTS || !env.ADMIN_SESSION_SECRET) {
+  if (!env.CONTACTS || !anonymizationSecret(env)) {
     return jsonResponse({ error: 'feedback_unavailable' }, { status: 503 });
   }
   if (!sameOriginMutation(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
@@ -161,7 +170,7 @@ async function handleFeedback(request, env) {
     return jsonResponse({ error: 'invalid_fields' }, { status: 400 });
   }
 
-  const visitorKey = await anonymousVisitorKey(request, env.ADMIN_SESSION_SECRET);
+  const visitorKey = await anonymousVisitorKey(request, anonymizationSecret(env));
   const response = await contactStub(env).fetch('https://contacts.internal/feedback/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -185,13 +194,13 @@ async function handleFeedback(request, env) {
  * UUID, because the privacy policy here promises no cross-day identifier.
  */
 async function recordQualifiedVisit(request, env) {
-  if (!env.CONTACTS || !env.ADMIN_SESSION_SECRET) return jsonResponse({ ok: false }, { status: 503 });
+  if (!env.CONTACTS || !anonymizationSecret(env)) return jsonResponse({ ok: false }, { status: 503 });
   if (!likelySameOriginBeacon(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
   if (likelyBot(request) || privacyOptOut(request) || trackingExcluded(request)) {
     return jsonResponse({ ok: true }, { status: 202 });
   }
   const day = analyticsDay();
-  const visitorKey = await dailyVisitorKey(request, env.ADMIN_SESSION_SECRET, day);
+  const visitorKey = await dailyVisitorKey(request, anonymizationSecret(env), day);
   return contactStub(env).fetch('https://contacts.internal/analytics/qualify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -202,7 +211,7 @@ async function recordQualifiedVisit(request, env) {
 async function recordPageView(request, env) {
   const day = analyticsDay();
   const bot = likelyBot(request);
-  const visitorKey = bot ? undefined : await dailyVisitorKey(request, env.ADMIN_SESSION_SECRET, day);
+  const visitorKey = bot ? undefined : await dailyVisitorKey(request, anonymizationSecret(env), day);
   const response = await contactStub(env).fetch('https://contacts.internal/analytics/record', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -220,7 +229,7 @@ async function recordPageView(request, env) {
 async function recordToolView(request, env, tool) {
   if (likelyBot(request) || privacyOptOut(request) || trackingExcluded(request)) return;
   const day = analyticsDay();
-  const visitorKey = await dailyVisitorKey(request, env.ADMIN_SESSION_SECRET, day);
+  const visitorKey = await dailyVisitorKey(request, anonymizationSecret(env), day);
   await contactStub(env).fetch('https://contacts.internal/analytics/tool-event', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -235,7 +244,7 @@ async function recordToolView(request, env, tool) {
  * page-qualify beacon in BaseLayout.astro.
  */
 async function recordToolFunnelEvent(request, env) {
-  if (!env.CONTACTS || !env.ADMIN_SESSION_SECRET) return jsonResponse({ ok: false }, { status: 503 });
+  if (!env.CONTACTS || !anonymizationSecret(env)) return jsonResponse({ ok: false }, { status: 503 });
   if (!likelySameOriginBeacon(request)) return jsonResponse({ error: 'invalid_origin' }, { status: 403 });
   const raw = await readBodyWithin(request, 512);
   if (raw === null) return jsonResponse({ error: 'request_too_large' }, { status: 413 });
@@ -249,7 +258,7 @@ async function recordToolFunnelEvent(request, env) {
   }
 
   const day = analyticsDay();
-  const visitorKey = await dailyVisitorKey(request, env.ADMIN_SESSION_SECRET, day);
+  const visitorKey = await dailyVisitorKey(request, anonymizationSecret(env), day);
   const response = await contactStub(env).fetch('https://contacts.internal/analytics/tool-event', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -445,7 +454,7 @@ export default {
     else response = await env.ASSETS.fetch(request);
     if (
       env.CONTACTS
-      && env.ADMIN_SESSION_SECRET
+      && anonymizationSecret(env)
       && trackablePageView(request, response)
     ) {
       const task = recordPageView(request, env).catch((error) => console.error(error));

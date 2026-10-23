@@ -120,9 +120,12 @@ The localized home-page footer publishes Today, Week, and Month visitor-day tota
 Before the admin and contact form can open, add these encrypted Worker secrets under **Workers & Pages → utilark → Settings → Variables and Secrets**:
 
 - `ADMIN_PASSWORD` — a unique administrator password
-- `ADMIN_SESSION_SECRET` — a long random value used to sign sessions and anonymize rate-limit keys
+- `ADMIN_SESSION_SECRET` — a long random value used to sign admin sessions
+- `ANALYTICS_SECRET` (optional, recommended) — a different long random value used to anonymize rate-limit keys and daily visitor keys. Without it, `ADMIN_SESSION_SECRET` does this job too.
 
-`ADMIN_ID` is the non-secret value `admin` in `wrangler.jsonc`. Missing secrets fail closed: the admin returns 503 and contact submissions are not stored.
+`ADMIN_ID` is the non-secret value `admin` in `wrangler.jsonc`. Missing secrets fail closed: the admin returns 503 and contact submissions are not stored. `ANALYTICS_SECRET` is deliberately not in `secrets.required`, so a deployment made before it was added keeps working.
+
+Admin sessions are stateless signed tokens, so signing out only removes the cookie from that browser. To revoke every session at once, rotate `ADMIN_SESSION_SECRET`. With `ANALYTICS_SECRET` set, that rotation leaves the day's visitor deduplication and rate-limit windows alone; without it, they reset along with the sessions. Setting `ANALYTICS_SECRET` for the first time resets them once in the same way.
 
 ## Bubblelab migration boundary
 

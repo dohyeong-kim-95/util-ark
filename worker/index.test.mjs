@@ -648,3 +648,30 @@ test('the admin dashboard never renders stored text as HTML', () => {
   }
   assert.match(page, /encodeURIComponent\(item\.email\)/u);
 });
+
+test('ANALYTICS_SECRET, when set, keeps anonymized keys stable across a session-secret rotation', async () => {
+  const keyFor = async (env) => {
+    let stored;
+    await worker.fetch(contactRequest({
+      locale: 'en', category: 'bug', message: 'A sufficiently detailed report', consent: true,
+    }), {
+      ...env,
+      CONTACTS: namespace(async (request) => {
+        stored = await request.json();
+        return Response.json({ ok: true }, { status: 201 });
+      }),
+      ASSETS: { fetch: () => new Response('asset') },
+    });
+    return stored.visitorKey;
+  };
+
+  const before = await keyFor({ ADMIN_SESSION_SECRET: 'old-session-secret', ANALYTICS_SECRET: 'analytics-secret' });
+  const after = await keyFor({ ADMIN_SESSION_SECRET: 'new-session-secret', ANALYTICS_SECRET: 'analytics-secret' });
+  assert.equal(after, before, 'rotating the session secret leaves rate-limit keys alone');
+
+  // Without the new secret the session secret still anonymizes, so an existing
+  // deployment keeps working unchanged.
+  const fallback = await keyFor({ ADMIN_SESSION_SECRET: 'old-session-secret' });
+  assert.notEqual(fallback, before);
+  assert.equal(fallback, await keyFor({ ADMIN_SESSION_SECRET: 'old-session-secret' }));
+});

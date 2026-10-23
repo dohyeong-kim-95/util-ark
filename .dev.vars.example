@@ -1,3 +1,6 @@
 # Local Worker development only. Never commit .dev.vars.
 ADMIN_PASSWORD=replace-with-a-unique-local-password
 ADMIN_SESSION_SECRET=replace-with-at-least-32-random-characters
+# Optional. Anonymizes rate-limit and daily visitor keys. When unset,
+# ADMIN_SESSION_SECRET is used for that too.
+ANALYTICS_SECRET=replace-with-a-different-32-random-characters
