@@ -107,7 +107,9 @@ The production custom domains are:
 
 Every tool subdomain redirects to a localized page on `utilark.app` rather than serving its own copy, so indexing, link signals, the sitemap, and the AdSense site registration stay on one host. `docs/subdomains.md` has the full map, the redirect rules, and the dashboard steps; `worker/subdomains.js` is the source of truth, and `npm test` fails if it drifts from the pages that were built.
 
-Contact records use a Utilark-only SQLite-backed Durable Object. Tool files and tool text never enter this storage. Records expire after 180 days, and public submissions are rate-limited using an HMAC value instead of storing the source IP address.
+Contact records use a Utilark-only SQLite-backed Durable Object. Tool files and tool text never enter this storage. Records expire after 180 days. Retention is enforced by a Durable Object alarm that runs once a day, so expired contacts, feedback, and analytics are deleted within a day of their limit even when the site gets no traffic, and no request pays for the cleanup.
+
+Public submissions are rate-limited per address using an HMAC value instead of storing the source IP address: five contact messages per 15 minutes, and three feedback notes per tool per day so people sharing an office or school address are not refused. Because addresses are cheap to rotate, contact messages and feedback notes also each stop at 200 a day in total, and admin login allows five attempts per address per 15 minutes and 30 attempts an hour from all addresses together. While that global login limit is spent, the administrator is locked out too.
 
 The same isolated Durable Object stores tool feedback in a separate table. The administrator can approve, reject, unpublish, or delete testimonial candidates. The public API returns only aggregate rating counts and already-approved anonymous quote text; pending and private feedback never leave the authenticated admin boundary.
 

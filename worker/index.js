@@ -458,7 +458,12 @@ export default {
       response = await recordToolFunnelEvent(request, env);
     }
     else if (url.pathname === '/api/analytics/public' && request.method === 'GET' && env.CONTACTS) {
-      response = await contactStub(env).fetch('https://contacts.internal/analytics/public');
+      // Every home-page footer asks for this. A minute of browser caching
+      // keeps a reload from reaching the single storage object again, and a
+      // visitor count a minute old is still the right number.
+      const stats = await contactStub(env).fetch('https://contacts.internal/analytics/public');
+      response = new Response(stats.body, { status: stats.status, headers: stats.headers });
+      if (stats.ok) response.headers.set('Cache-Control', 'public, max-age=60');
     }
     else response = await env.ASSETS.fetch(request);
     if (

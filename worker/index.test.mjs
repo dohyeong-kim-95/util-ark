@@ -192,6 +192,7 @@ test('public analytics endpoint exposes only aggregate visitor-day totals', asyn
   };
   const response = await worker.fetch(new Request('https://utilark.app/api/analytics/public'), env);
   assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Cache-Control'), 'public, max-age=60');
   assert.deepEqual(await response.json(), {
     today: 1,
     week: 3,

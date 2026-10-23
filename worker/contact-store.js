@@ -24,6 +24,7 @@ const json = (data, init = {}) => {
 
 export class ContactStore {
   constructor(state) {
+    this.storage = state.storage;
     this.sql = state.storage.sql;
     this.sql.exec(`
       CREATE TABLE IF NOT EXISTS contacts (
@@ -95,6 +96,25 @@ export class ContactStore {
     `);
   }
 
+  /**
+   * Retention runs from a daily alarm, not on every request: it then costs
+   * nothing per page view, and it still runs when the site is quiet, which is
+   * what "deleted after 180/90 days" promises. The first request after a
+   * deploy schedules it if no alarm is pending, and that first run is
+   * immediate so anything already overdue goes at once.
+   */
+  async ensurePurgeScheduled(now) {
+    if (this.purgeScheduled) return;
+    if ((await this.storage.getAlarm()) === null) await this.storage.setAlarm(now);
+    this.purgeScheduled = true;
+  }
+
+  async alarm() {
+    const now = Date.now();
+    this.purge(now);
+    await this.storage.setAlarm(now + DAY_MS);
+  }
+
   purge(now) {
     this.sql.exec('DELETE FROM contacts WHERE created_at < ?', now - RETENTION_MS);
     this.sql.exec('DELETE FROM tool_feedback WHERE created_at < ?', now - RETENTION_MS);
@@ -140,7 +160,7 @@ export class ContactStore {
   async fetch(request) {
     const url = new URL(request.url);
     const now = Date.now();
-    this.purge(now);
+    await this.ensurePurgeScheduled(now);
 
     if (url.pathname === '/rate-limit' && request.method === 'POST') {
       const body = await request.json().catch(() => null);
@@ -293,7 +313,6 @@ export class ContactStore {
         day,
         String(body.visitorKey),
       );
-      this.purge(now);
       return json({ ok: true }, { status: 202 });
     }
 
