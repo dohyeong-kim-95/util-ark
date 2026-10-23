@@ -89,3 +89,34 @@ test('feedback without publication consent cannot be approved', async () => {
   assert.equal(consented.moderation, 'pending');
   assert.equal((await approve(consented.id)).status, 200);
 });
+
+test('one address cannot add more than 50 visitors a day to the published totals', async () => {
+  const state = fakeState();
+  const store = new ContactStore(state);
+  const day = new Date().toISOString().slice(0, 10);
+  const record = (visitorKey, addressKey) => store.fetch(new Request('https://contacts.internal/analytics/record', {
+    method: 'POST',
+    body: JSON.stringify({ day, bot: false, visitorKey, addressKey }),
+  }));
+  const qualify = (visitorKey, addressKey) => store.fetch(new Request('https://contacts.internal/analytics/qualify', {
+    method: 'POST',
+    body: JSON.stringify({ day, visitorKey, addressKey }),
+  }));
+
+  for (let agent = 1; agent <= 60; agent += 1) {
+    await record(`visitor-${agent}`, 'one-address');
+    await qualify(`visitor-${agent}`, 'one-address');
+  }
+  assert.equal(count(state.db, 'analytics_visitors'), 50);
+  assert.equal(count(state.db, 'analytics_qualified'), 50);
+  // Page views are still counted; only the visitor totals are capped.
+  assert.equal(state.db.prepare('SELECT page_views FROM analytics_daily').get().page_views, 60);
+
+  // A visitor already counted can come back without being refused.
+  await record('visitor-1', 'one-address');
+  assert.equal(count(state.db, 'analytics_visitors'), 50);
+
+  // Another address is unaffected.
+  await record('visitor-elsewhere', 'another-address');
+  assert.equal(count(state.db, 'analytics_visitors'), 51);
+});

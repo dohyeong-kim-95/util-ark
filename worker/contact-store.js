@@ -8,6 +8,10 @@ const FEEDBACK_PER_DAY = 200;
 // A few per address, not one: an office or school shares one public address,
 // and the second person there should not be refused.
 const FEEDBACK_PER_ADDRESS_PER_TOOL_PER_DAY = 3;
+// The visitor key is address + user-agent, so one address cycling user-agents
+// could add a "visitor" per request to the totals the home page publishes.
+// High enough for a household or an office behind one address.
+const NEW_VISITORS_PER_ADDRESS_PER_DAY = 50;
 
 const rateLimited = (rate) => json({ error: 'rate_limited', retryAfter: rate.retryAfter }, {
   status: 429,
@@ -157,6 +161,25 @@ export class ContactStore {
     return { allowed: true, remaining: limit - row.count - 1 };
   }
 
+  /**
+   * Adds a visitor to a daily table, unless it is new and its address has
+   * already added NEW_VISITORS_PER_ADDRESS_PER_DAY today. A visitor already
+   * counted never uses up the allowance again.
+   */
+  admitVisitor(table, day, visitorKey, addressKey, now) {
+    const known = [...this.sql.exec(
+      `SELECT 1 FROM ${table} WHERE day = ? AND visitor_key = ?`,
+      day,
+      visitorKey,
+    )].length > 0;
+    if (known) return;
+    if (addressKey) {
+      const rate = this.consumeRateLimit(`${table}:${day}`, addressKey, NEW_VISITORS_PER_ADDRESS_PER_DAY, DAY_MS, now);
+      if (!rate.allowed) return;
+    }
+    this.sql.exec(`INSERT OR IGNORE INTO ${table} (day, visitor_key) VALUES (?, ?)`, day, visitorKey);
+  }
+
   async fetch(request) {
     const url = new URL(request.url);
     const now = Date.now();
@@ -291,11 +314,7 @@ export class ContactStore {
         body.bot ? 1 : 0,
       );
       if (!body.bot) {
-        this.sql.exec(
-          'INSERT OR IGNORE INTO analytics_visitors (day, visitor_key) VALUES (?, ?)',
-          day,
-          String(body.visitorKey),
-        );
+        this.admitVisitor('analytics_visitors', day, String(body.visitorKey), body.addressKey ? String(body.addressKey) : null, now);
       }
       return json({ ok: true }, { status: 201 });
     }
@@ -308,11 +327,7 @@ export class ContactStore {
       }
       // Same key as the page view, so the two tables describe the same visitor
       // without anything new being stored about them.
-      this.sql.exec(
-        'INSERT OR IGNORE INTO analytics_qualified (day, visitor_key) VALUES (?, ?)',
-        day,
-        String(body.visitorKey),
-      );
+      this.admitVisitor('analytics_qualified', day, String(body.visitorKey), body.addressKey ? String(body.addressKey) : null, now);
       return json({ ok: true }, { status: 202 });
     }
 

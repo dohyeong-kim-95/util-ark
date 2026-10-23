@@ -33,6 +33,16 @@ export function trackablePageView(request, response) {
   return (response.headers.get('Content-Type') ?? '').toLowerCase().startsWith('text/html');
 }
 
+/**
+ * The connection address alone, keyed to the day like dailyVisitorKey so it
+ * cannot link one day to the next. Used only to cap how many distinct visitors
+ * one address can add to the published totals in a day.
+ */
+export async function dailyAddressKey(request, secret, day = analyticsDay()) {
+  const address = request.headers.get('CF-Connecting-IP') ?? 'local-development';
+  return sign(secret, `analytics-address:${day}:${address}`);
+}
+
 export async function dailyVisitorKey(request, secret, day = analyticsDay()) {
   const address = request.headers.get('CF-Connecting-IP') ?? 'local-development';
   const userAgent = request.headers.get('User-Agent')?.trim() ?? 'unknown-agent';

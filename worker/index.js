@@ -1,6 +1,6 @@
 import { dashboardPage, loginPage, unavailablePage } from './admin-page.js';
 import {
-  analyticsDay, dailyVisitorKey, likelyBot, privacyOptOut, trackablePageView, trackingExcluded,
+  analyticsDay, dailyAddressKey, dailyVisitorKey, likelyBot, privacyOptOut, trackablePageView, trackingExcluded,
 } from './analytics.js';
 import { ContactStore } from './contact-store.js';
 import { preferredLocale } from './locale.js';
@@ -203,10 +203,11 @@ async function recordQualifiedVisit(request, env) {
   }
   const day = analyticsDay();
   const visitorKey = await dailyVisitorKey(request, anonymizationSecret(env), day);
+  const addressKey = await dailyAddressKey(request, anonymizationSecret(env), day);
   return contactStub(env).fetch('https://contacts.internal/analytics/qualify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ day, visitorKey }),
+    body: JSON.stringify({ day, visitorKey, addressKey }),
   });
 }
 
@@ -214,10 +215,11 @@ async function recordPageView(request, env) {
   const day = analyticsDay();
   const bot = likelyBot(request);
   const visitorKey = bot ? undefined : await dailyVisitorKey(request, anonymizationSecret(env), day);
+  const addressKey = bot ? undefined : await dailyAddressKey(request, anonymizationSecret(env), day);
   const response = await contactStub(env).fetch('https://contacts.internal/analytics/record', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ day, bot, visitorKey }),
+    body: JSON.stringify({ day, bot, visitorKey, addressKey }),
   });
   if (!response.ok) throw new Error(`analytics record failed: ${response.status}`);
 }

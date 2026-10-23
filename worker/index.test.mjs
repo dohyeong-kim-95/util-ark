@@ -178,8 +178,11 @@ test('public HTML visits are anonymized before analytics storage and bots omit v
   assert.equal(records[0].bot, false);
   assert.equal(typeof records[0].visitorKey, 'string');
   assert.equal(records[0].visitorKey.includes('203.0.113.21'), false);
+  assert.equal(typeof records[0].addressKey, 'string');
+  assert.equal(records[0].addressKey.includes('203.0.113.21'), false);
   assert.equal(records[1].bot, true);
   assert.equal(records[1].visitorKey, undefined);
+  assert.equal(records[1].addressKey, undefined);
 });
 
 test('public analytics endpoint exposes only aggregate visitor-day totals', async () => {
