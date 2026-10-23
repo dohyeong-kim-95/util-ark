@@ -297,7 +297,11 @@ const labels = locale === 'ko'
       if (!voiceSelect) return;
       const base = pageLang.split('-')[0];
       // Voices for the page language first, then the rest, and on-device ahead
-      // of network within each group so the private option is the default.
+      // of network within each group, so the private option is the default
+      // whenever one speaks the page's language. Language outranks privacy on
+      // purpose: an on-device English voice reading Korean text is no use, so
+      // where the only Korean voices are network ones, one of those leads and
+      // the network warning shows.
       const rank = (voice: SpeechSynthesisVoice) =>
         (String(voice.lang ?? '').toLowerCase().startsWith(base) ? 0 : 2)
         + (voice.localService ? 0 : 1);
@@ -333,8 +337,14 @@ const labels = locale === 'ko'
       if (!active && status) status.textContent = '';
     };
 
+    // Each utterance gets a number. Some engines fire `end` for an utterance
+    // that was cancelled (by a jump or by stop), and without this check that
+    // late event would move the position one sentence further.
+    let currentUtteranceId = 0;
+
     const stopPing = () => { window.clearInterval(ping); ping = 0; };
     const finish = () => {
+      currentUtteranceId += 1;
       stopPing();
       index = 0;
       setSpeakingUi(false);
@@ -348,14 +358,21 @@ const labels = locale === 'ko'
       if (index >= queue.length) { finish(); return; }
       paintPosition();
       const utterance = new Utterance(queue[index]);
+      currentUtteranceId += 1;
+      const utteranceId = currentUtteranceId;
       const voice = selectedVoice();
       if (voice) {
         try { utterance.voice = voice; } catch { /* fall back to the default */ }
       }
       utterance.lang = voice?.lang ?? pageLang;
       utterance.rate = Number(rateInput?.value ?? 1);
-      utterance.onend = () => { index += 1; speakNext(); };
+      utterance.onend = () => {
+        if (utteranceId !== currentUtteranceId) return;
+        index += 1;
+        speakNext();
+      };
       utterance.onerror = (event) => {
+        if (utteranceId !== currentUtteranceId) return;
         // Stopping makes Chrome report interrupted/canceled. That is not a failure.
         const kind = (event as SpeechSynthesisErrorEvent).error;
         if (kind === 'interrupted' || kind === 'canceled') return;
@@ -368,6 +385,7 @@ const labels = locale === 'ko'
     // runs inside a click, which is what iOS needs for the first play.
     const jumpTo = (position: number) => {
       if (queue.length === 0) return;
+      currentUtteranceId += 1;
       try { synth.cancel(); } catch { /* nothing left to cancel */ }
       index = Math.min(Math.max(0, position), queue.length - 1);
       if (!speaking) startPlayback(false);
