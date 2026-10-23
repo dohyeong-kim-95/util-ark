@@ -41,6 +41,28 @@ export const MAX_DECODED_BYTES = 400 * 1024 * 1024;
 export const decodedBytes = (seconds: number, sampleRate: number, channels: number): number =>
   Math.ceil(seconds * sampleRate * channels * 4);
 
+/**
+ * Checked from the container's own length before the file is read or decoded,
+ * since by the time `decodeAudioData` returns, the memory is already spent.
+ * The channel count is not known yet, so this assumes stereo at 48kHz — the
+ * common case — and the exact check after decoding still catches the rest.
+ */
+export const tooLongToDecode = (seconds: number): boolean =>
+  decodedBytes(seconds, 48000, 2) > MAX_DECODED_BYTES;
+
+/**
+ * Media events are not guaranteed to fire: a decoder can stall mid-seek, and
+ * iOS may never load a video that is not on the page. Racing them against a
+ * timer turns a frozen screen into an error the tool can explain.
+ */
+export function withTimeout<T>(promise: Promise<T>, milliseconds: number, makeError: () => Error): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const expired = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(makeError()), milliseconds);
+  });
+  return Promise.race([promise, expired]).finally(() => clearTimeout(timer));
+}
+
 /** How long a file may be before it cannot be decoded in one piece. */
 export const maxAudioSeconds = (sampleRate: number, channels: number): number =>
   Math.floor(MAX_DECODED_BYTES / (sampleRate * channels * 4));

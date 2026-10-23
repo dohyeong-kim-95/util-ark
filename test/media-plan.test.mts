@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  tooLongToDecode,
+  withTimeout,
   MAX_GIF_FRAMES,
   MediaError,
   decodedBytes,
@@ -172,4 +174,20 @@ test('sizes read the way people write them', () => {
   assert.equal(formatBytes(1536, 'en'), '1.5 KB');
   assert.equal(formatBytes(5 * 1024 * 1024, 'en'), '5 MB');
   assert.equal(formatBytes(1024 ** 3, 'en'), '1 GB');
+});
+
+/* ---------- guards before the expensive work ---------- */
+
+test('a long file is refused from its length, before decoding', () => {
+  assert.equal(tooLongToDecode(60), false);
+  assert.equal(tooLongToDecode(60 * 60), true);
+});
+
+test('a media wait that never settles becomes an error', async () => {
+  const never = new Promise<void>(() => {});
+  await assert.rejects(
+    () => withTimeout(never, 10, () => new MediaError('unreadable', 'timed out')),
+    (error: MediaError) => error.reason === 'unreadable',
+  );
+  assert.equal(await withTimeout(Promise.resolve(7), 1000, () => new Error('late')), 7);
 });

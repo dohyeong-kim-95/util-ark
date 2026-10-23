@@ -129,7 +129,7 @@ const labels = locale === 'ko'
         // count are what the size estimate needs, and they are only knowable
         // once the browser has actually opened the track.
         const { decodeAudio } = await import('../../lib/video-to-mp3');
-        decoded = await decodeAudio(await file.arrayBuffer());
+        decoded = await decodeAudio(file);
         say('');
         paintFacts();
         if (button) button.disabled = false;
