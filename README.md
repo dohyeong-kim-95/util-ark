@@ -30,7 +30,7 @@ Read Aloud has a second exception that does not involve Utilark at all: some bro
 
 ## Local development
 
-Node.js 22.12 or newer is required.
+Node.js 22.18 or newer is required. The unit tests in `test/*.test.mts` import the TypeScript sources directly, which relies on Node stripping types without a flag; that is on by default from 22.18.
 
 ```bash
 npm install
@@ -43,7 +43,7 @@ Before publishing a change:
 npm test
 ```
 
-The test command runs Astro type checks, generates the static site, and verifies the built localized pages for core SEO metadata.
+The test command runs Astro type checks, generates the static site, verifies the built localized pages for core SEO metadata, and then runs the unit tests with `node --test`: the Worker tests in `worker/*.test.mjs` (including Miniflare integration tests against a real SQLite Durable Object) and the tool logic tests in `test/*.test.mts`. Pull requests run the same command in the `Test` workflow before anything reaches `main`.
 
 ## Environment variables
 
