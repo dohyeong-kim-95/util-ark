@@ -115,6 +115,7 @@ const labels = locale === 'ko'
 
 <script>
   import { downloadBlob } from '../../lib/browser-file';
+  import type { PdfDocument } from '../../lib/pdf-render';
   import { PageSelectionError, formatPages, invertPages, normalizeRotation, pageFileName, parsePages } from '../../lib/pdf-pages';
   import { PdfError } from '../../lib/pdf-text';
 
@@ -163,17 +164,26 @@ const labels = locale === 'ko'
       if (saveButton) saveButton.disabled = kept === 0;
     };
 
+    // Bumped on every new pick. A thumbnail loop still drawing the previous
+    // file sees the number change and stops, instead of mixing its pages into
+    // the new list.
+    let loadRun = 0;
+
     picker?.addEventListener('change', async () => {
       file = picker.files?.[0] ?? null;
       if (!file) return;
+      loadRun += 1;
+      const thisRun = loadRun;
       thumbUrls.splice(0).forEach((url) => URL.revokeObjectURL(url));
       if (thumbs) thumbs.replaceChildren();
       say(copy.loading);
 
+      let pdf: PdfDocument | null = null;
       try {
         const data = await file.arrayBuffer();
         const { openPdf } = await import('../../lib/pdf-render');
-        const pdf = await openPdf(data.slice(0));
+        pdf = await openPdf(data.slice(0));
+        if (thisRun !== loadRun) return;
         pageCount = pdf.pageCount;
         selected = new Set(Array.from({ length: pageCount }, (_unused, index) => index + 1));
         if (workspace) workspace.hidden = false;
@@ -185,6 +195,7 @@ const labels = locale === 'ko'
         for (let page = 1; page <= pageCount; page += 1) {
           say(`${copy.thumbs} ${page} / ${pageCount}`);
           const rendered = await pdf.render(page, 0.35, 'image/jpeg', 0.7);
+          if (thisRun !== loadRun) return;
           const url = URL.createObjectURL(rendered.blob);
           thumbUrls.push(url);
           const item = document.createElement('li');
@@ -200,10 +211,13 @@ const labels = locale === 'ko'
           thumbs?.append(item);
           paintSelection();
         }
-        await pdf.close();
         say('');
       } catch (error) {
-        say(messageFor(error));
+        if (thisRun === loadRun) say(messageFor(error));
+      } finally {
+        // Closed however the loop ends, so a failed or abandoned preview does
+        // not leave its pdf.js worker running.
+        if (pdf) await pdf.close();
       }
     });
 
