@@ -26,7 +26,7 @@ const labels = locale === 'ko'
       failed: '이미지를 자르지 못했습니다.',
       webpUnsupported: '이 브라우저는 WebP로 저장할 수 없어 JPG로 내려받았습니다.',
       size: '선택 영역',
-      moveHandle: '선택 영역 조절',
+      moveHandle: '선택 영역 조절 (화살표로 이동, Shift+화살표로 크기 조절)',
       change: '다른 이미지 선택',
       original: '원본 비율',
       snapped: '맞춤',
@@ -50,7 +50,7 @@ const labels = locale === 'ko'
       failed: 'Could not crop the image.',
       webpUnsupported: 'This browser cannot save WebP, so the crop was downloaded as JPG.',
       size: 'Selection',
-      moveHandle: 'Adjust selection',
+      moveHandle: 'Adjust selection (arrow keys move it, Shift+arrow keys resize it)',
       change: 'Choose a different image',
       original: 'original',
       snapped: 'snapped',
@@ -124,6 +124,7 @@ const labels = locale === 'ko'
 </div>
 
 <script>
+  import { decodeImage, downloadBlob } from '../../lib/browser-file';
   import { encodeCanvas, extensionFor } from '../../lib/canvas-encode';
 
   const root = document.querySelector<HTMLElement>('.crop-tool');
@@ -278,27 +279,12 @@ const labels = locale === 'ko'
       paint();
     };
 
-    const decode = async (file: File) => {
-      // Same reasoning as the converter: a phone photo carries an EXIF rotation
-      // tag, and cropping the unrotated pixels would cut the wrong region.
-      if ('createImageBitmap' in window) {
-        return createImageBitmap(file, { imageOrientation: 'from-image' })
-          .catch(() => createImageBitmap(file));
-      }
-      return new Promise<HTMLImageElement>((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = () => reject(new Error('decode'));
-        image.src = URL.createObjectURL(file);
-      });
-    };
-
     input?.addEventListener('change', async () => {
       const file = input.files?.[0];
       if (!file) return;
       try {
         source = file;
-        bitmap = await decode(file);
+        bitmap = await decodeImage(file);
         if (objectUrl) URL.revokeObjectURL(objectUrl);
         // Draw the decoded (already-rotated) pixels so the preview and the crop
         // maths agree; showing the raw file would reintroduce the rotation.
@@ -409,6 +395,45 @@ const labels = locale === 'ko'
       paint();
     });
 
+    // The box is focusable, so it has to be usable from the keyboard too:
+    // arrows move it, Shift+arrows resize it from the bottom-right corner.
+    // A step is 1% of the picture's long edge, so it feels the same on any size.
+    box?.addEventListener('keydown', (event) => {
+      if (!bitmap) return;
+      const arrows: Record<string, [number, number]> = {
+        ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+      };
+      const direction = arrows[event.key];
+      if (!direction) return;
+      event.preventDefault();
+
+      const { w: iw, h: ih } = naturalSize();
+      const step = Math.max(1, Math.round(Math.max(iw, ih) / 100));
+      const dx = direction[0] * step;
+      const dy = direction[1] * step;
+      snappedName = '';
+
+      if (!event.shiftKey) {
+        sel.x += dx;
+        sel.y += dy;
+        clampToImage();
+        paint();
+        return;
+      }
+
+      const r = ratio();
+      let w = Math.max(24, Math.min(sel.w + dx, iw - sel.x));
+      let h = Math.max(24, Math.min(sel.h + dy, ih - sel.y));
+      // A locked ratio follows whichever side the key changed.
+      if (r && dx !== 0) h = w / r;
+      if (r && dy !== 0) w = h * r;
+      if (r && (sel.x + w > iw || sel.y + h > ih)) return;
+      sel.w = w;
+      sel.h = h;
+      clampToImage();
+      paint();
+    });
+
     const endDrag = () => { drag = null; };
     window.addEventListener('pointerup', endDrag);
     window.addEventListener('pointercancel', endDrag);
@@ -433,19 +458,18 @@ const labels = locale === 'ko'
           Math.round(sel.x), Math.round(sel.y), canvas.width, canvas.height,
           0, 0, canvas.width, canvas.height,
         );
-        const type = source.type === 'image/png' ? 'image/png' : source.type;
+        // Keep the photo's own format when a canvas can write it. Anything else
+        // (GIF, AVIF, a file with no type) is saved as PNG rather than asked
+        // for and silently swapped.
+        const writable = ['image/jpeg', 'image/png', 'image/webp'];
+        const type = writable.includes(source.type) ? source.type : 'image/png';
         const encoded = await encodeCanvas(canvas, type, 0.92);
         if (!encoded) throw new Error('encode');
-        const url = URL.createObjectURL(encoded.blob);
-        const link = document.createElement('a');
         const dot = source.name.lastIndexOf('.');
         const base = dot > 0 ? source.name.slice(0, dot) : source.name;
         let extension = dot > 0 ? source.name.slice(dot) : '';
-        if (encoded.fellBack) extension = `.${extensionFor(encoded.type)}`;
-        link.href = url;
-        link.download = `${base}-crop${extension}`;
-        link.click();
-        URL.revokeObjectURL(url);
+        if (encoded.type !== source.type) extension = `.${extensionFor(encoded.type)}`;
+        downloadBlob(encoded.blob, `${base}-crop${extension}`);
         if (encoded.fellBack) {
           if (status) status.textContent = root.dataset.webpUnsupported ?? '';
           return;

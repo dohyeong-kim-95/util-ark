@@ -16,7 +16,7 @@ const indexJson = JSON.stringify(entries).replace(/</gu, '\\u003c');
 
 {/* The field is hidden until the script that powers it is running, so a page
     with a broken bundle shows the grid rather than a box that does nothing. */}
-<div class="tool-search" data-tool-search hidden>
+<div class="tool-search" data-tool-search data-empty={t.searchEmpty} hidden>
   <input
     type="search"
     id="tool-search-input"
@@ -51,11 +51,11 @@ const indexJson = JSON.stringify(entries).replace(/</gu, '\\u003c');
     const locale = document.documentElement.lang === 'ko' ? 'ko' : 'en';
     const copy = locale === 'ko'
       ? {
-          empty: '검색 결과가 없습니다. 도구 이름 말고 영문 주소(png-to-jpg)나 초성(ㅅㄷㄹ)으로도 찾을 수 있습니다.',
+          empty: box.dataset.empty ?? '',
           count: (n: number) => `${n}개를 찾았습니다. Enter를 누르면 첫 번째가 열립니다.`,
         }
       : {
-          empty: 'Nothing matched. Besides the tool name, the address (png-to-jpg) and Korean initials both work.',
+          empty: box.dataset.empty ?? '',
           count: (n: number) => `${n} result${n === 1 ? '' : 's'}. Press Enter to open the first.`,
         };
 

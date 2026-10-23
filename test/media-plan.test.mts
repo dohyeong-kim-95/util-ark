@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  tooLongToDecode,
+  withTimeout,
   MAX_GIF_FRAMES,
   MediaError,
   decodedBytes,
@@ -116,6 +118,19 @@ test('the frame count is capped, so a long clip cannot run away', () => {
   assert.equal(plan.delays.length, MAX_GIF_FRAMES);
 });
 
+test('at the frame cap the range is cut short instead of played back faster', () => {
+  // 120 seconds at 10fps wants 1,200 frames; the cap keeps the first 60 seconds
+  // at real speed rather than squeezing 120 seconds into a 60-second GIF.
+  const plan = planFrames({ ...base, duration: 300, start: 10, end: 130, fps: 10 });
+  assert.equal(plan.times.length, MAX_GIF_FRAMES);
+  assert.equal(plan.end, 70);
+  assert.ok(plan.times[plan.times.length - 1] < 70);
+  const seconds = plan.delays.reduce((sum, delay) => sum + delay, 0) / 100;
+  assert.equal(seconds, 60);
+  const step = plan.times[1] - plan.times[0];
+  assert.ok(Math.abs(step - 0.1) < 1e-9);
+});
+
 /* ---------- GIF timing ---------- */
 
 test('a frame rate that divides evenly gets an exact delay', () => {
@@ -159,4 +174,20 @@ test('sizes read the way people write them', () => {
   assert.equal(formatBytes(1536, 'en'), '1.5 KB');
   assert.equal(formatBytes(5 * 1024 * 1024, 'en'), '5 MB');
   assert.equal(formatBytes(1024 ** 3, 'en'), '1 GB');
+});
+
+/* ---------- guards before the expensive work ---------- */
+
+test('a long file is refused from its length, before decoding', () => {
+  assert.equal(tooLongToDecode(60), false);
+  assert.equal(tooLongToDecode(60 * 60), true);
+});
+
+test('a media wait that never settles becomes an error', async () => {
+  const never = new Promise<void>(() => {});
+  await assert.rejects(
+    () => withTimeout(never, 10, () => new MediaError('unreadable', 'timed out')),
+    (error: MediaError) => error.reason === 'unreadable',
+  );
+  assert.equal(await withTimeout(Promise.resolve(7), 1000, () => new Error('late')), 7);
 });

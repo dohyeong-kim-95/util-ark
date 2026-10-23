@@ -7,11 +7,6 @@ export const isLocale = (value: string | undefined): value is Locale =>
 
 export const otherLocale = (locale: Locale): Locale => (locale === 'en' ? 'ko' : 'en');
 
-export const localeNames: Record<Locale, string> = {
-  en: 'English',
-  ko: '한국어',
-};
-
 export const ui = {
   en: {
     brandTagline: 'Small tools. Clear results.',
@@ -27,7 +22,6 @@ export const ui = {
       title: 'Useful tools without the upload anxiety.',
       description:
         'Convert images, count words, and work with PDFs directly in your browser. No account required.',
-      primary: 'Browse tools',
       privacyTitle: 'Your files stay on your device',
       privacyBody:
         'The tools in this first release process your files and text locally in the browser. Utilark does not upload or store them.',
@@ -79,7 +73,6 @@ export const ui = {
       title: '업로드 걱정 없이 쓰는 일상 도구.',
       description:
         '이미지 변환, 글자수 계산, PDF 작업을 브라우저에서 바로 처리하세요. 회원가입이 필요 없습니다.',
-      primary: '도구 둘러보기',
       privacyTitle: '파일은 사용자의 기기에만 머뭅니다',
       privacyBody:
         '첫 공개판의 도구는 파일과 글을 브라우저 안에서 처리합니다. Utilark 서버로 업로드하거나 저장하지 않습니다.',

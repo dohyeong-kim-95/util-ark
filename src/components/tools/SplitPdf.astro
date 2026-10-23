@@ -17,6 +17,7 @@ const labels = locale === 'ko'
       modeDrop: '고른 쪽 지우기',
       modeEach: '고른 쪽을 한 장씩 따로 (ZIP)',
       rotate: '고른 쪽 돌리기',
+      rotateRemaining: '남는 쪽 돌리기',
       rotate0: '그대로',
       rotate90: '오른쪽 90°',
       rotate180: '180°',
@@ -45,6 +46,7 @@ const labels = locale === 'ko'
       modeDrop: 'Delete these pages',
       modeEach: 'Save each of these separately (ZIP)',
       rotate: 'Rotate these pages',
+      rotateRemaining: 'Rotate the remaining pages',
       rotate0: 'Leave as is',
       rotate90: 'Right 90°',
       rotate180: '180°',
@@ -87,7 +89,7 @@ const labels = locale === 'ko'
         </select>
       </label>
       <label>
-        <span>{labels.rotate}</span>
+        <span data-rotate-label>{labels.rotate}</span>
         <select data-option="rotate">
           <option value="0">{labels.rotate0}</option>
           <option value="90">{labels.rotate90}</option>
@@ -114,6 +116,8 @@ const labels = locale === 'ko'
 </div>
 
 <script>
+  import { downloadBlob } from '../../lib/browser-file';
+  import type { PdfDocument } from '../../lib/pdf-render';
   import { PageSelectionError, formatPages, invertPages, normalizeRotation, pageFileName, parsePages } from '../../lib/pdf-pages';
   import { PdfError } from '../../lib/pdf-text';
 
@@ -162,17 +166,26 @@ const labels = locale === 'ko'
       if (saveButton) saveButton.disabled = kept === 0;
     };
 
+    // Bumped on every new pick. A thumbnail loop still drawing the previous
+    // file sees the number change and stops, instead of mixing its pages into
+    // the new list.
+    let loadRun = 0;
+
     picker?.addEventListener('change', async () => {
       file = picker.files?.[0] ?? null;
       if (!file) return;
+      loadRun += 1;
+      const thisRun = loadRun;
       thumbUrls.splice(0).forEach((url) => URL.revokeObjectURL(url));
       if (thumbs) thumbs.replaceChildren();
       say(copy.loading);
 
+      let pdf: PdfDocument | null = null;
       try {
         const data = await file.arrayBuffer();
         const { openPdf } = await import('../../lib/pdf-render');
-        const pdf = await openPdf(data.slice(0));
+        pdf = await openPdf(data.slice(0));
+        if (thisRun !== loadRun) return;
         pageCount = pdf.pageCount;
         selected = new Set(Array.from({ length: pageCount }, (_unused, index) => index + 1));
         if (workspace) workspace.hidden = false;
@@ -184,6 +197,7 @@ const labels = locale === 'ko'
         for (let page = 1; page <= pageCount; page += 1) {
           say(`${copy.thumbs} ${page} / ${pageCount}`);
           const rendered = await pdf.render(page, 0.35, 'image/jpeg', 0.7);
+          if (thisRun !== loadRun) return;
           const url = URL.createObjectURL(rendered.blob);
           thumbUrls.push(url);
           const item = document.createElement('li');
@@ -199,10 +213,13 @@ const labels = locale === 'ko'
           thumbs?.append(item);
           paintSelection();
         }
-        await pdf.close();
         say('');
       } catch (error) {
-        say(messageFor(error));
+        if (thisRun === loadRun) say(messageFor(error));
+      } finally {
+        // Closed however the loop ends, so a failed or abandoned preview does
+        // not leave its pdf.js worker running.
+        if (pdf) await pdf.close();
       }
     });
 
@@ -218,7 +235,13 @@ const labels = locale === 'ko'
       paintSelection();
     });
 
-    modeSelect?.addEventListener('change', paintSelection);
+    // In delete mode the rotation applies to the pages that stay, not to the
+    // ones picked for deletion, so the label says which.
+    const rotateLabel = root.querySelector<HTMLElement>('[data-rotate-label]');
+    modeSelect?.addEventListener('change', () => {
+      if (rotateLabel) rotateLabel.textContent = modeSelect.value === 'drop' ? copy.rotateRemaining : copy.rotate;
+      paintSelection();
+    });
 
     root.querySelector('[data-action="all"]')?.addEventListener('click', () => {
       selected = new Set(Array.from({ length: pageCount }, (_unused, index) => index + 1));
@@ -279,12 +302,7 @@ const labels = locale === 'ko'
           name = `${stem}-${mode === 'drop' ? 'trimmed' : 'pages'}.pdf`;
         }
 
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = name;
-        anchor.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        downloadBlob(blob, name);
         say(copy.done);
       } catch (error) {
         say(messageFor(error));

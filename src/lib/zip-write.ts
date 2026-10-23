@@ -45,7 +45,10 @@ export type ZipEntry = { name: string; bytes: Uint8Array };
  */
 function checkName(name: string): void {
   if (!name || name.length > 255) throw new Error(`Unusable entry name: "${name}"`);
-  if (name.startsWith('/') || name.includes('..') || name.includes('\\')) {
+  // `..` only climbs out as a whole path segment. A substring test would also
+  // refuse ordinary names like `견적서...pdf` or `v1..2.pdf`.
+  const climbsOut = name.split('/').some((segment) => segment === '..');
+  if (name.startsWith('/') || climbsOut || name.includes('\\')) {
     throw new Error(`Unsafe entry name: "${name}"`);
   }
 }

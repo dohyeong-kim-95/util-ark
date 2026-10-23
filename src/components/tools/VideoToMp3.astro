@@ -75,6 +75,7 @@ const labels = locale === 'ko'
 </div>
 
 <script>
+  import { downloadBlob } from '../../lib/browser-file';
   import { MediaError, formatBytes, mp3Bytes, maxAudioSeconds, type Mp3Bitrate } from '../../lib/media-plan';
 
   const root = document.querySelector<HTMLElement>('.media-tool');
@@ -129,7 +130,7 @@ const labels = locale === 'ko'
         // count are what the size estimate needs, and they are only knowable
         // once the browser has actually opened the track.
         const { decodeAudio } = await import('../../lib/video-to-mp3');
-        decoded = await decodeAudio(await file.arrayBuffer());
+        decoded = await decodeAudio(file);
         say('');
         paintFacts();
         if (button) button.disabled = false;
@@ -149,12 +150,7 @@ const labels = locale === 'ko'
         const blob = await encodeMp3(decoded, bitrate, (fraction) => {
           say(`${copy.encoding} ${Math.round(fraction * 100)}%`);
         });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = `${file.name.replace(/\.[^.]+$/u, '')}.mp3`;
-        anchor.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        downloadBlob(blob, `${file.name.replace(/\.[^.]+$/u, '')}.mp3`);
         say(copy.done);
       } catch (error) {
         say(messageFor(error));

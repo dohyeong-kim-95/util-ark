@@ -129,6 +129,11 @@ const ordinal = locale === 'ko'
     let phase: 'edit' | 'play' = 'edit';
     const results = new Map<number, number>();
     let running = 0;
+    // Bumped whenever the ladder is rebuilt or put back into editing. Timers and
+    // animations started for an older ladder check it and stop, so a
+    // half-finished "reveal all" cannot draw onto the next ladder.
+    let ladderRun = 0;
+    let revealTimers: number[] = [];
     let width = 0;
     let height = 0;
 
@@ -179,6 +184,14 @@ const ordinal = locale === 'ko'
         input.style.setProperty('--tone', color(index));
         input.addEventListener('click', () => {
           if (phase === 'play') trace(index);
+        });
+        // The name cell is the only way to trace one line, so it answers the
+        // keyboard too.
+        input.addEventListener('keydown', (event) => {
+          if (phase !== 'play') return;
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          trace(index);
         });
       }
       input.addEventListener('input', () => {
@@ -265,11 +278,13 @@ const ordinal = locale === 'ko'
       path.style.strokeDasharray = String(length);
       path.style.strokeDashoffset = String(length);
       running += 1;
+      const run = ladderRun;
       let settled = false;
       const finish = () => {
         if (settled) return;
         settled = true;
         running -= 1;
+        if (run !== ladderRun) return;
         dot(who, end);
         markPrize(who, end);
         renderResults();
@@ -304,6 +319,7 @@ const ordinal = locale === 'ko'
     };
 
     const trace = (who: number) => {
+      if (phase !== 'play') return;
       if (results.has(who)) return;
       results.set(who, walk(who).end);
       drawTrace(who, true);
@@ -342,6 +358,9 @@ const ordinal = locale === 'ko'
     };
 
     const setPhase = (next: 'edit' | 'play') => {
+      ladderRun += 1;
+      revealTimers.forEach((timer) => window.clearTimeout(timer));
+      revealTimers = [];
       phase = next;
       if (phase === 'edit') {
         rungs = new Set();
@@ -384,7 +403,9 @@ const ordinal = locale === 'ko'
     find<HTMLButtonElement>('[data-action="reveal"]')?.addEventListener('click', () => {
       const rest: number[] = [];
       for (let i = 0; i < people; i++) if (!results.has(i)) rest.push(i);
-      rest.forEach((index, order) => window.setTimeout(() => trace(index), order * 140));
+      rest.forEach((index, order) => {
+        revealTimers.push(window.setTimeout(() => trace(index), order * 140));
+      });
     });
 
     // 회전이나 창 크기 변경으로 폭이 바뀌면 좌표를 다시 잡는다.

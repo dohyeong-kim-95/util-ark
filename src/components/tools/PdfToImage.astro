@@ -92,6 +92,7 @@ const labels = locale === 'ko'
 </div>
 
 <script>
+  import { downloadBlob } from '../../lib/browser-file';
   import { PageSelectionError, pageFileName, parsePages } from '../../lib/pdf-pages';
   import { PdfError } from '../../lib/pdf-text';
 
@@ -160,36 +161,32 @@ const labels = locale === 'ko'
         const stem = file.name.replace(/\.[^.]+$/u, '') || 'utilark';
 
         try {
-          const rendered: Array<{ name: string; bytes: Uint8Array; blob: Blob }> = [];
+          // A single page is the file itself. Wrapping one image in a ZIP makes
+          // the visitor unpack an archive to reach what they asked for.
+          if (wanted.length === 1) {
+            say(`${copy.working} 1 / 1`);
+            const image = await pdf.render(wanted[0], scaleForDpi(dpi), type, asJpeg ? 0.9 : 1);
+            downloadBlob(image.blob, pageFileName(file.name, wanted[0], pageCount, extension));
+            say(copy.done);
+            return;
+          }
+
+          // Several pages keep only their bytes for the ZIP. Holding each blob
+          // as well doubled the memory for a long document at print resolution.
+          const rendered: Array<{ name: string; bytes: Uint8Array }> = [];
           for (const page of wanted) {
             say(`${copy.working} ${rendered.length + 1} / ${wanted.length}`);
             const image = await pdf.render(page, scaleForDpi(dpi), type, asJpeg ? 0.9 : 1);
             rendered.push({
               name: pageFileName(file.name, page, pageCount, extension),
               bytes: new Uint8Array(await image.blob.arrayBuffer()),
-              blob: image.blob,
             });
           }
 
-          // A single page is the file itself. Wrapping one image in a ZIP makes
-          // the visitor unpack an archive to reach what they asked for.
-          let blob: Blob;
-          let name: string;
-          if (rendered.length === 1) {
-            blob = rendered[0].blob;
-            name = rendered[0].name;
-          } else {
-            const { writeZip } = await import('../../lib/zip-write');
-            blob = writeZip(rendered.map(({ name: entry, bytes }) => ({ name: entry, bytes })));
-            name = `${stem}-${extension}.zip`;
-          }
-
-          const url = URL.createObjectURL(blob);
-          const anchor = document.createElement('a');
-          anchor.href = url;
-          anchor.download = name;
-          anchor.click();
-          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+          const { writeZip } = await import('../../lib/zip-write');
+          const blob = writeZip(rendered);
+          const name = `${stem}-${extension}.zip`;
+          downloadBlob(blob, name);
           say(copy.done);
         } finally {
           await pdf.close();

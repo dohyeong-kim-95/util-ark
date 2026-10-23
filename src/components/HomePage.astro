@@ -13,8 +13,8 @@ interface Props {
 const { locale } = Astro.props;
 const t = ui[locale];
 const description = locale === 'ko'
-  ? '파일을 업로드하지 않는 무료 이미지 변환, 글자수 계산, PDF 합치기 도구를 한국어와 영어로 제공합니다.'
-  : 'Free image conversion, word counting, and PDF merging tools that process your files locally in the browser.';
+  ? '이미지 변환·압축·자르기, PDF 합치기·분할·이미지 변환, MP4→MP3·GIF, 글자수 세기, 읽어주기까지 파일을 업로드하지 않고 브라우저에서 처리하는 무료 도구입니다.'
+  : 'Free tools that run in your browser with no uploads: convert, compress, and crop images; merge, split, and render PDFs; MP4 to MP3 or GIF; word count; read aloud.';
 const schema = {
   '@context': 'https://schema.org',
   '@type': 'CollectionPage',

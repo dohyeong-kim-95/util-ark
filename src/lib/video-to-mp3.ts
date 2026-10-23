@@ -4,6 +4,8 @@ import {
   type Mp3Bitrate,
   decodedBytes,
   toInt16,
+  tooLongToDecode,
+  withTimeout,
 } from './media-plan';
 
 /**
@@ -21,24 +23,77 @@ export type Mp3Progress = (fraction: number) => void;
 export type AudioFacts = { seconds: number; sampleRate: number; channels: number };
 
 /**
- * Decodes the whole track. Held in one piece because `decodeAudioData` takes a
- * complete file and returns a complete buffer — the limit in `media-plan.ts` is
- * checked first so the tab is not asked for more memory than it has.
+ * Reads the length from the container's header through a media element, which
+ * costs a few kilobytes instead of the whole file. Resolves NaN when the
+ * browser cannot tell or takes too long; the decode then goes ahead and the
+ * exact check after it still applies.
  */
-export async function decodeAudio(data: ArrayBuffer): Promise<AudioBuffer> {
+function readDuration(file: File): Promise<number> {
+  const url = URL.createObjectURL(file);
+  const media = document.createElement('video');
+  media.preload = 'metadata';
+  media.muted = true;
+  media.src = url;
+
+  const loaded = new Promise<number>((resolve) => {
+    media.addEventListener('loadedmetadata', () => resolve(media.duration), { once: true });
+    media.addEventListener('error', () => resolve(Number.NaN), { once: true });
+  });
+  return withTimeout(loaded, 5000, () => new Error('metadata timeout'))
+    .catch(() => Number.NaN)
+    .finally(() => {
+      media.removeAttribute('src');
+      media.load();
+      URL.revokeObjectURL(url);
+    });
+}
+
+/**
+ * A 5.1 film track keeps its dialogue in the centre channel. Taking only the
+ * first two channels (front left and right) would drop most of the speech, so
+ * wider tracks are rendered once through a two-channel offline context, which
+ * applies the standard Web Audio speaker downmix.
+ */
+async function downmixToStereo(buffer: AudioBuffer): Promise<AudioBuffer> {
+  if (buffer.numberOfChannels <= 2) return buffer;
+  const Offline = window.OfflineAudioContext
+    ?? (window as { webkitOfflineAudioContext?: typeof OfflineAudioContext }).webkitOfflineAudioContext;
+  if (!Offline) return buffer;
+
+  const offline = new Offline(2, buffer.length, buffer.sampleRate);
+  const source = offline.createBufferSource();
+  source.buffer = buffer;
+  source.connect(offline.destination);
+  source.start();
+  return offline.startRendering();
+}
+
+/**
+ * Decodes the whole track. Held in one piece because `decodeAudioData` takes a
+ * complete file and returns a complete buffer. The length is checked from the
+ * file's header first, so a file that is far too long is refused before the
+ * tab is asked for more memory than it has; the exact check after decoding
+ * catches what the header check could not.
+ */
+export async function decodeAudio(file: File): Promise<AudioBuffer> {
   const Context = window.AudioContext ?? (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Context) throw new MediaError('unreadable', 'This browser has no Web Audio support.');
 
+  const headerSeconds = await readDuration(file);
+  if (Number.isFinite(headerSeconds) && tooLongToDecode(headerSeconds)) {
+    throw new MediaError('too-long', 'The audio is too long to decode in one piece.');
+  }
+
   const context = new Context();
   try {
-    // `slice()` because decoding detaches the buffer, and the caller may still
-    // want the file for a second attempt at a different bitrate.
-    const buffer = await context.decodeAudioData(data.slice(0));
+    // Read here and handed straight to the decoder, which detaches it, so the
+    // file is held once rather than copied.
+    const buffer = await context.decodeAudioData(await file.arrayBuffer());
     if (!buffer.length) throw new MediaError('no-audio', 'The file has no audio track.');
     if (decodedBytes(buffer.duration, buffer.sampleRate, buffer.numberOfChannels) > MAX_DECODED_BYTES) {
       throw new MediaError('too-long', 'The audio is too long to decode in one piece.');
     }
-    return buffer;
+    return await downmixToStereo(buffer);
   } catch (error) {
     if (error instanceof MediaError) throw error;
     // Every browser words this differently, and none of them distinguish "no
@@ -64,8 +119,8 @@ export async function encodeMp3(
 ): Promise<Blob> {
   const { Mp3Encoder } = await import('@breezystack/lamejs');
 
-  // LAME handles mono and stereo. Anything wider is folded down to stereo,
-  // because a 5.1 film track has no MP3 representation worth guessing at.
+  // LAME handles mono and stereo. `decodeAudio` has already folded wider
+  // tracks down to stereo; the cap here only guards a buffer from elsewhere.
   const channels = Math.min(2, buffer.numberOfChannels);
   const encoder = new Mp3Encoder(channels, buffer.sampleRate, bitrate);
 

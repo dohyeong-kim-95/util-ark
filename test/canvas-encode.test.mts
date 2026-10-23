@@ -45,3 +45,11 @@ test('PNG and JPEG requests are encoded once', async () => {
   assert.equal((await encodeCanvas(canvas, 'image/jpeg', 0.9))?.type, 'image/jpeg');
   assert.deepEqual(requested, ['image/png', 'image/jpeg']);
 });
+
+test('only a WebP request falls back to JPEG; other declined types report what was written', async () => {
+  const { canvas, requested } = fakeCanvas(['image/png', 'image/jpeg']);
+  const result = await encodeCanvas(canvas, 'image/avif', 0.8);
+  assert.deepEqual(requested, ['image/avif']);
+  assert.equal(result?.type, 'image/png');
+  assert.equal(result?.fellBack, false);
+});

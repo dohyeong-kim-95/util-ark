@@ -1,4 +1,4 @@
-import { MediaError, type FramePlan } from './media-plan';
+import { MediaError, type FramePlan, withTimeout } from './media-plan';
 
 /**
  * Turns part of a video into an animated GIF, in the browser.
@@ -45,6 +45,9 @@ export function inspectVideo(file: File): Promise<{ facts: VideoFacts; video: HT
   });
 }
 
+/** Generous for one seek even on a slow phone; a stalled decoder never answers. */
+export const SEEK_TIMEOUT_MS = 10_000;
+
 /**
  * Seeking is asynchronous and, on some browsers, approximate: asking for 1.234s
  * lands on the nearest frame the decoder can start from. That is fine for a GIF,
@@ -52,10 +55,11 @@ export function inspectVideo(file: File): Promise<{ facts: VideoFacts; video: HT
  * back duplicated.
  */
 function seek(video: HTMLVideoElement, time: number): Promise<void> {
-  return new Promise((resolve, reject) => {
+  let cleanup = () => {};
+  const seeked = new Promise<void>((resolve, reject) => {
     const done = () => { cleanup(); resolve(); };
     const failed = () => { cleanup(); reject(new MediaError('unreadable', 'Seeking failed.')); };
-    const cleanup = () => {
+    cleanup = () => {
       video.removeEventListener('seeked', done);
       video.removeEventListener('error', failed);
     };
@@ -63,6 +67,10 @@ function seek(video: HTMLVideoElement, time: number): Promise<void> {
     video.addEventListener('error', failed, { once: true });
     video.currentTime = time;
   });
+  // A decoder that stalls mid-seek never fires either event; without a limit
+  // the tool would sit with its button disabled and no message.
+  return withTimeout(seeked, SEEK_TIMEOUT_MS, () => new MediaError('unreadable', 'Seeking stalled.'))
+    .finally(cleanup);
 }
 
 /**

@@ -5,9 +5,9 @@
  * `canvas.toBlob` does not fail on a type it cannot write — the spec says to
  * fall back to PNG. Safari (and so every browser on iOS) cannot write WebP, so
  * without this check a "WebP" download is really a PNG with the wrong name, and
- * a quality setting is silently ignored. When that happens the canvas is
- * encoded again as JPEG, which every browser writes, and `fellBack` tells the
- * caller to say so.
+ * a quality setting is silently ignored. When a WebP request comes back as
+ * something else, the canvas is encoded again as JPEG, which every browser
+ * writes, and `fellBack` tells the caller to say so.
  */
 
 export type EncodedImage = { blob: Blob; type: string; fellBack: boolean };
@@ -21,7 +21,11 @@ export async function encodeCanvas(canvas: EncodableCanvas, mime: string, qualit
   const blob = await toBlob(canvas, mime, quality);
   if (!blob) return null;
   if (blob.type === mime) return { blob, type: mime, fellBack: false };
-  if (mime === 'image/jpeg') return { blob, type: blob.type, fellBack: false };
+  // Only a WebP request falls back to JPEG, since only WebP has a "this browser
+  // cannot write it" notice. Any other type the browser declined (AVIF, GIF, an
+  // empty type) is reported as what was really written, so the caller can name
+  // the file after it.
+  if (mime !== 'image/webp') return { blob, type: blob.type, fellBack: false };
 
   // JPEG has no transparency, so transparent pixels would come out black. Paint
   // white behind what is already drawn before encoding again.

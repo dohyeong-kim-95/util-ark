@@ -71,7 +71,11 @@ const schemas = [
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl.href} />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content={new URL('/og-image.png', canonicalUrl).href} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Utilark" />
+    <meta name="twitter:card" content="summary_large_image" />
 
     {schemas.map((item) => (
       <script is:inline type="application/ld+json" set:html={JSON.stringify(item)} />
@@ -154,11 +158,17 @@ const schemas = [
     </footer>
 
     <script>
+      import { wireDropZones } from '../lib/browser-file';
+
+      wireDropZones();
+
       document.querySelectorAll<HTMLAnchorElement>('[data-language]').forEach((link) => {
         link.addEventListener('click', () => {
           const language = link.dataset.language;
           if (!language) return;
-          localStorage.setItem('utilark-language', language);
+          // Storage can be blocked (private modes, site-data settings); the
+          // cookie below still carries the choice, so this must not throw.
+          try { localStorage.setItem('utilark-language', language); } catch { /* storage blocked */ }
           const secure = location.protocol === 'https:' ? '; Secure' : '';
           // Scoped to the whole domain so the short tool addresses open in the chosen language.
           const scope = /(^|\.)utilark\.app$/.test(location.hostname) ? '; Domain=utilark.app' : '';

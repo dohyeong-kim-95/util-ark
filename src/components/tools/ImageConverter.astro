@@ -18,28 +18,30 @@ const sourceHint = from ? from.toUpperCase() : 'JPG, PNG, WebP';
 const labels = locale === 'ko'
   ? {
       pick: '이미지 선택',
-      hint: `${sourceHint} · 여러 장 선택 가능`,
+      hint: `${sourceHint} · 여러 장 선택 가능 (두 장 이상이면 ZIP 하나로 내려받기)`,
       format: '저장 형식',
       quality: '화질',
       convert: '변환하고 내려받기',
       empty: '먼저 이미지를 선택해주세요.',
       working: '변환 중…',
       done: '개 파일을 변환했습니다.',
-      failed: '변환하지 못한 파일이 있습니다.',
-      webpUnsupported: '이 브라우저는 WebP로 저장할 수 없어 JPG로 저장했습니다.',
+      failed: '변환하지 못했습니다.',
+      failedFiles: '변환하지 못한 파일:',
+      webpUnsupported: '이 브라우저는 WebP로 저장할 수 없어 JPG로 저장합니다.',
       remove: '삭제',
     }
   : {
       pick: 'Choose images',
-      hint: `${sourceHint} · multiple files supported`,
+      hint: `${sourceHint} · multiple files supported (two or more arrive as one ZIP)`,
       format: 'Output format',
       quality: 'Quality',
       convert: 'Convert & download',
       empty: 'Choose at least one image first.',
       working: 'Converting…',
       done: ' files converted.',
-      failed: 'Some files could not be converted.',
-      webpUnsupported: 'This browser cannot save WebP, so the files were saved as JPG.',
+      failed: 'The images could not be converted.',
+      failedFiles: 'Could not convert:',
+      webpUnsupported: 'This browser cannot save WebP, so the files are saved as JPG.',
       remove: 'Remove',
     };
 ---
@@ -50,6 +52,7 @@ const labels = locale === 'ko'
   data-working={labels.working}
   data-done={labels.done}
   data-failed={labels.failed}
+  data-failed-files={labels.failedFiles}
   data-webp-unsupported={labels.webpUnsupported}
   data-remove={labels.remove}
 >
@@ -85,7 +88,8 @@ const labels = locale === 'ko'
 </div>
 
 <script>
-  import { encodeCanvas, extensionFor } from '../../lib/canvas-encode';
+  import { closeImage, decodeImage, downloadBlob } from '../../lib/browser-file';
+  import { canEncodeWebp, encodeCanvas, extensionFor } from '../../lib/canvas-encode';
 
   const root = document.querySelector<HTMLElement>('.converter-tool');
   if (root) {
@@ -96,6 +100,16 @@ const labels = locale === 'ko'
     const format = root.querySelector<HTMLSelectElement>('[data-option="format"]');
     const status = root.querySelector<HTMLElement>('.action-status');
     let files: File[] = [];
+
+    // Safari and every iOS browser cannot write WebP. Say so before anything
+    // is picked, and switch to JPG, instead of revealing it after the download.
+    const webpWritable = canEncodeWebp();
+    if (format && !webpWritable) {
+      if (format.value === 'image/webp') format.value = 'image/jpeg';
+      const webpOption = format.querySelector<HTMLOptionElement>('option[value="image/webp"]');
+      if (webpOption) webpOption.disabled = true;
+      if (status) status.textContent = root.dataset.webpUnsupported ?? '';
+    }
 
     const formatBytes = (bytes: number) => {
       if (bytes < 1024) return `${bytes} B`;
@@ -129,31 +143,15 @@ const labels = locale === 'ko'
     };
     input?.addEventListener('change', () => {
       files = Array.from(input.files ?? []);
-      if (status) status.textContent = '';
+      if (status) status.textContent = webpWritable ? '' : root.dataset.webpUnsupported ?? '';
       render();
     });
     quality?.addEventListener('input', () => {
       if (qualityOutput) qualityOutput.value = `${quality.value}%`;
     });
 
-    const decode = async (file: File) => {
-      // Phone photos store landscape pixels plus an EXIF rotation tag. Whether
-      // createImageBitmap applies that tag depends on the browser's default, so
-      // ask for it explicitly — otherwise a portrait photo converts on its side.
-      if ('createImageBitmap' in window) {
-        return createImageBitmap(file, { imageOrientation: 'from-image' })
-          .catch(() => createImageBitmap(file));
-      }
-      return new Promise<HTMLImageElement>((resolve, reject) => {
-        const image = new Image();
-        const url = URL.createObjectURL(file);
-        image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
-        image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
-        image.src = url;
-      });
-    };
     const convertFile = async (file: File, mime: string, outputQuality: number) => {
-      const image = await decode(file);
+      const image = await decodeImage(file);
       const canvas = document.createElement('canvas');
       canvas.width = image.width;
       canvas.height = image.height;
@@ -164,18 +162,10 @@ const labels = locale === 'ko'
         context.fillRect(0, 0, canvas.width, canvas.height);
       }
       context.drawImage(image, 0, 0);
-      if ('close' in image && typeof image.close === 'function') image.close();
+      closeImage(image);
       const encoded = await encodeCanvas(canvas, mime, outputQuality);
       if (!encoded) throw new Error('encode');
       return encoded;
-    };
-    const download = (blob: Blob, filename: string) => {
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = filename;
-      anchor.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
     root.querySelector('[data-action="convert"]')?.addEventListener('click', async () => {
       if (!files.length) {
@@ -186,18 +176,52 @@ const labels = locale === 'ko'
       if (button) button.disabled = true;
       if (status) status.textContent = root.dataset.working ?? '';
       const mime = format?.value ?? 'image/webp';
-      let converted = 0;
+      const outputQuality = Number(quality?.value ?? 85) / 100;
+      const converted: Array<{ name: string; blob: Blob }> = [];
+      const failedNames: string[] = [];
+      const usedNames = new Set<string>();
       let fellBack = false;
       try {
+        // One file failing no longer stops the rest; it is named at the end.
         for (const file of files) {
-          const encoded = await convertFile(file, mime, Number(quality?.value ?? 85) / 100);
-          if (encoded.fellBack) fellBack = true;
-          const base = file.name.replace(/\.[^.]+$/u, '') || 'image';
-          download(encoded.blob, `${base}.${extensionFor(encoded.type)}`);
-          converted += 1;
+          try {
+            const encoded = await convertFile(file, mime, outputQuality);
+            if (encoded.fellBack) fellBack = true;
+            const base = file.name.replace(/\.[^.]+$/u, '') || 'image';
+            const extension = extensionFor(encoded.type);
+            // a.png and a.jpg both become a.webp; inside one ZIP they need
+            // different names or the second replaces the first.
+            let name = `${base}.${extension}`;
+            let copyNumber = 2;
+            while (usedNames.has(name)) {
+              name = `${base}-${copyNumber}.${extension}`;
+              copyNumber += 1;
+            }
+            usedNames.add(name);
+            converted.push({ name, blob: encoded.blob });
+          } catch {
+            failedNames.push(file.name);
+          }
         }
-        const notice = fellBack ? ` ${root.dataset.webpUnsupported ?? ''}` : '';
-        if (status) status.textContent = `${converted}${root.dataset.done ?? ''}${notice}`;
+
+        // Several downloads in a row trip Chrome's "multiple files" prompt and
+        // are blocked on iOS once the tap is over, so two or more go out as
+        // one ZIP, the same way PDF to image does it.
+        if (converted.length === 1) downloadBlob(converted[0].blob, converted[0].name);
+        if (converted.length > 1) {
+          const { writeZip } = await import('../../lib/zip-write');
+          const entries = [];
+          for (const item of converted) {
+            entries.push({ name: item.name, bytes: new Uint8Array(await item.blob.arrayBuffer()) });
+          }
+          downloadBlob(writeZip(entries), 'utilark-images.zip');
+        }
+
+        const messages: string[] = [];
+        if (converted.length) messages.push(`${converted.length}${root.dataset.done ?? ''}`);
+        if (failedNames.length) messages.push(`${root.dataset.failedFiles ?? ''} ${failedNames.join(', ')}`);
+        if (fellBack) messages.push(root.dataset.webpUnsupported ?? '');
+        if (status) status.textContent = messages.join(' ');
       } catch {
         if (status) status.textContent = root.dataset.failed ?? '';
       } finally {

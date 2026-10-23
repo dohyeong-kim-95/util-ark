@@ -85,7 +85,10 @@ export function makeLadder(people: number, random: Random = Math.random): Ladder
   for (let k = 0; k < swaps.length; k++) rungs.add(`${rowOfLevel[levelOf[k]]}:${swaps[k]}`);
 
   // Decoration: pairs of rungs on one gap with nothing touching that gap in
-  // between, so the pair cancels out. Tries each gap first so none is empty.
+  // between, so the pair cancels out. Each gap gets the first try, so most
+  // gaps get a pair, but a try is skipped when its rows are taken, and a few
+  // ladders (about 5-15%) still end up with an empty gap. That is cosmetic:
+  // the outcome comes from the swaps above, not from these pairs.
   const attempts = people * 4;
   for (let attempt = 0; attempt < attempts; attempt++) {
     const column = attempt < people - 1 ? attempt : randomInt(people - 1, random);

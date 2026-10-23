@@ -28,7 +28,7 @@ const labels = locale === 'ko'
       errCodec: '이 브라우저가 이 동영상을 열지 못합니다. Chrome·Edge·Safari에서 열어 보세요. 일부 리눅스용 브라우저는 MP4 영상(H.264) 코덱이 빠져 있습니다.',
       errEmpty: '구간이 비어 있습니다. 끝을 시작보다 뒤로 정하세요.',
       errFailed: '변환하지 못했습니다.',
-      capped: '최대 {n}장까지만 담습니다.',
+      capped: '최대 {n}장까지만 담으므로 고른 구간의 앞 {s}초만 GIF로 만듭니다.',
     }
   : {
       pick: 'Choose a video',
@@ -51,7 +51,7 @@ const labels = locale === 'ko'
       errCodec: 'This browser cannot open this video. Try Chrome, Edge or Safari — some Linux builds ship without the MP4 video (H.264) codec.',
       errEmpty: 'That range is empty. Set the end after the start.',
       errFailed: 'The conversion failed.',
-      capped: 'At most {n} frames are included.',
+      capped: 'At most {n} frames fit, so only the first {s}s of the range become the GIF.',
     };
 ---
 
@@ -109,7 +109,8 @@ const labels = locale === 'ko'
 </div>
 
 <script>
-  import { MAX_GIF_FRAMES, MediaError, formatBytes, gifBytes, planFrames } from '../../lib/media-plan';
+  import { downloadBlob } from '../../lib/browser-file';
+  import { MAX_GIF_FRAMES, MediaError, formatBytes, gifBytes, planFrames, withTimeout } from '../../lib/media-plan';
   import type { VideoFacts } from '../../lib/video-to-gif';
 
   const root = document.querySelector<HTMLElement>('.gif-tool');
@@ -162,8 +163,11 @@ const labels = locale === 'ko'
         return;
       }
       const seconds = plan.delays.reduce((sum, delay) => sum + delay, 0) / 100;
+      const cappedText = copy.capped
+        .replace('{n}', String(MAX_GIF_FRAMES))
+        .replace('{s}', seconds.toFixed(1));
       const capped = plan.times.length >= MAX_GIF_FRAMES
-        ? `<div class="media-note"><dt></dt><dd>${copy.capped.replace('{n}', String(MAX_GIF_FRAMES))}</dd></div>`
+        ? `<div class="media-note"><dt></dt><dd>${cappedText}</dd></div>`
         : '';
       facts.innerHTML =
         row(copy.length, `${seconds.toFixed(1)}s`) +
@@ -232,20 +236,19 @@ const labels = locale === 'ko'
       worker.src = sourceUrl;
 
       try {
-        await new Promise<void>((resolve, reject) => {
+        const { videoToGif, SEEK_TIMEOUT_MS } = await import('../../lib/video-to-gif');
+        const loaded = new Promise<void>((resolve, reject) => {
           worker.addEventListener('loadeddata', () => resolve(), { once: true });
           worker.addEventListener('error', () => reject(new MediaError('unreadable', 'load failed')), { once: true });
         });
-        const { videoToGif } = await import('../../lib/video-to-gif');
+        // A video that is not on the page may never start loading on iOS, so
+        // the load is asked for explicitly and the wait is bounded.
+        worker.load();
+        await withTimeout(loaded, SEEK_TIMEOUT_MS, () => new MediaError('unreadable', 'load stalled'));
         const blob = await videoToGif(worker, plan, (done, total) => {
           say(`${copy.working} ${done} / ${total}`);
         });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = `${file.name.replace(/\.[^.]+$/u, '')}.gif`;
-        anchor.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        downloadBlob(blob, `${file.name.replace(/\.[^.]+$/u, '')}.gif`);
         say(`${copy.done} ${formatBytes(blob.size, locale)}`);
       } catch (error) {
         say(error instanceof MediaError && error.reason === 'empty' ? copy.errEmpty : copy.errFailed);
