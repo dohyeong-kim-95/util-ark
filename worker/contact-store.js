@@ -135,7 +135,7 @@ export class ContactStore {
       return json(this.consumeRateLimit(
         String(body.scope),
         String(body.visitorKey),
-        Math.min(20, Math.max(1, Number(body.limit) || 1)),
+        Math.min(100, Math.max(1, Number(body.limit) || 1)),
         Math.min(24 * 60 * 60 * 1000, Math.max(1000, Number(body.windowMs) || 60_000)),
         now,
       ));

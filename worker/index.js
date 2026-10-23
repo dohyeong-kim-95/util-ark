@@ -82,7 +82,9 @@ const analyticsExclusionCookie = (excluded, secure = true) =>
 async function consumeRateLimit(request, env, options) {
   const secret = anonymizationSecret(env);
   if (!secret) return { allowed: false, unavailable: true };
-  const visitorKey = await anonymousVisitorKey(request, secret);
+  // A global limit shares one key across every address, so rotating through
+  // IPs (an IPv6 /64 holds more than anyone can count) does not escape it.
+  const visitorKey = options.global ? 'global' : await anonymousVisitorKey(request, secret);
   const response = await contactStub(env).fetch('https://contacts.internal/rate-limit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -281,11 +283,18 @@ async function handleAdmin(request, env, url) {
     if (!rate.allowed) {
       return html(loginPage(true), rate.unavailable ? 503 : 429);
     }
+    // The per-address limit alone is no defence against an attacker with many
+    // addresses. This one counts every attempt from anywhere; while it is
+    // exhausted the administrator is locked out too, which is the trade.
+    const globalRate = await consumeRateLimit(request, env, {
+      scope: 'admin-login-global', limit: 30, windowMs: 60 * 60 * 1000, global: true,
+    });
+    if (!globalRate.allowed) return html(loginPage(true), 429);
     // The login form posts application/x-www-form-urlencoded.
     const form = new URLSearchParams(raw);
     const [idMatches, passwordMatches] = await Promise.all([
-      safeCredentialMatch(env.ADMIN_SESSION_SECRET, form?.get('id'), env.ADMIN_ID),
-      safeCredentialMatch(env.ADMIN_SESSION_SECRET, form?.get('password'), env.ADMIN_PASSWORD),
+      safeCredentialMatch(env.ADMIN_SESSION_SECRET, form.get('id'), env.ADMIN_ID),
+      safeCredentialMatch(env.ADMIN_SESSION_SECRET, form.get('password'), env.ADMIN_PASSWORD),
     ]);
     if (!idMatches || !passwordMatches) return html(loginPage(true), 401);
     return redirect('/', { 'Set-Cookie': adminCookie(await issueSession(env.ADMIN_SESSION_SECRET), secure) });

@@ -282,3 +282,60 @@ test('the image-compress funnel records a page view plus deduplicated steps and 
     await mf.dispose();
   }
 });
+
+const startWorker = () => new Miniflare({
+  compatibilityDate: '2026-07-17',
+  modules: true,
+  modulesRules: [{ type: 'ESModule', include: ['**/*.js'], fallthrough: true }],
+  scriptPath: resolve(projectRoot, 'worker/index.js'),
+  durableObjects: { CONTACTS: { className: 'ContactStore', useSQLite: true } },
+  serviceBindings: {
+    ASSETS: () => new Response('<!doctype html><title>Utilark</title>', {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    }),
+  },
+  bindings: {
+    ADMIN_ID: 'admin',
+    ADMIN_PASSWORD: 'integration-test-password',
+    ADMIN_SESSION_SECRET: 'integration-test-session-secret-value',
+  },
+});
+
+const loginAttempt = (mf, address, password) => mf.dispatchFetch('https://admin.utilark.app/login', {
+  method: 'POST',
+  redirect: 'manual',
+  headers: {
+    Origin: 'https://admin.utilark.app',
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'CF-Connecting-IP': address,
+  },
+  body: new URLSearchParams({ id: 'admin', password }).toString(),
+});
+
+test('admin login answers 401 to a wrong password, 429 per address, and 429 for everyone past the global cap', async () => {
+  const mf = startWorker();
+  try {
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      const response = await loginAttempt(mf, '198.51.100.1', 'wrong-password');
+      await response.text();
+      assert.equal(response.status, 401, `attempt ${attempt}`);
+    }
+    const sixth = await loginAttempt(mf, '198.51.100.1', 'integration-test-password');
+    await sixth.text();
+    assert.equal(sixth.status, 429, 'the sixth attempt from one address is refused even with the right password');
+
+    // Five more addresses use up the rest of the 30 global attempts an hour.
+    for (let host = 2; host <= 6; host += 1) {
+      for (let attempt = 1; attempt <= 5; attempt += 1) {
+        const response = await loginAttempt(mf, `198.51.100.${host}`, 'wrong-password');
+        await response.text();
+        assert.equal(response.status, 401, `address ${host}, attempt ${attempt}`);
+      }
+    }
+    const fresh = await loginAttempt(mf, '198.51.100.99', 'integration-test-password');
+    await fresh.text();
+    assert.equal(fresh.status, 429, 'a new address is refused once the global cap is spent');
+  } finally {
+    await mf.dispose();
+  }
+});
