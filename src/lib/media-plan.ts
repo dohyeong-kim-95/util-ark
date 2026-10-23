@@ -85,6 +85,11 @@ export type FramePlan = {
   times: number[];
   /** GIF stores delay in hundredths of a second, per frame. */
   delays: number[];
+  /**
+   * Where sampling actually stops. Earlier than the requested end when the
+   * frame cap cut the range short, so the screen can say so.
+   */
+  end: number;
   width: number;
   height: number;
 };
@@ -134,9 +139,15 @@ export function planFrames(options: {
   }
 
   const start = clamp(options.start ?? 0, 0, duration);
-  const end = clamp(options.end ?? duration, start, duration);
+  const requestedEnd = clamp(options.end ?? duration, start, duration);
+  if (!(requestedEnd - start > 0)) throw new MediaError('empty', 'The selected range is empty.');
+
+  // At the frame cap the range is cut short rather than spread thin. Spreading
+  // 600 frames over a longer range while keeping the per-frame delay of `fps`
+  // would play the clip back faster than it happened.
+  let end = requestedEnd;
+  if ((requestedEnd - start) * fps > maxFrames) end = start + maxFrames / fps;
   const span = end - start;
-  if (!(span > 0)) throw new MediaError('empty', 'The selected range is empty.');
 
   const wanted = Math.floor(span * fps);
   // A range shorter than one frame interval still deserves its one frame.
@@ -155,7 +166,7 @@ export function planFrames(options: {
   const width = Math.max(2, Math.round((sourceWidth * scale) / 2) * 2);
   const height = Math.max(2, Math.round((sourceHeight * scale) / 2) * 2);
 
-  return { times, delays: delaysFor(count, fps), width, height };
+  return { times, delays: delaysFor(count, fps), end, width, height };
 }
 
 /**

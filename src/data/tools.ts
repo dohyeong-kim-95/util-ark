@@ -871,7 +871,7 @@ export const tools: ToolDefinition[] = [
           },
           {
             question: 'Is there a length limit?',
-            answer: 'The GIF is capped at 600 frames, which is a minute at 10 frames per second and half that at 20. Long before that limit the file becomes too big to send anywhere, which is the real constraint.',
+            answer: 'The GIF is capped at 600 frames, which is a minute at 10 frames per second and half that at 20. A longer range is cut at that point, and the screen shows the length that will actually be made before you start. Long before that limit the file becomes too big to send anywhere, which is the real constraint.',
           },
         ],
       },
@@ -907,7 +907,7 @@ export const tools: ToolDefinition[] = [
           },
           {
             question: '길이 제한이 있나요?',
-            answer: '최대 600장까지 담습니다. 초당 10장이면 1분, 20장이면 30초입니다. 다만 그 한계에 닿기 한참 전에 파일이 어디로도 보내기 어려운 크기가 되므로, 실질적인 제한은 그쪽입니다.',
+            answer: '최대 600장까지 담습니다. 초당 10장이면 1분, 20장이면 30초입니다. 고른 구간이 그보다 길면 그 지점에서 잘리고, 실제로 만들어질 길이를 시작하기 전에 화면에 보여 드립니다. 다만 그 한계에 닿기 한참 전에 파일이 어디로도 보내기 어려운 크기가 되므로, 실질적인 제한은 그쪽입니다.',
           },
         ],
       },

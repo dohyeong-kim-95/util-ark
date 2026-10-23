@@ -116,6 +116,19 @@ test('the frame count is capped, so a long clip cannot run away', () => {
   assert.equal(plan.delays.length, MAX_GIF_FRAMES);
 });
 
+test('at the frame cap the range is cut short instead of played back faster', () => {
+  // 120 seconds at 10fps wants 1,200 frames; the cap keeps the first 60 seconds
+  // at real speed rather than squeezing 120 seconds into a 60-second GIF.
+  const plan = planFrames({ ...base, duration: 300, start: 10, end: 130, fps: 10 });
+  assert.equal(plan.times.length, MAX_GIF_FRAMES);
+  assert.equal(plan.end, 70);
+  assert.ok(plan.times[plan.times.length - 1] < 70);
+  const seconds = plan.delays.reduce((sum, delay) => sum + delay, 0) / 100;
+  assert.equal(seconds, 60);
+  const step = plan.times[1] - plan.times[0];
+  assert.ok(Math.abs(step - 0.1) < 1e-9);
+});
+
 /* ---------- GIF timing ---------- */
 
 test('a frame rate that divides evenly gets an exact delay', () => {
