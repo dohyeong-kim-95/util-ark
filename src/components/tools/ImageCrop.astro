@@ -433,7 +433,11 @@ const labels = locale === 'ko'
           Math.round(sel.x), Math.round(sel.y), canvas.width, canvas.height,
           0, 0, canvas.width, canvas.height,
         );
-        const type = source.type === 'image/png' ? 'image/png' : source.type;
+        // Keep the photo's own format when a canvas can write it. Anything else
+        // (GIF, AVIF, a file with no type) is saved as PNG rather than asked
+        // for and silently swapped.
+        const writable = ['image/jpeg', 'image/png', 'image/webp'];
+        const type = writable.includes(source.type) ? source.type : 'image/png';
         const encoded = await encodeCanvas(canvas, type, 0.92);
         if (!encoded) throw new Error('encode');
         const url = URL.createObjectURL(encoded.blob);
@@ -441,7 +445,7 @@ const labels = locale === 'ko'
         const dot = source.name.lastIndexOf('.');
         const base = dot > 0 ? source.name.slice(0, dot) : source.name;
         let extension = dot > 0 ? source.name.slice(dot) : '';
-        if (encoded.fellBack) extension = `.${extensionFor(encoded.type)}`;
+        if (encoded.type !== source.type) extension = `.${extensionFor(encoded.type)}`;
         link.href = url;
         link.download = `${base}-crop${extension}`;
         link.click();
