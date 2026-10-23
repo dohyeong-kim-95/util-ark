@@ -185,3 +185,21 @@ test('every subdomain name is a usable label with a distinct live destination', 
     live.add(entry.tool);
   }
 });
+
+// docs/subdomains.md once listed four live names while seventeen were live,
+// and still called pdf2image reserved after it had a page. Nothing compared
+// the two, so the table is now checked against the map it describes.
+test('the live-subdomain table in docs/subdomains.md matches TOOL_SUBDOMAINS', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const doc = await readFile(new URL('../docs/subdomains.md', import.meta.url), 'utf8');
+  const section = doc.slice(doc.indexOf('### 지금 열려 있는 주소'), doc.indexOf('### 예약된 주소'));
+  const documented = {};
+  for (const match of section.matchAll(/^\| `([a-z0-9]+)\.utilark\.app` \| `\/\{언어\}\/([a-z0-9-]+)\/` \|$/gmu)) {
+    documented[match[1]] = match[2];
+  }
+  const live = {};
+  for (const [label, entry] of Object.entries(TOOL_SUBDOMAINS)) {
+    if (!entry.pending) live[label] = entry.tool;
+  }
+  assert.deepEqual(documented, live);
+});

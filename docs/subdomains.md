@@ -27,33 +27,34 @@
 
 정본은 `worker/subdomains.js`의 `TOOL_SUBDOMAINS`이고, 아래는 그 표를 읽은 것입니다.
 
-### 지금 도구가 있는 주소
+### 지금 열려 있는 주소
+
+모든 이름이 실제 도구 페이지로 갑니다. 예약 상태(`pending`)인 이름은 지금 없습니다. `worker/subdomains.test.mjs`가 이 표와 `TOOL_SUBDOMAINS`를 대조하므로, 한쪽만 고치면 테스트가 실패합니다.
 
 | 서브도메인 | 도착지 |
 |---|---|
 | `imageconvert.utilark.app` | `/{언어}/image-converter/` |
+| `imagecrop.utilark.app` | `/{언어}/image-crop/` |
+| `imagecompress.utilark.app` | `/{언어}/image-compress/` |
+| `img2pdf.utilark.app` | `/{언어}/image-to-pdf/` |
 | `mergepdf.utilark.app` | `/{언어}/merge-pdf/` |
+| `splitpdf.utilark.app` | `/{언어}/split-pdf/` |
+| `pdf2image.utilark.app` | `/{언어}/pdf-to-image/` |
+| `readaloud.utilark.app` | `/{언어}/read-aloud/` |
+| `mp42mp3.utilark.app` | `/{언어}/mp4-to-mp3/` |
+| `mp42gif.utilark.app` | `/{언어}/mp4-to-gif/` |
 | `wordcount.utilark.app` | `/{언어}/word-counter/` |
 | `ladder.utilark.app` | `/{언어}/ladder/` |
-
-### 예약된 주소
-
-전용 페이지가 아직 없는 이름입니다. 지금은 언어별 홈으로 보내고, 페이지가 생기면 `TOOL_SUBDOMAINS`에서 `pending`을 지우고 `tool`만 바꾸면 됩니다.
-
-| 서브도메인 | 현재 도착지 | 비고 |
-|---|---|---|
-| `pdf2image` | `/{언어}/` | 해당 도구 자체가 없음 |
-
-2026-08-13에 변환 쌍 여섯 개가 예약에서 실제 페이지로 바뀌었습니다. `pending`을 지우고 `tool` 슬러그만 바꾸면 된다고 적어 뒀던 그대로였습니다.
-
-| 서브도메인 | 도착지 |
-|---|---|
 | `png2jpg.utilark.app` | `/{언어}/png-to-jpg/` |
 | `jpg2png.utilark.app` | `/{언어}/jpg-to-png/` |
 | `jpg2webp.utilark.app` | `/{언어}/jpg-to-webp/` |
 | `webp2jpg.utilark.app` | `/{언어}/webp-to-jpg/` |
 | `png2webp.utilark.app` | `/{언어}/png-to-webp/` |
 | `webp2png.utilark.app` | `/{언어}/webp-to-png/` |
+
+### 예약된 주소
+
+전용 페이지가 아직 없는 이름을 미리 잡아 둘 때 씁니다. `TOOL_SUBDOMAINS`에 `pending: true`를 붙이면 언어별 홈(또는 가장 가까운 도구)으로 보내고, 페이지가 생기면 `pending`을 지우고 `tool`만 바꾸면 됩니다. 2026-08-13에 변환 쌍 여섯 개가, 그 뒤 `pdf2image`가 이 방식으로 예약에서 실제 페이지로 바뀌었습니다. `pdf2image`는 이미지 → PDF인 `img2pdf`와 방향이 반대입니다.
 
 서브도메인은 `{from}2{to}`, 경로는 `{from}-to-{to}`로 철자가 다릅니다. 둘 다 상위 경쟁자가 실제로 쓰는 표기입니다 — `png2jpg.com`과 `freeconvert.com/png-to-jpg`.
 
