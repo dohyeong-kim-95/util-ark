@@ -120,3 +120,43 @@ test('one address cannot add more than 50 visitors a day to the published totals
   await record('visitor-elsewhere', 'another-address');
   assert.equal(count(state.db, 'analytics_visitors'), 51);
 });
+
+test('one address has its own daily cap on contacts and feedback, below the site-wide one', async (t) => {
+  let clock = Date.now();
+  t.mock.method(Date, 'now', () => clock);
+  const store = new ContactStore(fakeState());
+  const contact = () => store.fetch(new Request('https://contacts.internal/submit', {
+    method: 'POST',
+    body: JSON.stringify({
+      visitorKey: 'one-address',
+      contact: { locale: 'en', category: 'bug', email: '', message: 'A sufficiently detailed report' },
+    }),
+  }));
+  const feedback = (tool) => store.fetch(new Request('https://contacts.internal/feedback/submit', {
+    method: 'POST',
+    body: JSON.stringify({
+      visitorKey: 'one-address',
+      feedback: { locale: 'en', tool, helpful: true, reason: 'worked', comment: '', publishConsent: false },
+    }),
+  }));
+
+  // Five per 15 minutes, so two windows reach the ten a day.
+  for (let window = 0; window < 2; window += 1) {
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      assert.equal((await contact()).status, 201, `window ${window}, attempt ${attempt}`);
+    }
+    clock += 15 * 60 * 1000;
+  }
+  const eleventh = await contact();
+  assert.equal(eleventh.status, 429);
+  assert.equal((await eleventh.json()).error, 'rate_limited', 'a per-address refusal, not the site-wide one');
+
+  // Three per tool, twenty across tools: the seventh tool's third note is the 21st.
+  for (let tool = 1; tool <= 7; tool += 1) {
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const response = await feedback(`tool-${tool}`);
+      const expected = tool === 7 && attempt === 3 ? 429 : 201;
+      assert.equal(response.status, expected, `tool ${tool}, attempt ${attempt}`);
+    }
+  }
+});

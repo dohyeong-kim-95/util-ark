@@ -24,6 +24,7 @@ const copy = locale === 'ko'
       sending: '보내는 중…',
       success: '감사합니다. 의견이 제품 개선에 반영됩니다.',
       error: '의견을 보내지 못했습니다. 잠시 후 다시 시도해주세요.',
+      dailyLimit: '오늘 접수량이 가득 찼어요. 내일 다시 시도해 주세요.',
       consentError: '공개에 동의한 후기는 10자 이상 적어주세요.',
       reasons: {
         positive: [
@@ -56,6 +57,7 @@ const copy = locale === 'ko'
       sending: 'Sending…',
       success: 'Thank you. Your feedback will help improve the tool.',
       error: 'We could not send your feedback. Please try again shortly.',
+      dailyLimit: "Today's feedback is full. Please try again tomorrow.",
       consentError: 'A quote needs at least 10 characters before it can be published.',
       reasons: {
         positive: [
@@ -83,6 +85,7 @@ const copy = locale === 'ko'
     sending: copy.sending,
     success: copy.success,
     error: copy.error,
+    dailyLimit: copy.dailyLimit,
     consentError: copy.consentError,
     summary: locale === 'ko' ? '최근 {total}개 의견 · 도움됨 {helpful}개' : '{helpful} of {total} recent responses marked helpful',
   })}
@@ -226,7 +229,10 @@ const copy = locale === 'ko'
             website: (form.elements.namedItem('website') as HTMLInputElement | null)?.value ?? '',
           }),
         });
-        if (!response.ok) throw new Error();
+        if (!response.ok) {
+          const result = await response.json().catch(() => ({}));
+          throw new Error(result.error === 'daily_limit' ? 'dailyLimit' : 'failure');
+        }
         root.querySelectorAll<HTMLElement>('.feedback-vote, [data-feedback-form]').forEach((node) => {
           node.hidden = true;
         });
@@ -235,8 +241,8 @@ const copy = locale === 'ko'
         done.setAttribute('role', 'status');
         done.textContent = copy.success;
         root.append(done);
-      } catch {
-        status.textContent = copy.error;
+      } catch (error) {
+        status.textContent = error instanceof Error && error.message === 'dailyLimit' ? copy.dailyLimit : copy.error;
         submit.disabled = false;
         submit.textContent = original;
       }

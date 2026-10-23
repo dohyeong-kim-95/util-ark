@@ -8,12 +8,22 @@ const FEEDBACK_PER_DAY = 200;
 // A few per address, not one: an office or school shares one public address,
 // and the second person there should not be refused.
 const FEEDBACK_PER_ADDRESS_PER_TOOL_PER_DAY = 3;
+// Per address per day, so one address alone cannot spend the daily totals
+// above and shut the form for everyone; that now takes many addresses.
+const CONTACTS_PER_ADDRESS_PER_DAY = 10;
+const FEEDBACK_PER_ADDRESS_PER_DAY = 20;
 // The visitor key is address + user-agent, so one address cycling user-agents
 // could add a "visitor" per request to the totals the home page publishes.
 // High enough for a household or an office behind one address.
 const NEW_VISITORS_PER_ADDRESS_PER_DAY = 50;
 
 const rateLimited = (rate) => json({ error: 'rate_limited', retryAfter: rate.retryAfter }, {
+  status: 429,
+  headers: { 'Retry-After': String(rate.retryAfter) },
+});
+// The site-wide daily total is full: not this sender's fault, so the form
+// says "try tomorrow" instead of "slow down".
+const dailyLimitReached = (rate) => json({ error: 'daily_limit', retryAfter: rate.retryAfter }, {
   status: 429,
   headers: { 'Retry-After': String(rate.retryAfter) },
 });
@@ -202,8 +212,16 @@ export class ContactStore {
       if (!body?.visitorKey || !body?.contact) return json({ error: 'invalid submission' }, { status: 400 });
       const rate = this.consumeRateLimit('contact-submit', String(body.visitorKey), 5, 15 * 60 * 1000, now);
       if (!rate.allowed) return rateLimited(rate);
+      const dailyRate = this.consumeRateLimit(
+        'contact-submit-daily',
+        String(body.visitorKey),
+        CONTACTS_PER_ADDRESS_PER_DAY,
+        DAY_MS,
+        now,
+      );
+      if (!dailyRate.allowed) return rateLimited(dailyRate);
       const globalRate = this.consumeRateLimit('contact-submit-global', 'global', CONTACTS_PER_DAY, DAY_MS, now);
-      if (!globalRate.allowed) return rateLimited(globalRate);
+      if (!globalRate.allowed) return dailyLimitReached(globalRate);
 
       const contact = body.contact;
       const id = crypto.randomUUID();
@@ -232,8 +250,16 @@ export class ContactStore {
         now,
       );
       if (!rate.allowed) return rateLimited(rate);
+      const dailyRate = this.consumeRateLimit(
+        'feedback-submit-daily',
+        String(body.visitorKey),
+        FEEDBACK_PER_ADDRESS_PER_DAY,
+        DAY_MS,
+        now,
+      );
+      if (!dailyRate.allowed) return rateLimited(dailyRate);
       const globalRate = this.consumeRateLimit('feedback-submit-global', 'global', FEEDBACK_PER_DAY, DAY_MS, now);
-      if (!globalRate.allowed) return rateLimited(globalRate);
+      if (!globalRate.allowed) return dailyLimitReached(globalRate);
 
       const id = crypto.randomUUID();
       const comment = normalizeFeedbackComment(feedback.comment) || null;

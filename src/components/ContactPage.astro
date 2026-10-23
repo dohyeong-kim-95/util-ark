@@ -32,6 +32,7 @@ const form = locale === 'ko'
       success: '문의가 접수되었습니다. 감사합니다.',
       invalid: '입력 내용을 확인해주세요. 문의 내용은 10자 이상이어야 합니다.',
       rate: '문의가 너무 빠르게 반복되었습니다. 잠시 후 다시 시도해주세요.',
+      dailyLimit: '오늘 접수량이 가득 찼어요. 내일 다시 시도해 주세요.',
       failure: '지금은 문의를 보낼 수 없습니다. 잠시 후 다시 시도해주세요.',
       security: '보안 취약점은 공개 문의에 적지 말고 GitHub 비공개 보안 제보를 이용해주세요.',
       securityLink: '비공개 보안 제보 열기',
@@ -58,6 +59,7 @@ const form = locale === 'ko'
       success: 'Your message has been received. Thank you.',
       invalid: 'Check your entries. The message must be at least 10 characters.',
       rate: 'Too many messages were sent in a short time. Please try again later.',
+      dailyLimit: "Today's messages are full. Please try again tomorrow.",
       failure: 'The message could not be sent right now. Please try again later.',
       security: 'Do not disclose a security vulnerability here. Use GitHub private vulnerability reporting instead.',
       securityLink: 'Open private security report',
@@ -128,6 +130,7 @@ const form = locale === 'ko'
     success: form.success,
     invalid: form.invalid,
     rate: form.rate,
+    dailyLimit: form.dailyLimit,
     failure: form.failure,
   } }}>
     const contactForm = document.querySelector('#contact-form');
@@ -161,6 +164,7 @@ const form = locale === 'ko'
         });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) {
+          if (result.error === 'daily_limit') throw new Error('dailyLimit');
           if (response.status === 429 || result.error === 'rate_limited') throw new Error('rate');
           if (response.status === 400) throw new Error('invalid');
           throw new Error('failure');
@@ -169,7 +173,7 @@ const form = locale === 'ko'
         if (status) status.textContent = messages.success;
       } catch (error) {
         const reason = error instanceof Error ? error.message : 'failure';
-        if (status) status.textContent = reason === 'rate' ? messages.rate : reason === 'invalid' ? messages.invalid : messages.failure;
+        if (status) status.textContent = messages[reason] ?? messages.failure;
       } finally {
         if (submit) submit.disabled = false;
       }

@@ -428,8 +428,8 @@ test('contact submissions are limited per address and across all addresses per d
       }
     }
     const overCap = await contactFrom(mf, '198.51.100.200');
-    await overCap.text();
     assert.equal(overCap.status, 429, 'a new address is refused once the daily cap is reached');
+    assert.equal((await overCap.json()).error, 'daily_limit', 'the full day is told apart from a per-address limit');
   } finally {
     await mf.dispose();
   }
@@ -458,8 +458,8 @@ test('feedback allows a few notes per shared address and stops at a daily cap', 
       }
     }
     const overCap = await feedbackFrom(mf, '198.51.100.200');
-    await overCap.text();
     assert.equal(overCap.status, 429, 'a new address is refused once the daily cap is reached');
+    assert.equal((await overCap.json()).error, 'daily_limit');
   } finally {
     await mf.dispose();
   }
