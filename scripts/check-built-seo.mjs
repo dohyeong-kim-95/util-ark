@@ -214,6 +214,24 @@ for (const file of decoders) {
 const sitemapFiles = await readdir(new URL('.', dist));
 if (!sitemapFiles.includes('sitemap-index.xml')) throw new Error('missing sitemap-index.xml');
 
+// The page lists above are read out of TypeScript sources with regular
+// expressions, so an entry written in a slightly different shape would drop out
+// of every check here without an error. The sitemap is generated from the
+// pages Astro actually built; any URL in it that the lists do not know about,
+// or the other way round, means the lists have gone stale.
+const sitemapPaths = new Set();
+for (const file of sitemapFiles.filter((name) => /^sitemap-\d+\.xml$/u.test(name))) {
+  const xml = await readFile(new URL(file, dist), 'utf8');
+  for (const match of xml.matchAll(/<loc>https:\/\/utilark\.app(\/[^<]*)<\/loc>/gu)) sitemapPaths.add(match[1]);
+}
+const checkedPaths = new Set(requiredPages.map((page) => `/${page.replace(/index\.html$/u, '')}`));
+for (const path of sitemapPaths) {
+  if (!checkedPaths.has(path)) throw new Error(`sitemap lists ${path}, which the SEO checks never read`);
+}
+for (const path of checkedPaths) {
+  if (!sitemapPaths.has(path)) throw new Error(`${path} is checked but missing from the sitemap`);
+}
+
 const robots = await readFile(new URL('robots.txt', dist), 'utf8');
 if (!robots.includes('https://utilark.app/sitemap-index.xml')) throw new Error('robots.txt has no sitemap');
 
