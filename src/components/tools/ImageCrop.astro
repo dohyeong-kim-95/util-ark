@@ -26,7 +26,7 @@ const labels = locale === 'ko'
       failed: '이미지를 자르지 못했습니다.',
       webpUnsupported: '이 브라우저는 WebP로 저장할 수 없어 JPG로 내려받았습니다.',
       size: '선택 영역',
-      moveHandle: '선택 영역 조절',
+      moveHandle: '선택 영역 조절 (화살표로 이동, Shift+화살표로 크기 조절)',
       change: '다른 이미지 선택',
       original: '원본 비율',
       snapped: '맞춤',
@@ -50,7 +50,7 @@ const labels = locale === 'ko'
       failed: 'Could not crop the image.',
       webpUnsupported: 'This browser cannot save WebP, so the crop was downloaded as JPG.',
       size: 'Selection',
-      moveHandle: 'Adjust selection',
+      moveHandle: 'Adjust selection (arrow keys move it, Shift+arrow keys resize it)',
       change: 'Choose a different image',
       original: 'original',
       snapped: 'snapped',
@@ -392,6 +392,45 @@ const labels = locale === 'ko'
         };
         clampToImage();
       }
+      paint();
+    });
+
+    // The box is focusable, so it has to be usable from the keyboard too:
+    // arrows move it, Shift+arrows resize it from the bottom-right corner.
+    // A step is 1% of the picture's long edge, so it feels the same on any size.
+    box?.addEventListener('keydown', (event) => {
+      if (!bitmap) return;
+      const arrows: Record<string, [number, number]> = {
+        ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+      };
+      const direction = arrows[event.key];
+      if (!direction) return;
+      event.preventDefault();
+
+      const { w: iw, h: ih } = naturalSize();
+      const step = Math.max(1, Math.round(Math.max(iw, ih) / 100));
+      const dx = direction[0] * step;
+      const dy = direction[1] * step;
+      snappedName = '';
+
+      if (!event.shiftKey) {
+        sel.x += dx;
+        sel.y += dy;
+        clampToImage();
+        paint();
+        return;
+      }
+
+      const r = ratio();
+      let w = Math.max(24, Math.min(sel.w + dx, iw - sel.x));
+      let h = Math.max(24, Math.min(sel.h + dy, ih - sel.y));
+      // A locked ratio follows whichever side the key changed.
+      if (r && dx !== 0) h = w / r;
+      if (r && dy !== 0) w = h * r;
+      if (r && (sel.x + w > iw || sel.y + h > ih)) return;
+      sel.w = w;
+      sel.h = h;
+      clampToImage();
       paint();
     });
 
