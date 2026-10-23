@@ -10,18 +10,21 @@
  * The `wasm/` decoders are needed to draw JBIG2, CCITT fax and JPEG 2000
  * images — what most scanners and fax software write. Without them pdf.js skips
  * those images and a scanned page renders blank. Like the CMaps, they are
- * fetched only when a PDF contains such an image.
+ * fetched only when a PDF contains such an image. `qcms` (colour management)
+ * stays with them; `quickjs`, the sandbox pdf.js uses to run scripts embedded
+ * in a PDF, is left out because nothing here enables scripting.
  *
  * Copied at build time rather than committed: 169 binary files that belong to a
  * dependency have no business in the history, and this way they cannot drift
  * from the installed pdf.js.
  */
 import { cp, mkdir, rm, stat } from 'node:fs/promises';
+import { basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const assets = [
   { from: '../node_modules/pdfjs-dist/cmaps/', to: '../public/cmaps/' },
-  { from: '../node_modules/pdfjs-dist/wasm/', to: '../public/pdfjs/wasm/' },
+  { from: '../node_modules/pdfjs-dist/wasm/', to: '../public/pdfjs/wasm/', skip: /^quickjs/u },
 ];
 
 for (const asset of assets) {
@@ -35,6 +38,9 @@ for (const asset of assets) {
   }
   await rm(to, { recursive: true, force: true });
   await mkdir(to, { recursive: true });
-  await cp(from, to, { recursive: true });
+  await cp(from, to, {
+    recursive: true,
+    filter: (source) => !asset.skip || !asset.skip.test(basename(source)),
+  });
 }
 console.log('Copied pdf.js CMaps to public/cmaps/ and decoders to public/pdfjs/wasm/.');

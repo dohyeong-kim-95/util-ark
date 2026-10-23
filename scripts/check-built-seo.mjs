@@ -199,10 +199,16 @@ for (const required of ['UniKS-UCS2-H.bcmap', 'UniJIS-UCS2-H.bcmap', 'UniGB-UCS2
 
 // Same for the image decoders: without them scanned PDFs render as blank pages.
 const decoders = await readdir(new URL('pdfjs/wasm/', dist)).catch(() => []);
-for (const required of ['jbig2.wasm', 'jbig2_nowasm_fallback.js', 'openjpeg.wasm', 'openjpeg_nowasm_fallback.js']) {
+for (const required of [
+  'jbig2.wasm', 'jbig2_nowasm_fallback.js', 'openjpeg.wasm', 'openjpeg_nowasm_fallback.js', 'qcms_bg.wasm',
+]) {
   if (!decoders.includes(required)) {
     throw new Error(`dist/pdfjs/wasm is missing ${required}; run scripts/sync-pdf-assets.mjs`);
   }
+}
+// The script sandbox is not used, so it should not ship (about 570KB).
+for (const file of decoders) {
+  if (file.startsWith('quickjs')) throw new Error(`dist/pdfjs/wasm ships ${file}, which nothing uses`);
 }
 
 const sitemapFiles = await readdir(new URL('.', dist));
