@@ -106,14 +106,14 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
       description:
         'How Utilark handles browser-processed files, access logs, advertising, and other data when you use the service.',
       lead: 'The current tools do not upload the files or text you choose to Utilark.',
-      updated: '2026-08-17',
+      updated: '2026-10-23',
       notice:
         'This policy covers Utilark at utilark.app, including the contact and tool-feedback forms. Browser extensions, downloaded files, and third-party sites have their own policies.',
       sections: [
         {
           heading: 'Files and text used in tools',
           paragraphs: [
-            'The tools run locally in your browser: image conversion and cropping, photo-to-PDF, word counting, PDF merging, reading text aloud, and the ladder game. Utilark does not receive, store, or review the files, text, and names you use in them.',
+            'The tools run locally in your browser: image conversion, cropping, and compression, photo-to-PDF, reading text aloud, word counting, PDF merging and splitting, PDF to image, MP4 to MP3, MP4 to GIF, and the ladder game. Utilark does not receive, store, or review the files, text, and names you use in them.',
             'Reading text aloud has one exception that does not involve Utilark. Speech uses the voices your browser offers, and some browsers generate their higher-quality voices on their own servers rather than on your device. Choosing such a voice means your browser sends the text to its vendor to be spoken. The tool labels every voice as on device or network, lists on-device voices first, and warns before you play a network voice. Utilark neither receives nor can see that text either way.',
             'Cropping a photo, converting it, or placing it in a PDF redraws the image, which discards the metadata a camera stores in the file — including GPS coordinates. This happens on your device and is a side effect of the processing, not something Utilark collects.',
             'Closing or refreshing the page clears the tool state unless your browser itself retains form state. Downloaded results are saved wherever your browser is configured to save them.',
@@ -125,6 +125,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
             'The hosting and security providers may process standard request information such as IP address, browser type, requested URL, time, and security signals. This information is used to deliver and protect the website and may be retained according to the provider configuration.',
             'Utilark keeps privacy-preserving daily usage totals for up to 90 days. To remove repeat visits from DAU, the date, connection IP address, and browser user-agent are converted into a keyed one-way daily value. The original values, individual browsing history, and cross-day visitor identifier are not stored in the Utilark analytics database. Known bots are excluded where Cloudflare signals or common automated user-agents identify them, and DNT or Global Privacy Control requests are not counted.',
             'A page counts a visit again, separately, once it has been visible for three seconds or you have tapped, typed, or scrolled. This exists to tell people apart from things that only fetched the page, and it is sent as one empty beacon carrying no body. It is keyed by the same daily one-way value as the page view, so no additional information about you is stored, and the exclusions below apply to it identically.',
+            'Some tools also count how far a visit gets through the tool, so the maintainer can see where people give up. Currently only the image compressor does this. Opening its page is counted as the first step, and the page then sends the tool address and one step name: selected (a photo was chosen), compressed (a result was made), or downloaded (the result was saved). Nothing about the file is sent — no name, size, dimensions, or image data. Each step is recorded with the same keyed one-way daily value as the page counts above, follows the same exclusions, and is kept for up to 90 days.',
             'An authenticated administrator can exclude the current browser from future counts. This setting uses the HttpOnly utilark_notrack cookie across utilark.app for up to five years, contains only the value 1, and is removed when the setting is turned off. It is not an advertising or cross-site tracking cookie.',
             'Choosing a language stores the utilark_lang cookie across utilark.app for up to one year so that the site and its short tool addresses open in the language you picked. It holds only the value en or ko and is not used for advertising or cross-site tracking.',
           ],
@@ -194,14 +195,14 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
       description:
         'Utilark 이용 시 브라우저에서 처리되는 파일, 접속 기록, 광고 및 기타 데이터를 어떻게 다루는지 안내합니다.',
       lead: '현재 제공하는 도구는 사용자가 선택한 파일이나 글을 Utilark로 업로드하지 않습니다.',
-      updated: '2026-08-17',
+      updated: '2026-10-23',
       notice:
         '이 방침은 문의 폼과 도구 의견 폼을 포함한 utilark.app의 Utilark 서비스에 적용됩니다. 브라우저 확장 기능, 내려받은 파일, 외부 사이트에는 각각의 정책이 적용됩니다.',
       sections: [
         {
           heading: '도구에서 사용하는 파일과 글',
           paragraphs: [
-            '이미지 변환과 자르기, 사진 PDF 만들기, 글자수 계산, PDF 합치기, 텍스트 읽어주기, 사다리타기는 사용자의 브라우저에서 실행됩니다. Utilark는 이 도구에 넣은 파일, 글, 이름을 받거나 저장하거나 열람하지 않습니다.',
+            '이미지 변환·자르기·압축, 사진 PDF 만들기, 텍스트 읽어주기, 글자수 계산, PDF 합치기·분할, PDF 이미지 변환, MP4→MP3, MP4→GIF, 사다리타기는 사용자의 브라우저에서 실행됩니다. Utilark는 이 도구에 넣은 파일, 글, 이름을 받거나 저장하거나 열람하지 않습니다.',
             '텍스트 읽어주기에는 Utilark와 무관한 예외가 하나 있습니다. 읽어주기는 브라우저가 제공하는 목소리를 쓰는데, 일부 브라우저는 고품질 목소리를 기기가 아니라 자사 서버에서 만들어 보냅니다. 그런 목소리를 고르면 **읽는 글이 브라우저 제조사로 전송됩니다.** 이 도구는 목소리마다 기기 내장·네트워크를 표시하고, 기기 내장 목소리를 먼저 보여주며, 네트워크 목소리를 재생하기 전에 알려줍니다. 어느 쪽이든 Utilark는 그 글을 받지도, 볼 수도 없습니다.',
             '사진을 자르거나 변환하거나 PDF에 넣으면 이미지를 다시 그리게 되며, 이 과정에서 카메라가 파일에 기록한 메타데이터가 사라집니다 — GPS 좌표도 포함됩니다. 사용자의 기기에서 일어나는 처리의 부수 효과이며 Utilark가 수집하는 것이 아닙니다.',
             '페이지를 닫거나 새로고침하면 브라우저 자체가 입력 상태를 복구하는 경우를 제외하고 도구 상태가 사라집니다. 결과 파일은 사용자의 브라우저에 설정된 위치에 저장됩니다.',
@@ -213,6 +214,7 @@ export const infoPages: Record<InfoPageKind, Record<Locale, InfoCopy>> = {
             '호스팅 및 보안 제공업체는 사이트 전송과 보호를 위해 IP 주소, 브라우저 종류, 요청 URL, 접속 시각, 보안 신호와 같은 일반적인 요청 정보를 처리할 수 있습니다. 보관 기간은 제공업체 설정에 따라 달라질 수 있습니다.',
             'Utilark는 개인정보 보호형 일별 이용 통계를 최대 90일간 보관합니다. DAU에서 당일 중복 방문을 제외하기 위해 날짜·접속 IP 주소·브라우저 User-Agent를 키가 적용된 일방향 일별 값으로 변환합니다. Utilark 분석 데이터베이스에는 원문 값, 개별 페이지 방문 기록, 날짜를 넘어 사용자를 연결하는 식별자를 저장하지 않습니다. Cloudflare 신호나 일반적인 자동화 User-Agent로 확인되는 봇은 제외하고, DNT 또는 Global Privacy Control 요청은 집계하지 않습니다.',
             '페이지가 화면에 표시된 채 3초가 지나거나 누르기·입력·스크롤이 있으면 방문을 한 번 더 별도로 셉니다. 사람과 페이지만 받아 가는 것을 구분하기 위한 것이고, 본문 없는 빈 비콘 하나를 보냅니다. 페이지뷰와 같은 일별 단방향 값을 키로 쓰므로 추가로 저장되는 정보는 없으며, 아래의 제외 규칙이 동일하게 적용됩니다.',
+            '일부 도구는 사람들이 어느 단계에서 그만두는지 보기 위해 도구 안의 진행 단계를 셉니다. 현재는 이미지 압축만 해당합니다. 페이지를 연 것을 첫 단계로 세고, 이후 페이지가 도구 주소와 단계 이름 하나를 보냅니다: selected(사진을 고름), compressed(결과를 만듦), downloaded(결과를 내려받음). 파일에 관한 정보는 이름·용량·해상도·이미지 내용 어느 것도 보내지 않습니다. 각 단계는 위의 방문 집계와 같은 키 적용 일방향 일별 값으로 기록하고, 같은 제외 규칙을 따르며, 최대 90일간 보관합니다.',
             '인증된 관리자는 현재 브라우저를 이후 집계에서 제외할 수 있습니다. 이 설정은 utilark.app 전체에서 최대 5년간 유지되는 HttpOnly utilark_notrack 쿠키를 사용하며 값 1만 담습니다. 설정을 끄면 쿠키를 삭제하며, 광고 또는 사이트 간 추적 쿠키로 사용하지 않습니다.',
             '언어를 선택하면 사이트와 짧은 도구 주소를 다시 열 때 같은 언어로 이동하도록 utilark.app 전체에서 최대 1년간 유지되는 utilark_lang 쿠키를 저장합니다. 이 쿠키는 en 또는 ko 값만 담으며 광고나 사이트 간 추적에 사용하지 않습니다.',
           ],
