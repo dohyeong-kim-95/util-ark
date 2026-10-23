@@ -222,10 +222,6 @@ button:disabled {
   line-height: 1.7;
 }
 
-.hero-actions {
-  margin-top: 2rem;
-}
-
 .button {
   display: inline-flex;
   align-items: center;
@@ -2431,17 +2427,6 @@ button:disabled {
 .crop-handle[data-handle='ne'] { right: -0.75rem; top: -0.75rem; cursor: nesw-resize; }
 .crop-handle[data-handle='sw'] { left: -0.75rem; bottom: -0.75rem; cursor: nesw-resize; }
 .crop-handle[data-handle='se'] { right: -0.75rem; bottom: -0.75rem; cursor: nwse-resize; }
-
-.crop-size {
-  margin: 0.9rem 0 0;
-  color: var(--muted);
-  font-size: 0.85rem;
-  line-height: 1.5;
-}
-
-.crop-size[hidden] {
-  display: none;
-}
 
 /* Once a picture is loaded the picker stops being the headline and becomes a
    quiet way back, sitting under the preview it used to sit above. */
