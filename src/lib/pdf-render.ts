@@ -23,11 +23,13 @@ export type PdfDocument = {
 export const scaleForDpi = (dpi: number): number => dpi / 72;
 
 /**
- * Guards against a page that would allocate more than the tab can hold. A2 at
- * 300dpi is already 70 megapixels, and asking a canvas for that fails in a way
- * browsers report as a blank image rather than as an error.
+ * Guards against a page that would allocate more than the tab can hold. Asking
+ * a canvas for too much fails in a way browsers report as a blank image rather
+ * than as an error. The ceiling is iOS Safari's canvas area limit (4096 x 4096),
+ * the lowest of the major browsers: A3 at 300dpi is about 17.4 megapixels and
+ * would already draw blank there, so a larger page is scaled down to fit.
  */
-export const MAX_PIXELS = 40e6;
+export const MAX_PIXELS = 16_777_216;
 
 export async function openPdf(data: ArrayBuffer): Promise<PdfDocument> {
   const pdfjs = await loadPdfjs();
