@@ -92,6 +92,7 @@ const labels = locale === 'ko'
 </div>
 
 <script>
+  import { downloadBlob } from '../../lib/browser-file';
   import { PageSelectionError, pageFileName, parsePages } from '../../lib/pdf-pages';
   import { PdfError } from '../../lib/pdf-text';
 
@@ -184,12 +185,7 @@ const labels = locale === 'ko'
             name = `${stem}-${extension}.zip`;
           }
 
-          const url = URL.createObjectURL(blob);
-          const anchor = document.createElement('a');
-          anchor.href = url;
-          anchor.download = name;
-          anchor.click();
-          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+          downloadBlob(blob, name);
           say(copy.done);
         } finally {
           await pdf.close();

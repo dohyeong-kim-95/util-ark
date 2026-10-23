@@ -85,6 +85,7 @@ const labels = locale === 'ko'
 </div>
 
 <script>
+  import { closeImage, decodeImage, downloadBlob } from '../../lib/browser-file';
   import { encodeCanvas, extensionFor } from '../../lib/canvas-encode';
 
   const root = document.querySelector<HTMLElement>('.converter-tool');
@@ -136,24 +137,8 @@ const labels = locale === 'ko'
       if (qualityOutput) qualityOutput.value = `${quality.value}%`;
     });
 
-    const decode = async (file: File) => {
-      // Phone photos store landscape pixels plus an EXIF rotation tag. Whether
-      // createImageBitmap applies that tag depends on the browser's default, so
-      // ask for it explicitly — otherwise a portrait photo converts on its side.
-      if ('createImageBitmap' in window) {
-        return createImageBitmap(file, { imageOrientation: 'from-image' })
-          .catch(() => createImageBitmap(file));
-      }
-      return new Promise<HTMLImageElement>((resolve, reject) => {
-        const image = new Image();
-        const url = URL.createObjectURL(file);
-        image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
-        image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
-        image.src = url;
-      });
-    };
     const convertFile = async (file: File, mime: string, outputQuality: number) => {
-      const image = await decode(file);
+      const image = await decodeImage(file);
       const canvas = document.createElement('canvas');
       canvas.width = image.width;
       canvas.height = image.height;
@@ -164,18 +149,10 @@ const labels = locale === 'ko'
         context.fillRect(0, 0, canvas.width, canvas.height);
       }
       context.drawImage(image, 0, 0);
-      if ('close' in image && typeof image.close === 'function') image.close();
+      closeImage(image);
       const encoded = await encodeCanvas(canvas, mime, outputQuality);
       if (!encoded) throw new Error('encode');
       return encoded;
-    };
-    const download = (blob: Blob, filename: string) => {
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = filename;
-      anchor.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
     root.querySelector('[data-action="convert"]')?.addEventListener('click', async () => {
       if (!files.length) {
@@ -193,7 +170,7 @@ const labels = locale === 'ko'
           const encoded = await convertFile(file, mime, Number(quality?.value ?? 85) / 100);
           if (encoded.fellBack) fellBack = true;
           const base = file.name.replace(/\.[^.]+$/u, '') || 'image';
-          download(encoded.blob, `${base}.${extensionFor(encoded.type)}`);
+          downloadBlob(encoded.blob, `${base}.${extensionFor(encoded.type)}`);
           converted += 1;
         }
         const notice = fellBack ? ` ${root.dataset.webpUnsupported ?? ''}` : '';

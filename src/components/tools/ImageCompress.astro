@@ -105,6 +105,7 @@ const labels = locale === 'ko'
 </div>
 
 <script>
+  import { closeImage, decodeImage, downloadBlob } from '../../lib/browser-file';
   import { canEncodeWebp, encodeCanvas, extensionFor } from '../../lib/canvas-encode';
   import { formatBytes } from '../../lib/media-plan';
   import { trackToolEvent } from '../../lib/tool-analytics';
@@ -182,23 +183,6 @@ const labels = locale === 'ko'
     targetSelect?.addEventListener('change', () => {
       if (customRow) customRow.hidden = targetSelect.value !== 'custom';
     });
-
-    const decode = async (source: File) => {
-      // A phone photo carries an EXIF rotation tag whose default handling
-      // varies by browser, so ask for it explicitly — otherwise a portrait
-      // photo is measured and encoded on its side.
-      if ('createImageBitmap' in window) {
-        return createImageBitmap(source, { imageOrientation: 'from-image' })
-          .catch(() => createImageBitmap(source));
-      }
-      return new Promise<HTMLImageElement>((resolve, reject) => {
-        const image = new Image();
-        const url = URL.createObjectURL(source);
-        image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
-        image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
-        image.src = url;
-      });
-    };
 
     // One canvas for every attempt. A search makes dozens of encodes, and a new
     // full-size canvas each time piles up past iOS's canvas memory limit.
@@ -299,9 +283,9 @@ const labels = locale === 'ko'
       const mime = formatSelect?.value ?? 'image/jpeg';
 
       try {
-        const bitmap = await decode(file);
+        const bitmap = await decodeImage(file);
         const outcome = await compressToTarget(bitmap, mime, targetBytes);
-        if ('close' in bitmap && typeof bitmap.close === 'function') bitmap.close();
+        closeImage(bitmap);
 
         const extension = extensionFor(outcome.type);
         result = { blob: outcome.blob, extension };
@@ -332,12 +316,7 @@ const labels = locale === 'ko'
     root.querySelector('[data-action="download"]')?.addEventListener('click', () => {
       if (!result || !file) return;
       const base = file.name.replace(/\.[^.]+$/u, '') || 'image';
-      const url = URL.createObjectURL(result.blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `${base}-compressed.${result.extension}`;
-      anchor.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      downloadBlob(result.blob, `${base}-compressed.${result.extension}`);
       trackToolEvent(TOOL, 'downloaded');
       say(copy.done);
     });
