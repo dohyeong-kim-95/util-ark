@@ -200,6 +200,11 @@ const labels = locale === 'ko'
       });
     };
 
+    // One canvas for every attempt. A search makes dozens of encodes, and a new
+    // full-size canvas each time piles up past iOS's canvas memory limit.
+    const canvas = document.createElement('canvas');
+    const releaseCanvas = () => { canvas.width = 0; canvas.height = 0; };
+
     const encodeAt = (
       bitmap: ImageBitmap | HTMLImageElement,
       mime: string,
@@ -209,7 +214,7 @@ const labels = locale === 'ko'
       const width = 'width' in bitmap ? bitmap.width : 0;
       const height = 'height' in bitmap ? bitmap.height : 0;
       const factor = Math.min(1, longestEdge / Math.max(width, height));
-      const canvas = document.createElement('canvas');
+      // Setting the size also clears the canvas, so no earlier attempt shows through.
       canvas.width = Math.max(1, Math.round(width * factor));
       canvas.height = Math.max(1, Math.round(height * factor));
       const context = canvas.getContext('2d');
@@ -241,9 +246,13 @@ const labels = locale === 'ko'
       let edge = nativeEdge;
       let resized = false;
 
-      for (let pass = 0; pass < 6; pass += 1) {
+      // Each pass either meets the target or shrinks the edge, and the edge
+      // stops at `minEdge`, so this ends — with the best effort marked as
+      // missing the target rather than an error, however large the photo.
+      while (true) {
         let lo = 0.05;
         let hi = 0.92;
+        let smallestMiss = 0;
         let best = await encodeAt(bitmap, mime, hi, edge);
         if (!best || best.blob.size > targetBytes) {
           best = null;
@@ -251,7 +260,7 @@ const labels = locale === 'ko'
             const quality = (lo + hi) / 2;
             const attempt = await encodeAt(bitmap, mime, quality, edge);
             if (attempt && attempt.blob.size <= targetBytes) { best = attempt; lo = quality; }
-            else { hi = quality; }
+            else { hi = quality; if (attempt) smallestMiss = attempt.blob.size; }
           }
         }
         if (best) return { ...best, resized, met: true };
@@ -260,10 +269,14 @@ const labels = locale === 'ko'
           if (!fallback) throw new Error('encode');
           return { ...fallback, resized: true, met: fallback.blob.size <= targetBytes };
         }
-        edge = Math.max(minEdge, Math.round(edge * 0.8));
+        // File size grows roughly with pixel area, so the edge shrinks by the
+        // square root of how far the lowest-quality attempt overshot. Never
+        // less than a 20% step, so a near miss still makes progress.
+        let factor = 0.8;
+        if (smallestMiss > 0) factor = Math.min(0.8, Math.sqrt(targetBytes / smallestMiss) * 0.95);
+        edge = Math.max(minEdge, Math.round(edge * factor));
         resized = true;
       }
-      throw new Error('encode');
     };
 
     fitButton?.addEventListener('click', async () => {
@@ -275,10 +288,14 @@ const labels = locale === 'ko'
       resetResult();
       say(copy.working);
 
-      const targetKb = targetSelect?.value === 'custom'
-        ? Number(customInput?.value ?? 200)
-        : Number(targetSelect?.value ?? 200);
-      const targetBytes = Math.max(1, targetKb) * 1024;
+      // An emptied or nonsense custom box falls back to the default rather than
+      // to 0, which would have meant a 1KB target.
+      const rawKb = targetSelect?.value === 'custom' ? customInput?.value : targetSelect?.value;
+      let targetKb = Number(rawKb);
+      if (!rawKb || !(targetKb > 0)) targetKb = 200;
+      // 1,000 bytes per KB, the stricter reading: upload forms that say "100KB"
+      // often mean 100,000 bytes, and a file sized to 1,024 would be rejected.
+      const targetBytes = targetKb * 1000;
       const mime = formatSelect?.value ?? 'image/jpeg';
 
       try {
@@ -291,7 +308,7 @@ const labels = locale === 'ko'
         trackToolEvent(TOOL, 'compressed');
 
         if (facts) {
-          const targetText = formatBytes(targetBytes, locale);
+          const targetText = `${targetKb.toLocaleString(locale)} KB`;
           const metText = outcome.met ? copy.metYes : copy.metNo;
           facts.innerHTML =
             row(copy.size, formatBytes(outcome.blob.size, locale)) +
@@ -307,6 +324,7 @@ const labels = locale === 'ko'
       } catch {
         say(copy.failed);
       } finally {
+        releaseCanvas();
         fitButton.disabled = false;
       }
     });
