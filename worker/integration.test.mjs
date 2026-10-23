@@ -283,7 +283,7 @@ test('the image-compress funnel records a page view plus deduplicated steps and 
   }
 });
 
-const startWorker = () => new Miniflare({
+const startWorker = (extraBindings = {}) => new Miniflare({
   compatibilityDate: '2026-07-17',
   modules: true,
   modulesRules: [{ type: 'ESModule', include: ['**/*.js'], fallthrough: true }],
@@ -298,6 +298,7 @@ const startWorker = () => new Miniflare({
     ADMIN_ID: 'admin',
     ADMIN_PASSWORD: 'integration-test-password',
     ADMIN_SESSION_SECRET: 'integration-test-session-secret-value',
+    ...extraBindings,
   },
 });
 
@@ -335,6 +336,60 @@ test('admin login answers 401 to a wrong password, 429 per address, and 429 for 
     const fresh = await loginAttempt(mf, '198.51.100.99', 'integration-test-password');
     await fresh.text();
     assert.equal(fresh.status, 429, 'a new address is refused once the global cap is spent');
+  } finally {
+    await mf.dispose();
+  }
+});
+
+test('rotating addresses inside one IPv6 /64 shares a single per-address login limit', async () => {
+  const mf = startWorker();
+  try {
+    for (let host = 1; host <= 5; host += 1) {
+      const response = await loginAttempt(mf, `2001:db8:1:2::${host}`, 'wrong-password');
+      await response.text();
+      assert.equal(response.status, 401, `address ${host}`);
+    }
+    const sameBlock = await loginAttempt(mf, '2001:db8:1:2:ffff::9', 'integration-test-password');
+    await sameBlock.text();
+    assert.equal(sameBlock.status, 429, 'another address in the same /64 is refused');
+    const otherBlock = await loginAttempt(mf, '2001:db8:1:3::1', 'integration-test-password');
+    await otherBlock.text();
+    assert.equal(otherBlock.status, 303, 'a different /64 is a different sender');
+  } finally {
+    await mf.dispose();
+  }
+});
+
+test('ADMIN_LOGIN_ALLOW_IPS lets the owner in while the global login limit is spent', async () => {
+  const mf = startWorker({ ADMIN_LOGIN_ALLOW_IPS: '203.0.113.7, 2001:db8:aaaa::/48' });
+  try {
+    // Six addresses use up the 30 global attempts an hour.
+    for (let host = 1; host <= 6; host += 1) {
+      for (let attempt = 1; attempt <= 5; attempt += 1) {
+        const response = await loginAttempt(mf, `198.51.100.${host}`, 'wrong-password');
+        await response.text();
+      }
+    }
+    const stranger = await loginAttempt(mf, '198.51.100.99', 'integration-test-password');
+    await stranger.text();
+    assert.equal(stranger.status, 429, 'an unlisted address is still refused');
+
+    const owner = await loginAttempt(mf, '203.0.113.7', 'integration-test-password');
+    await owner.text();
+    assert.equal(owner.status, 303, 'a listed IPv4 address skips the global limit');
+    const ownerV6 = await loginAttempt(mf, '2001:db8:aaaa:5::1', 'integration-test-password');
+    await ownerV6.text();
+    assert.equal(ownerV6.status, 303, 'an address inside a listed IPv6 range skips it too');
+
+    // A listed address still has its own per-address limit.
+    for (let attempt = 1; attempt <= 4; attempt += 1) {
+      const response = await loginAttempt(mf, '203.0.113.7', 'wrong-password');
+      await response.text();
+      assert.equal(response.status, 401, `listed attempt ${attempt}`);
+    }
+    const sixth = await loginAttempt(mf, '203.0.113.7', 'integration-test-password');
+    await sixth.text();
+    assert.equal(sixth.status, 429);
   } finally {
     await mf.dispose();
   }

@@ -6,6 +6,8 @@ import { ContactStore } from './contact-store.js';
 import { preferredLocale } from './locale.js';
 import { legacyToolPath, resolveHost, subdomainRedirect, TOOL_SUBDOMAINS } from './subdomains.js';
 import {
+  addressInList,
+  anonymousAddressBlockKey,
   anonymousVisitorKey,
   issueSession,
   jsonResponse,
@@ -83,8 +85,9 @@ async function consumeRateLimit(request, env, options) {
   const secret = anonymizationSecret(env);
   if (!secret) return { allowed: false, unavailable: true };
   // A global limit shares one key across every address, so rotating through
-  // IPs (an IPv6 /64 holds more than anyone can count) does not escape it.
-  const visitorKey = options.global ? 'global' : await anonymousVisitorKey(request, secret);
+  // IPs does not escape it. The per-address key covers a whole IPv6 /64, which
+  // one host can rotate through freely.
+  const visitorKey = options.global ? 'global' : await anonymousAddressBlockKey(request, secret);
   const response = await contactStub(env).fetch('https://contacts.internal/rate-limit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -287,11 +290,16 @@ async function handleAdmin(request, env, url) {
     }
     // The per-address limit alone is no defence against an attacker with many
     // addresses. This one counts every attempt from anywhere; while it is
-    // exhausted the administrator is locked out too, which is the trade.
-    const globalRate = await consumeRateLimit(request, env, {
-      scope: 'admin-login-global', limit: 30, windowMs: 60 * 60 * 1000, global: true,
-    });
-    if (!globalRate.allowed) return html(loginPage(true), 429);
+    // exhausted everyone is locked out, so addresses in ADMIN_LOGIN_ALLOW_IPS
+    // skip it (they still get the per-address limit above). Setting that
+    // secret is the way back in during an attack, with no code change.
+    const allowListed = addressInList(request.headers.get('CF-Connecting-IP'), env.ADMIN_LOGIN_ALLOW_IPS);
+    if (!allowListed) {
+      const globalRate = await consumeRateLimit(request, env, {
+        scope: 'admin-login-global', limit: 30, windowMs: 60 * 60 * 1000, global: true,
+      });
+      if (!globalRate.allowed) return html(loginPage(true), 429);
+    }
     // The login form posts application/x-www-form-urlencoded.
     const form = new URLSearchParams(raw);
     const [idMatches, passwordMatches] = await Promise.all([

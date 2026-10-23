@@ -8,6 +8,8 @@ AdSense 준비 작업(`6e62b57`)에서 남은 항목입니다. 코드로 끝낼 
 
 - [ ] **`ANALYTICS_SECRET` Worker secret 추가 (선택, 권장)** — Cloudflare **Workers & Pages → utilark → Settings → Variables and Secrets**에 `ADMIN_SESSION_SECRET`과 **다른** 긴 무작위 값을 넣습니다. 넣으면 요청 제한 키와 일별 방문자 키를 이 값으로 만들므로, 나중에 관리자 세션을 모두 끊으려고 `ADMIN_SESSION_SECRET`을 바꿔도 그날 방문자 집계와 요청 제한 기록이 초기화되지 않습니다. 넣지 않아도 지금처럼 동작합니다(`ADMIN_SESSION_SECRET`으로 대신함). 처음 넣는 날에는 그날 중복 제거와 요청 제한 기록이 한 번 초기화됩니다. 자세한 내용은 README의 Cloudflare deployment 절.
 
+- [ ] **`ADMIN_LOGIN_ALLOW_IPS` Worker secret 추가 (선택, 권장)** — 관리자 로그인 전역 제한(모든 주소 합쳐 시간당 30회)이 공격으로 소진되면 관리자도 잠깁니다. 이 secret에 평소 쓰는 주소를 넣어 두면 그 주소는 전역 제한을 건너뜁니다(주소당 15분 5회 제한은 그대로). 쉼표로 구분한 IPv4/IPv6 주소나 CIDR, 예: `203.0.113.7, 2001:db8:1234::/48`. 집 주소가 자주 바뀐다면 미리 넣지 말고, 잠겼을 때 `npx wrangler secret put ADMIN_LOGIN_ALLOW_IPS`로 그때 주소를 넣으면 배포 없이 바로 풀립니다.
+
 - [x] ~~**Google Search Console 등록**~~ — 2026-08-13 완료. 사이트맵 제출과 색인 생성 요청이 남았다면 아래 2·3단계를 마저 하세요. 왜 이 단계가 필요한지는 `docs/how-search-works.md`에 정리했습니다 — 구글은 이미 크롤링한 페이지의 링크를 따라 새 URL을 찾으므로, 아무도 링크를 걸어주지 않은 새 도메인은 직접 알리는 것 말고는 발견될 경로가 없습니다.
 
 - [ ] **사이트맵 제출 + 색인 생성 요청** — 속성 등록만으로는 색인되지 않습니다. Search Console에서 두 가지를 더 해야 합니다.

@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  addressInList,
+  ipv6Groups,
   issueSession,
   likelySameOriginBeacon,
+  rateLimitAddress,
   sameOriginMutation,
   sign,
   validSession,
@@ -30,6 +33,27 @@ test('visitor signatures are stable without exposing the source value', async ()
   const result = await sign('secret', 'visitor:203.0.113.8');
   assert.equal(result, await sign('secret', 'visitor:203.0.113.8'));
   assert.equal(result.includes('203.0.113.8'), false);
+});
+
+test('IPv6 addresses are counted per /64 and IPv4 addresses one by one', () => {
+  assert.deepEqual(ipv6Groups('2001:db8::1'), [0x2001, 0xdb8, 0, 0, 0, 0, 0, 1]);
+  assert.deepEqual(ipv6Groups('::ffff:192.0.2.1'), [0, 0, 0, 0, 0, 0xffff, 0xc000, 0x201]);
+  assert.equal(ipv6Groups('2001:db8::1::2'), null);
+  assert.equal(rateLimitAddress('2001:DB8:1:2:aaaa::1'), '2001:db8:1:2::/64');
+  assert.equal(rateLimitAddress('2001:0db8:0001:0002:ffff:ffff:ffff:ffff'), '2001:db8:1:2::/64');
+  assert.equal(rateLimitAddress('203.0.113.8'), '203.0.113.8');
+});
+
+test('the login allow list matches addresses and CIDR ranges of both families', () => {
+  const list = '203.0.113.7, 198.51.100.0/24, 2001:db8:aaaa::/48, not-an-address, 10.0.0.0/99';
+  assert.equal(addressInList('203.0.113.7', list), true);
+  assert.equal(addressInList('203.0.113.8', list), false);
+  assert.equal(addressInList('198.51.100.250', list), true);
+  assert.equal(addressInList('2001:db8:aaaa:ffff::1', list), true);
+  assert.equal(addressInList('2001:db8:aaab::1', list), false);
+  assert.equal(addressInList('10.0.0.1', list), false, 'an invalid prefix matches nothing');
+  assert.equal(addressInList('203.0.113.7', undefined), false);
+  assert.equal(addressInList(null, list), false);
 });
 
 test('state-changing requests require the exact origin', () => {

@@ -130,6 +130,107 @@ export async function anonymousVisitorKey(request, secret) {
   return sign(secret, `visitor:${address}`);
 }
 
+/**
+ * The eight 16-bit groups of an IPv6 address, or null when it is not one.
+ * Handles `::` and a trailing dotted IPv4 part (`::ffff:192.0.2.1`).
+ */
+export function ipv6Groups(address) {
+  const text = String(address).split('%')[0].toLowerCase();
+  if (!text.includes(':')) return null;
+  const halves = text.split('::');
+  if (halves.length > 2) return null;
+
+  const toGroups = (part) => {
+    if (!part) return [];
+    const groups = [];
+    for (const piece of part.split(':')) {
+      if (piece.includes('.')) {
+        const v4 = ipv4Number(piece);
+        if (v4 === null) return null;
+        groups.push(Math.floor(v4 / 0x10000), v4 % 0x10000);
+        continue;
+      }
+      if (!/^[0-9a-f]{1,4}$/u.test(piece)) return null;
+      groups.push(parseInt(piece, 16));
+    }
+    return groups;
+  };
+
+  const head = toGroups(halves[0]);
+  const tail = halves.length === 2 ? toGroups(halves[1]) : [];
+  if (head === null || tail === null) return null;
+  if (halves.length === 1) return head.length === 8 ? head : null;
+  const missing = 8 - head.length - tail.length;
+  if (missing < 1) return null;
+  return [...head, ...new Array(missing).fill(0), ...tail];
+}
+
+/** An IPv4 address as an unsigned 32-bit number, or null when it is not one. */
+export function ipv4Number(address) {
+  const parts = String(address).split('.');
+  if (parts.length !== 4) return null;
+  let value = 0;
+  for (const part of parts) {
+    if (!/^\d{1,3}$/u.test(part) || Number(part) > 255) return null;
+    value = value * 256 + Number(part);
+  }
+  return value;
+}
+
+/**
+ * What one sender controls. An IPv4 address is one sender; an IPv6 host
+ * usually gets a whole /64 and can pick any address in it, so counting per
+ * address there would let one machine multiply its attempts at will.
+ */
+export function rateLimitAddress(address) {
+  const groups = ipv6Groups(address);
+  if (!groups) return String(address);
+  const prefix = [];
+  for (const group of groups.slice(0, 4)) prefix.push(group.toString(16));
+  return `${prefix.join(':')}::/64`;
+}
+
+/** Like anonymousVisitorKey, but one key per IPv6 /64 (IPv4 unchanged). */
+export async function anonymousAddressBlockKey(request, secret) {
+  const address = request.headers.get('CF-Connecting-IP') ?? 'local-development';
+  return sign(secret, `visitor:${rateLimitAddress(address)}`);
+}
+
+/** An address as a bit length and a BigInt, so IPv4 and IPv6 share one CIDR check. */
+function addressBits(address) {
+  const v4 = ipv4Number(address);
+  if (v4 !== null) return { bits: 32, value: BigInt(v4) };
+  const groups = ipv6Groups(address);
+  if (!groups) return null;
+  let value = 0n;
+  for (const group of groups) value = (value << 16n) | BigInt(group);
+  return { bits: 128, value };
+}
+
+/**
+ * Whether an address is in a comma-separated list of addresses and CIDR
+ * ranges, such as `203.0.113.7, 2001:db8:1234::/48`. Entries that do not
+ * parse are skipped rather than matching everything.
+ */
+export function addressInList(address, list) {
+  if (!address || !list) return false;
+  const target = addressBits(address);
+  if (!target) return false;
+
+  for (const rawEntry of String(list).split(',')) {
+    const entry = rawEntry.trim();
+    if (!entry) continue;
+    const [base, prefixText] = entry.split('/');
+    const range = addressBits(base);
+    if (!range || range.bits !== target.bits) continue;
+    const prefix = prefixText === undefined ? range.bits : Number(prefixText);
+    if (!Number.isInteger(prefix) || prefix < 0 || prefix > range.bits) continue;
+    const shift = BigInt(range.bits - prefix);
+    if ((range.value >> shift) === (target.value >> shift)) return true;
+  }
+  return false;
+}
+
 export function jsonResponse(data, init = {}) {
   const headers = new Headers(init.headers);
   headers.set('Content-Type', 'application/json; charset=utf-8');

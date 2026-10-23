@@ -110,7 +110,7 @@ Every tool subdomain redirects to a localized page on `utilark.app` rather than 
 
 Contact records use a Utilark-only SQLite-backed Durable Object. Tool files and tool text never enter this storage. Records expire after 180 days. Retention is enforced by a Durable Object alarm that runs once a day, so expired contacts, feedback, and analytics are deleted within a day of their limit even when the site gets no traffic, and no request pays for the cleanup.
 
-Public submissions are rate-limited per address using an HMAC value instead of storing the source IP address: five contact messages per 15 minutes, and three feedback notes per tool per day so people sharing an office or school address are not refused. Because addresses are cheap to rotate, contact messages and feedback notes also each stop at 200 a day in total, and admin login allows five attempts per address per 15 minutes and 30 attempts an hour from all addresses together. While that global login limit is spent, the administrator is locked out too.
+Public submissions are rate-limited per address using an HMAC value instead of storing the source IP address: five contact messages per 15 minutes, and three feedback notes per tool per day so people sharing an office or school address are not refused. Because addresses are cheap to rotate, contact messages and feedback notes also each stop at 200 a day in total, and admin login allows five attempts per address per 15 minutes and 30 attempts an hour from all addresses together. For admin login an IPv6 address counts as its whole /64, since one host can pick any address in it. While the global login limit is spent, everyone is locked out, including the administrator, unless their address is in `ADMIN_LOGIN_ALLOW_IPS` (below).
 
 The same isolated Durable Object stores tool feedback in a separate table. The administrator can approve, reject, unpublish, or delete testimonial candidates. The public API returns only aggregate rating counts and already-approved anonymous quote text; pending and private feedback never leave the authenticated admin boundary.
 
@@ -128,7 +128,9 @@ Before the admin and contact form can open, add these encrypted Worker secrets u
 - `ADMIN_SESSION_SECRET` — a long random value used to sign admin sessions
 - `ANALYTICS_SECRET` (optional, recommended) — a different long random value used to anonymize rate-limit keys and daily visitor keys. Without it, `ADMIN_SESSION_SECRET` does this job too.
 
-`ADMIN_ID` is the non-secret value `admin` in `wrangler.jsonc`. Missing secrets fail closed: the admin returns 503 and contact submissions are not stored. `ANALYTICS_SECRET` is deliberately not in `secrets.required`, so a deployment made before it was added keeps working.
+- `ADMIN_LOGIN_ALLOW_IPS` (optional) — comma-separated IPv4/IPv6 addresses or CIDR ranges, for example `203.0.113.7, 2001:db8:1234::/48`. Logins from these addresses skip the global 30-an-hour limit but keep the per-address one. If an attack has spent the global limit and locked you out, set this to your current address with `npx wrangler secret put ADMIN_LOGIN_ALLOW_IPS`; it takes effect at once, with no code change or deployment.
+
+`ADMIN_ID` is the non-secret value `admin` in `wrangler.jsonc`. Missing secrets fail closed: the admin returns 503 and contact submissions are not stored. `ANALYTICS_SECRET` and `ADMIN_LOGIN_ALLOW_IPS` are deliberately not in `secrets.required`, so a deployment made before they were added keeps working.
 
 Admin sessions are stateless signed tokens, so signing out only removes the cookie from that browser. To revoke every session at once, rotate `ADMIN_SESSION_SECRET`. With `ANALYTICS_SECRET` set, that rotation leaves the day's visitor deduplication and rate-limit windows alone; without it, they reset along with the sessions. Setting `ANALYTICS_SECRET` for the first time resets them once in the same way.
 

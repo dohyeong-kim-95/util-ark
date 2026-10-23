@@ -4,3 +4,6 @@ ADMIN_SESSION_SECRET=replace-with-at-least-32-random-characters
 # Optional. Anonymizes rate-limit and daily visitor keys. When unset,
 # ADMIN_SESSION_SECRET is used for that too.
 ANALYTICS_SECRET=replace-with-a-different-32-random-characters
+# Optional. Comma-separated IPs or CIDR ranges (IPv4 and IPv6) that skip the
+# global admin-login limit; the per-address limit still applies.
+# ADMIN_LOGIN_ALLOW_IPS=203.0.113.7, 2001:db8:1234::/48
