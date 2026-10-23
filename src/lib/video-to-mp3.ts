@@ -39,7 +39,10 @@ function readDuration(file: File): Promise<number> {
     media.addEventListener('loadedmetadata', () => resolve(media.duration), { once: true });
     media.addEventListener('error', () => resolve(Number.NaN), { once: true });
   });
-  return withTimeout(loaded, 5000, () => new Error('metadata timeout'))
+  // Short, because this only guards a check the decode repeats exactly: iOS
+  // may never fire loadedmetadata for an element off the page, and waiting
+  // there just delays every file.
+  return withTimeout(loaded, 2000, () => new Error('metadata timeout'))
     .catch(() => Number.NaN)
     .finally(() => {
       media.removeAttribute('src');
