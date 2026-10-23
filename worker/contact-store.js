@@ -125,8 +125,10 @@ export class ContactStore {
 
   async alarm() {
     const now = Date.now();
-    this.purge(now);
+    // Booked before purging, so a purge that throws still leaves tomorrow's run
+    // in place instead of ending retention for good.
     await this.storage.setAlarm(now + DAY_MS);
+    this.purge(now);
   }
 
   purge(now) {

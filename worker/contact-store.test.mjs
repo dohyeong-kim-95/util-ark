@@ -160,3 +160,12 @@ test('one address has its own daily cap on contacts and feedback, below the site
     }
   }
 });
+
+test('a purge that fails still leaves the next daily alarm booked', async () => {
+  const state = fakeState();
+  const store = new ContactStore(state);
+  store.purge = () => { throw new Error('disk full'); };
+  const before = Date.now();
+  await assert.rejects(() => store.alarm(), /disk full/u);
+  assert.ok(state.alarmAt >= before + DAY_MS, 'tomorrow is still scheduled');
+});
