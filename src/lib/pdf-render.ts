@@ -1,10 +1,11 @@
 import { PdfError } from './pdf-text';
+import { CMAP_OPTIONS, loadPdfjs } from './pdfjs';
 
 /**
  * Draws PDF pages as pictures, for the page picker and for the PDF-to-image
  * tool.
  *
- * Shares the loader with `pdf-text.ts` — same CMap directory, same reasons — but
+ * Shares the loader (`pdfjs.ts`) with `pdf-text.ts` — same CMap directory — but
  * lives apart because reading a page and drawing one need different things, and
  * the read-aloud tool has no use for a canvas.
  */
@@ -29,14 +30,11 @@ export const scaleForDpi = (dpi: number): number => dpi / 72;
 export const MAX_PIXELS = 40e6;
 
 export async function openPdf(data: ArrayBuffer): Promise<PdfDocument> {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.min.mjs');
-  const workerUrl = (await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')).default;
-  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+  const pdfjs = await loadPdfjs();
 
   const loading = pdfjs.getDocument({
     data,
-    cMapUrl: '/cmaps/',
-    cMapPacked: true,
+    ...CMAP_OPTIONS,
     // JBIG2, CCITT fax and JPEG 2000 images — what scanners write — decode only
     // through these files. Without them a scanned page draws as blank white.
     wasmUrl: '/pdfjs/wasm/',

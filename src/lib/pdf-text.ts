@@ -283,21 +283,17 @@ export type PdfProgress = (done: number, total: number) => void;
  * text, and this reports that rather than returning silence.
  */
 export async function pdfToText(data: ArrayBuffer, onProgress?: PdfProgress): Promise<string> {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.min.mjs');
-  const workerUrl = (await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')).default;
-  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+  // Imported here rather than at the top so the node tests, which load this
+  // module for `layoutPages`, never resolve the browser-only loader.
+  const { CMAP_OPTIONS, loadPdfjs } = await import('./pdfjs');
+  const pdfjs = await loadPdfjs();
 
   const loading = pdfjs.getDocument({
     data,
-    // Korean PDFs written against a predefined CJK encoding carry no ToUnicode
-    // table, and without the matching CMap their text extracts as mojibake. The
-    // files are served from this site, not a CDN — the PDF itself still goes
-    // nowhere, and pdf.js fetches only the one encoding a file asks for.
     // `standardFontDataUrl` and `wasmUrl` are deliberately left unset: they
     // matter for drawing a page, not for reading it, and unset means pdf.js has
     // nowhere to fetch from.
-    cMapUrl: '/cmaps/',
-    cMapPacked: true,
+    ...CMAP_OPTIONS,
   });
 
   let document;
