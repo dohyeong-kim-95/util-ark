@@ -109,7 +109,7 @@ const labels = locale === 'ko'
 </div>
 
 <script>
-  import { MAX_GIF_FRAMES, MediaError, formatBytes, gifBytes, planFrames } from '../../lib/media-plan';
+  import { MAX_GIF_FRAMES, MediaError, formatBytes, gifBytes, planFrames, withTimeout } from '../../lib/media-plan';
   import type { VideoFacts } from '../../lib/video-to-gif';
 
   const root = document.querySelector<HTMLElement>('.gif-tool');
@@ -235,11 +235,15 @@ const labels = locale === 'ko'
       worker.src = sourceUrl;
 
       try {
-        await new Promise<void>((resolve, reject) => {
+        const { videoToGif, SEEK_TIMEOUT_MS } = await import('../../lib/video-to-gif');
+        const loaded = new Promise<void>((resolve, reject) => {
           worker.addEventListener('loadeddata', () => resolve(), { once: true });
           worker.addEventListener('error', () => reject(new MediaError('unreadable', 'load failed')), { once: true });
         });
-        const { videoToGif } = await import('../../lib/video-to-gif');
+        // A video that is not on the page may never start loading on iOS, so
+        // the load is asked for explicitly and the wait is bounded.
+        worker.load();
+        await withTimeout(loaded, SEEK_TIMEOUT_MS, () => new MediaError('unreadable', 'load stalled'));
         const blob = await videoToGif(worker, plan, (done, total) => {
           say(`${copy.working} ${done} / ${total}`);
         });
