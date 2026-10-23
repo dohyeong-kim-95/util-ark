@@ -1513,8 +1513,15 @@ button:disabled {
   text-align: center;
 }
 
-.drop-zone:hover {
+.drop-zone:hover,
+.drop-zone.is-dropping {
   border-color: var(--ink);
+}
+
+/* The real input is hidden, so the box itself shows keyboard focus. */
+.drop-zone:focus-within {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
 }
 
 .drop-zone input {

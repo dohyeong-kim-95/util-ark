@@ -44,3 +44,40 @@ export function downloadBlob(blob: Blob, filename: string): void {
   anchor.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+/**
+ * Makes every `.drop-zone` accept dropped files. The dashed box invites a
+ * drop, and without a handler the browser opens the dropped file itself and
+ * the page is gone. A drop is passed to the zone's own file input and
+ * announced with a `change` event, so each tool handles it exactly as if the
+ * file had been picked. A zone whose input takes one file gets the first.
+ */
+export function wireDropZones(): void {
+  document.querySelectorAll<HTMLElement>('.drop-zone').forEach((zone) => {
+    const input = zone.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!input) return;
+
+    zone.addEventListener('dragover', (event) => {
+      if (!event.dataTransfer?.types.includes('Files')) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+      zone.classList.add('is-dropping');
+    });
+    zone.addEventListener('dragleave', (event) => {
+      if (event.relatedTarget && zone.contains(event.relatedTarget as Node)) return;
+      zone.classList.remove('is-dropping');
+    });
+    zone.addEventListener('drop', (event) => {
+      const dropped = event.dataTransfer?.files;
+      if (!dropped || dropped.length === 0) return;
+      event.preventDefault();
+      zone.classList.remove('is-dropping');
+
+      const transfer = new DataTransfer();
+      const count = input.multiple ? dropped.length : 1;
+      for (let index = 0; index < count; index += 1) transfer.items.add(dropped[index]);
+      input.files = transfer.files;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+}
