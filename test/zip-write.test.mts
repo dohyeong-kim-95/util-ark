@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { crc32 as nodeCrc32 } from 'node:zlib';
 import test from 'node:test';
 
-import { crc32, writeZip } from '../src/lib/zip-write.ts';
+import { crc32, writeZip, zipSafeBase } from '../src/lib/zip-write.ts';
 
 /**
  * The writer is checked against two independent things rather than against
@@ -103,4 +103,16 @@ test('many entries all land in the directory', async () => {
     at += 46 + view.getUint16(at + 28, true) + view.getUint16(at + 30, true) + view.getUint16(at + 32, true);
   }
   assert.equal(at, view.byteLength - 22, 'the directory must end where the record begins');
+});
+
+test('a file name that the archive would refuse is cleaned into one it accepts', () => {
+  assert.equal(zipSafeBase('scan\\page'), 'scan_page');
+  const long = zipSafeBase('가'.repeat(300));
+  assert.equal(long.length, 200);
+  // An emoji is two UTF-16 units; the cut never leaves half of one behind.
+  const emoji = zipSafeBase(`${'a'.repeat(199)}😀`);
+  assert.equal(emoji, 'a'.repeat(199));
+  assert.equal(zipSafeBase(''), 'file');
+  // The cleaned name plus a copy number and extension still writes.
+  assert.ok(writeZip([{ name: `${long}-2.webp`, bytes: new Uint8Array([1]) }]).size > 0);
 });

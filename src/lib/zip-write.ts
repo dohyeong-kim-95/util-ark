@@ -53,6 +53,24 @@ function checkName(name: string): void {
   }
 }
 
+/** Room left under checkName's 255 for a `-2` copy number and an extension. */
+const MAX_BASE_LENGTH = 200;
+
+/**
+ * Makes a file's base name (no extension) safe to use as an entry name, for
+ * callers that would rather rename one file than lose the whole archive: `\`
+ * becomes `_`, and a long name is cut short without splitting a character.
+ */
+export function zipSafeBase(base: string): string {
+  const cleaned = base.replaceAll('\\', '_');
+  let result = '';
+  for (const character of cleaned) {
+    if (result.length + character.length > MAX_BASE_LENGTH) break;
+    result += character;
+  }
+  return result || 'file';
+}
+
 export function writeZip(entries: ZipEntry[]): Blob {
   if (!entries.length) throw new Error('A ZIP needs at least one entry.');
 

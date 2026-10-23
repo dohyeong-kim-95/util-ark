@@ -177,9 +177,8 @@ const labels = locale === 'ko'
       if (status) status.textContent = root.dataset.working ?? '';
       const mime = format?.value ?? 'image/webp';
       const outputQuality = Number(quality?.value ?? 85) / 100;
-      const converted: Array<{ name: string; blob: Blob }> = [];
+      const converted: Array<{ base: string; extension: string; blob: Blob }> = [];
       const failedNames: string[] = [];
-      const usedNames = new Set<string>();
       let fellBack = false;
       try {
         // One file failing no longer stops the rest; it is named at the end.
@@ -188,17 +187,7 @@ const labels = locale === 'ko'
             const encoded = await convertFile(file, mime, outputQuality);
             if (encoded.fellBack) fellBack = true;
             const base = file.name.replace(/\.[^.]+$/u, '') || 'image';
-            const extension = extensionFor(encoded.type);
-            // a.png and a.jpg both become a.webp; inside one ZIP they need
-            // different names or the second replaces the first.
-            let name = `${base}.${extension}`;
-            let copyNumber = 2;
-            while (usedNames.has(name)) {
-              name = `${base}-${copyNumber}.${extension}`;
-              copyNumber += 1;
-            }
-            usedNames.add(name);
-            converted.push({ name, blob: encoded.blob });
+            converted.push({ base, extension: extensionFor(encoded.type), blob: encoded.blob });
           } catch {
             failedNames.push(file.name);
           }
@@ -207,12 +196,28 @@ const labels = locale === 'ko'
         // Several downloads in a row trip Chrome's "multiple files" prompt and
         // are blocked on iOS once the tap is over, so two or more go out as
         // one ZIP, the same way PDF to image does it.
-        if (converted.length === 1) downloadBlob(converted[0].blob, converted[0].name);
+        if (converted.length === 1) {
+          downloadBlob(converted[0].blob, `${converted[0].base}.${converted[0].extension}`);
+        }
         if (converted.length > 1) {
-          const { writeZip } = await import('../../lib/zip-write');
+          const { writeZip, zipSafeBase } = await import('../../lib/zip-write');
           const entries = [];
+          const usedNames = new Set<string>();
           for (const item of converted) {
-            entries.push({ name: item.name, bytes: new Uint8Array(await item.blob.arrayBuffer()) });
+            // A `\` or a very long name would make the ZIP refuse the whole
+            // batch, so the entry name is cleaned rather than the file lost.
+            const base = zipSafeBase(item.base);
+            // a.png and a.jpg both become a.webp; inside one ZIP they need
+            // different names or the second replaces the first. Compared
+            // without case, since Windows treats A.webp and a.webp as one file.
+            let name = `${base}.${item.extension}`;
+            let copyNumber = 2;
+            while (usedNames.has(name.toLowerCase())) {
+              name = `${base}-${copyNumber}.${item.extension}`;
+              copyNumber += 1;
+            }
+            usedNames.add(name.toLowerCase());
+            entries.push({ name, bytes: new Uint8Array(await item.blob.arrayBuffer()) });
           }
           downloadBlob(writeZip(entries), 'utilark-images.zip');
         }
