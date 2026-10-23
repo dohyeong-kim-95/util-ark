@@ -222,11 +222,17 @@ function textOf(xml: string): string {
 
     if (token.kind === 'close') {
       const open = stack.pop();
-      if (dropAt !== -1 && stack.length <= dropAt) dropAt = -1;
+      // Closing tags inside a dropped subtree must not add line breaks either,
+      // or a skipped text-box copy would still leave its paragraphs behind.
+      if (dropAt !== -1) {
+        if (stack.length <= dropAt) dropAt = -1;
+        continue;
+      }
       if (!open?.word) continue;
       if (open.local === 't') inText = false;
       else if (open.local === 'p' && inBody) out.push('\n');
       else if (open.local === 'body') inBody = false;
+      else if (open.local === 'txbxContent' && out[out.length - 1] === '\n') out.pop();
       continue;
     }
 
@@ -238,6 +244,14 @@ function textOf(xml: string): string {
     const isWord = colon !== -1 && token.name.slice(0, colon) === prefix;
 
     if (token.kind === 'open') stack.push({ local, word: isWord });
+
+    // Word 2010 and later write every text box twice: once for new readers in
+    // `mc:Choice` and once as legacy VML in `mc:Fallback`. Both copies hold the
+    // same `w:txbxContent`, so reading the fallback would count the box twice.
+    if (inBody && local === 'Fallback' && token.kind === 'open' && dropAt === -1) {
+      dropAt = stack.length - 1;
+      continue;
+    }
     if (!isWord) continue;
 
     if (local === 'body') { sawBody = true; inBody = true; continue; }
@@ -248,8 +262,14 @@ function textOf(xml: string): string {
       continue;
     }
     if (dropAt !== -1) continue;
+    // A `w:tab` inside a run is a typed tab. The same element inside
+    // `w:pPr/w:tabs` is a tab stop definition, which is formatting, not text.
+    const parent = token.kind === 'open' ? stack[stack.length - 2] : stack[stack.length - 1];
+    const parentIsRun = parent?.word === true && parent.local === 'r';
+
     if (local === 't') inText = true;
-    else if (local === 'tab') out.push('\t');
+    else if (local === 'tab' && parentIsRun) out.push('\t');
+    else if (local === 'txbxContent' && out.length && out[out.length - 1] !== '\n') out.push('\n');
     else if (local === 'br' || local === 'cr') out.push('\n');
   }
 

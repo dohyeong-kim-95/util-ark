@@ -178,3 +178,19 @@ test('a paragraph holding only a drawing adds a line but no characters', async (
   const body = para(text('위')) + '<w:p><w:r><w:drawing/></w:r></w:p>' + para(text('아래'));
   assert.equal(await docxToText(docx(body)), '위\n\n아래');
 });
+
+test('a text box is read once, not again from its legacy fallback copy', async () => {
+  // Word 2010+ writes the box in mc:Choice (wps) and again in mc:Fallback (VML).
+  const box = (value: string) => `<w:txbxContent>${para(text(value))}</w:txbxContent>`;
+  const body = '<w:p><w:r>' + text('본문') + '</w:r><w:r><mc:AlternateContent>' +
+    `<mc:Choice Requires="wps"><w:drawing><wps:txbx>${box('상자글')}</wps:txbx></w:drawing></mc:Choice>` +
+    `<mc:Fallback><w:pict><v:textbox>${box('상자글')}</v:textbox></w:pict></mc:Fallback>` +
+    '</mc:AlternateContent></w:r></w:p>' + para(text('다음'));
+  assert.equal(await docxToText(docx(body)), '본문\n상자글\n다음');
+});
+
+test('tab stop definitions in paragraph properties are not counted as tabs', async () => {
+  const body = '<w:p><w:pPr><w:tabs><w:tab w:val="left" w:pos="720"/><w:tab w:val="right" w:pos="9000"/></w:tabs></w:pPr>' +
+    `<w:r>${text('제목')}</w:r><w:r><w:tab/>${text('1')}</w:r></w:p>`;
+  assert.equal(await docxToText(docx(body)), '제목\t1');
+});
